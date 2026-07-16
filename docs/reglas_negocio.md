@@ -23,4 +23,13 @@ Las reglas de selectividad/capacidad de corte deben vivir como datos configurabl
 - Toda subida de catálogo queda auditada (`catalogo_precio_historial`, `audit_log`) y es visible para todos los analistas.
 - Los proyectos son reasignables entre analistas sin bloqueo.
 
+## Importación de catálogo
+
+- Cualquiera de los dos roles (analista o supervisor) puede subir un archivo de catálogo.
+- La clave de identificación de un componente es `(proveedor, codigo)`. Volver a subir un archivo con el mismo código actualiza el componente existente en vez de duplicarlo.
+- Si el precio (`precio_lista` o `precio_neto`) cambió respecto al valor guardado, se escribe una fila en `catalogo_precio_historial` antes de actualizar — nunca se pierde el precio anterior.
+- Toda importación queda registrada en `audit_log` con el resumen (nuevos/actualizados/sin cambios), visible para todos los analistas.
+- El catálogo ABB se importa completo (todas las categorías, no solo las de tableros seccionables) para poder reutilizarse en otros proyectos de PYRE. La jerarquía de categorías (`categoria_path`) se parsea automáticamente desde el formato visual del Excel de ABB (tamaño/negrita de fuente) — funciona de forma verificada para interruptores termomagnéticos y diferenciales; en categorías menos usadas por ahora (contactores, UPS, relés, accesorios) el parseo es "mejor esfuerzo" y se corrige cuando una fase futura empiece a usarlas.
+- Celdas de precio no numéricas (ej. `"Consultar"` en ABB, `"#DIV/0!"` en el archivo de otros materiales — confirmado contra los archivos reales: ~0.5% de las filas de ABB y ~10% de las filas de otros materiales) se importan igual, con el precio en `NULL`, en vez de abortar toda la importación — el sistema registra un warning en el log del backend por cada celda así, pero no bloquea el resto del archivo.
+
 Este documento se actualiza a medida que se implementan las fases posteriores.
