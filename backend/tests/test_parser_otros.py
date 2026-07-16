@@ -2,7 +2,6 @@ import io
 from decimal import Decimal
 
 import openpyxl
-import pytest
 
 from app.catalogo.parser_otros import parse_otros_workbook
 
@@ -98,7 +97,10 @@ def test_second_subfamilia_under_same_category_gets_own_header_and_breadcrumb():
     assert segundo.precio_neto == Decimal("1.23")
 
 
-def test_raises_clear_value_error_on_non_numeric_price():
+def test_non_numeric_price_placeholder_parses_as_none_instead_of_raising():
+    # '#DIV/0!' (a broken Excel formula) shows up in ~9.6% of rows in the real
+    # "otros materiales" price list -- the row should still import with that
+    # price left as None rather than aborting the whole file.
     wb = openpyxl.Workbook()
     ws = wb.active
     ws.title = "Lista de Precios"
@@ -111,11 +113,16 @@ def test_raises_clear_value_error_on_non_numeric_price():
     ws.cell(row=9, column=2, value="A00000")
     ws.cell(row=9, column=3, value="Un.")
     ws.cell(row=9, column=4, value="Cable Canal Ranurado 15x15")
-    ws.cell(row=9, column=10, value="Consultar")  # non-numeric placeholder in a price column
+    ws.cell(row=9, column=10, value="#DIV/0!")  # broken Excel formula in a price column
 
     buffer = io.BytesIO()
     wb.save(buffer)
     buffer.seek(0)
 
-    with pytest.raises(ValueError):
-        parse_otros_workbook(buffer, archivo_origen="test.xlsx")
+    resultados = parse_otros_workbook(buffer, archivo_origen="test.xlsx")
+
+    assert len(resultados) == 1
+    componente = resultados[0]
+    assert componente.codigo == "A00000"
+    assert componente.precio_lista is None
+    assert componente.precio_neto is None

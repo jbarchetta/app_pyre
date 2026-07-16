@@ -89,7 +89,11 @@ def test_raises_when_no_lista_de_precios_sheet_found():
         parse_abb_workbook(buffer, archivo_origen="test.xlsx")
 
 
-def test_raises_clear_value_error_on_non_numeric_price():
+def test_non_numeric_price_placeholder_parses_as_none_instead_of_raising():
+    # 'Consultar' ("price on request") shows up in ~0.5% of rows in the real ABB
+    # price list -- it's a normal commercial value, not corrupted data, so the row
+    # should still import with that price left as None rather than aborting the
+    # whole file.
     wb = openpyxl.Workbook()
     ws = wb.active
     ws.title = "Lista de Precios 202607"
@@ -111,8 +115,13 @@ def test_raises_clear_value_error_on_non_numeric_price():
     wb.save(buffer)
     buffer.seek(0)
 
-    with pytest.raises(ValueError):
-        parse_abb_workbook(buffer, archivo_origen="test.xlsx")
+    resultados = parse_abb_workbook(buffer, archivo_origen="test.xlsx")
+
+    assert len(resultados) == 1
+    componente = resultados[0]
+    assert componente.codigo == "COD-BAD"
+    assert componente.precio_lista is None
+    assert componente.precio_neto == Decimal("10.0")
 
 
 def test_raises_clear_value_error_when_required_header_missing():
