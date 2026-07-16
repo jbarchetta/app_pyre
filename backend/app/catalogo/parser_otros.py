@@ -1,8 +1,11 @@
+import logging
 from decimal import Decimal, InvalidOperation
 
 import openpyxl
 
 from app.catalogo.types import ComponenteImportado
+
+logger = logging.getLogger(__name__)
 
 
 def parse_otros_workbook(
@@ -63,7 +66,7 @@ def _read_row_labels(ws, row_idx: int) -> dict[str, int]:
     return labels
 
 
-def _decimal_or_none(value) -> Decimal | None:
+def _decimal_or_none(value, row_idx: int) -> Decimal | None:
     if value is None:
         return None
     try:
@@ -72,6 +75,7 @@ def _decimal_or_none(value) -> Decimal | None:
         # Real-world price lists use placeholders like "#DIV/0!" (a broken Excel
         # formula) instead of a numeric value. Treat that the same as a blank
         # price cell rather than aborting the whole import over one bad row.
+        logger.warning("Precio no numérico en fila %s: %r — se importa sin precio", row_idx, value)
         return None
 
 
@@ -83,8 +87,8 @@ def _build_componente(
         return ws.cell(row=row_idx, column=col).value if col else None
 
     categoria_path = ([categoria_raiz] if categoria_raiz else []) + ([subfamilia] if subfamilia else [])
-    precio_lista = _decimal_or_none(cell("Precio Lista ((U$S)"))
-    precio_neto = _decimal_or_none(cell("Total U$S)") if cell("Total U$S)") is not None else cell("Total"))
+    precio_lista = _decimal_or_none(cell("Precio Lista ((U$S)"), row_idx)
+    precio_neto = _decimal_or_none(cell("Total U$S)") if cell("Total U$S)") is not None else cell("Total"), row_idx)
 
     return ComponenteImportado(
         proveedor="OTROS",

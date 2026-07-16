@@ -1,8 +1,11 @@
+import logging
 from decimal import Decimal, InvalidOperation
 
 import openpyxl
 
 from app.catalogo.types import ComponenteImportado
+
+logger = logging.getLogger(__name__)
 
 
 def parse_abb_workbook(file_obj, archivo_origen: str) -> list[ComponenteImportado]:
@@ -61,7 +64,7 @@ def _update_path(path: list[tuple[tuple, str]], firma: tuple, texto: str) -> Non
     path.append((firma, texto))
 
 
-def _decimal_or_none(value) -> Decimal | None:
+def _decimal_or_none(value, row_idx: int) -> Decimal | None:
     if value is None:
         return None
     try:
@@ -70,6 +73,7 @@ def _decimal_or_none(value) -> Decimal | None:
         # Real-world price lists use text placeholders like "Consultar" ("price on
         # request") instead of a numeric value. Treat that the same as a blank
         # price cell rather than aborting the whole import over one bad row.
+        logger.warning("Precio no numérico en fila %s: %r — se importa sin precio", row_idx, value)
         return None
 
 
@@ -86,8 +90,8 @@ def _build_componente(ws, row_idx, header_map, path, archivo_origen) -> Componen
         categoria_path=[texto for _, texto in path],
         descripcion=str(cell("Descripcion") or "").strip(),
         unidad="Unidad",
-        precio_lista=_decimal_or_none(cell("Precio de Lista USD")),
-        precio_neto=_decimal_or_none(cell("Precio NETO USD")),
+        precio_lista=_decimal_or_none(cell("Precio de Lista USD"), row_idx),
+        precio_neto=_decimal_or_none(cell("Precio NETO USD"), row_idx),
         archivo_origen=archivo_origen,
         fila_origen=row_idx,
     )
