@@ -1,4 +1,5 @@
 import io
+import zipfile
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
 from sqlalchemy.orm import Session
@@ -34,7 +35,7 @@ async def importar_catalogo(
     contenido = await archivo.read()
     try:
         items = parser(io.BytesIO(contenido), archivo_origen=archivo.filename)
-    except ValueError as exc:
+    except (ValueError, KeyError, zipfile.BadZipFile) as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
 
     return upsert_componentes(db, items, usuario_id=usuario.id)
