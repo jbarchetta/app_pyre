@@ -13,7 +13,7 @@ Solo tableros seccionables: interruptor principal + interruptores seccionales (c
 Las reglas de selectividad/capacidad de corte deben vivir como datos configurables, no como lógica hardcodeada — pendiente de tabla de reglas en el plan de Fase C.
 
 ## Precios
-- Materiales: suma de `catalogo_componente.precio_vigente` (congelado en `bom_linea.precio_unitario_congelado` al cotizar) para el interruptor principal + cada salida confirmada.
+- Materiales: suma de `catalogo_componente.precio_neto` (congelado en `bom_linea.precio_unitario_congelado` al cotizar) para el interruptor principal + cada salida confirmada.
 - Mano de obra: estimación del proyecto completo, excluyendo gestión de compra — pendiente de definir tabla de tasas/tiempos en el plan de Fase D.
 - Impuestos, costos financieros y tipo de cambio quedan fuera del sistema; el analista los calcula externamente sobre el Excel exportado.
 
