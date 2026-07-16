@@ -1808,8 +1808,31 @@ git commit -m "feat: add auth guard and wire up routing"
 
 **Files:**
 - Create: `backend/Dockerfile`
+- Create: `backend/.dockerignore`
 - Create: `frontend/Dockerfile`
+- Create: `frontend/.dockerignore`
 - Modify: `docker-compose.yml`
+
+- [ ] **Step 0: Write `.dockerignore` files so `COPY . .` doesn't ship the host venv/node_modules into the Linux image**
+
+`backend/.dockerignore`:
+
+```
+venv/
+__pycache__/
+**/__pycache__/
+.pytest_cache/
+*.pyc
+```
+
+`frontend/.dockerignore`:
+
+```
+node_modules/
+dist/
+```
+
+Without these, `COPY . .` in the backend Dockerfile copies the Windows-built `venv/` (binary-incompatible with the Linux image) into the container, and the frontend `COPY . .` re-copies host `node_modules/` over the ones just installed by `npm install` in the image.
 
 - [ ] **Step 1: Write the backend Dockerfile**
 
