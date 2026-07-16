@@ -35,3 +35,28 @@ export async function fetchCurrentUser(): Promise<Usuario | null> {
 export async function logout(): Promise<void> {
   await fetch(`${API_BASE_URL}/auth/logout`, { method: "POST", credentials: "include" });
 }
+
+export interface ResumenImportCatalogo {
+  total_filas: number;
+  nuevos: number;
+  actualizados: number;
+  sin_cambios: number;
+}
+
+export async function importarCatalogo(proveedor: string, archivo: File): Promise<ResumenImportCatalogo> {
+  const formData = new FormData();
+  formData.append("proveedor", proveedor);
+  formData.append("archivo", archivo);
+
+  const response = await fetch(`${API_BASE_URL}/catalogo/importar`, {
+    method: "POST",
+    credentials: "include",
+    body: formData,
+  });
+
+  if (!response.ok) {
+    throw new Error("No se pudo importar el catálogo");
+  }
+
+  return response.json();
+}
