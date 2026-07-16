@@ -8,7 +8,7 @@ class Settings(BaseSettings):
     jwt_secret: str = "dev-secret-change-me"
     jwt_expire_minutes: int = 480
     environment: str = "development"
-    frontend_origin: str = "http://localhost:5173"
+    frontend_origin: str = "http://localhost:5180"
 
 
 settings = Settings()

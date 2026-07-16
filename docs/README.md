@@ -10,7 +10,7 @@
 ```bash
 docker compose up -d db
 cd backend && source venv/Scripts/activate && pytest -v
-cd frontend && npm run dev
+cd frontend && npm run dev -- --port 5180
 ```
 
 ## Levantar el stack completo (integración)
@@ -20,7 +20,7 @@ docker compose up -d --build
 docker compose exec backend alembic upgrade head
 ```
 
-Frontend: http://localhost:5173 — Backend: http://localhost:8000/health
+Frontend: http://localhost:5180 — Backend: http://localhost:8010/health
 
 ## Crear un usuario
 
@@ -28,8 +28,8 @@ Frontend: http://localhost:5173 — Backend: http://localhost:8000/health
 docker compose exec backend python -m app.scripts.create_user --email nombre@pyre.com --nombre "Nombre Apellido" --password "clave" --rol analista
 ```
 
-## Nota sobre puertos en desarrollo compartido
-Si en tu máquina hay otros procesos escuchando en `localhost:8000` o `localhost:5173` (por ejemplo otro proyecto corriendo en paralelo), `localhost` y `127.0.0.1` pueden resolver a servicios distintos según el stack IPv4/IPv6. Si algo no responde como se espera, verificá con `docker compose ps` qué puertos tiene realmente publicados este proyecto y probá la otra variante de host (`localhost` vs `127.0.0.1`).
+## Nota sobre puertos
+Los puertos de host de este proyecto se eligieron deliberadamente fuera de los defaults más comunes (5173 para Vite, 8000 para FastAPI/Django) porque en la máquina de desarrollo suele haber otros proyectos usando esos mismos puertos por defecto — `docker compose up` no avisa del choque si el otro servicio no está en Docker o está en otra red. Si igualmente hay un conflicto, cambiá el mapeo host en `docker-compose.yml` (ej. `"5190:5173"`) y actualizá `TABLERO_FRONTEND_ORIGIN`/`VITE_API_BASE_URL` en consecuencia.
 
 ## Documentos de referencia
 - `docs/diccionario_datos.md` — qué significa cada tabla/columna.

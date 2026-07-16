@@ -1309,13 +1309,13 @@ def test_preflight_allows_configured_frontend_origin():
     response = client.options(
         "/auth/login",
         headers={
-            "Origin": "http://localhost:5173",
+            "Origin": "http://localhost:5180",
             "Access-Control-Request-Method": "POST",
         },
     )
 
     assert response.status_code == 200
-    assert response.headers["access-control-allow-origin"] == "http://localhost:5173"
+    assert response.headers["access-control-allow-origin"] == "http://localhost:5180"
     assert response.headers["access-control-allow-credentials"] == "true"
 ```
 
@@ -1332,7 +1332,7 @@ Expected: FAIL — no CORS headers present.
 `backend/app/config.py` — add one field to `Settings`:
 
 ```python
-    frontend_origin: str = "http://localhost:5173"
+    frontend_origin: str = "http://localhost:5180"
 ```
 
 `backend/app/main.py` (modify):
@@ -1480,7 +1480,7 @@ git commit -m "chore: scaffold React/TypeScript frontend with Vitest"
 - [ ] **Step 1: Write `.env.development`**
 
 ```
-VITE_API_BASE_URL=http://localhost:8000
+VITE_API_BASE_URL=http://localhost:8010
 ```
 
 - [ ] **Step 2: Write the failing test**
@@ -1553,7 +1553,7 @@ Expected: FAIL — `./LoginPage` module not found.
 `frontend/src/api/client.ts`:
 
 ```typescript
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8010";
 
 export interface Usuario {
   id: string;
@@ -1878,6 +1878,8 @@ CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
 
 - [ ] **Step 3: Add `backend` and `frontend` services to `docker-compose.yml`**
 
+> **Note:** host ports 8010/5180 are used instead of the more common 8000/5173 — this dev machine runs other Dockerized projects that already default to those ports, and `docker compose up` doesn't warn about host-port collisions with containers outside its own project. Container-internal ports stay 8000/5173; only the host-side mapping changes.
+
 Modify `docker-compose.yml` — add under `services:` (keep the existing `db` service and `volumes:` block as-is):
 
 ```yaml
@@ -1887,9 +1889,9 @@ Modify `docker-compose.yml` — add under `services:` (keep the existing `db` se
       TABLERO_DATABASE_URL: postgresql+psycopg2://tablero:tablero_dev_pw@db:5432/tablero
       TABLERO_JWT_SECRET: dev-secret-change-me
       TABLERO_ENVIRONMENT: development
-      TABLERO_FRONTEND_ORIGIN: http://localhost:5173
+      TABLERO_FRONTEND_ORIGIN: http://localhost:5180
     ports:
-      - "8000:8000"
+      - "8010:8000"
     depends_on:
       db:
         condition: service_healthy
@@ -1897,9 +1899,9 @@ Modify `docker-compose.yml` — add under `services:` (keep the existing `db` se
   frontend:
     build: ./frontend
     environment:
-      VITE_API_BASE_URL: http://localhost:8000
+      VITE_API_BASE_URL: http://localhost:8010
     ports:
-      - "5173:5173"
+      - "5180:5173"
     depends_on:
       - backend
 ```
@@ -1916,7 +1918,7 @@ Expected: no errors; the final command prints `Usuario creado: analista@pyre.com
 
 - [ ] **Step 5: Manual smoke test in the browser**
 
-Open `http://localhost:5173/login`, log in with `analista@pyre.com` / `clave-demo-123`, and confirm you land on the "Panel de proyectos (próximamente)" page. Then open `http://localhost:5173/` directly in a new private/incognito window (no cookie) and confirm you're redirected to `/login`.
+Open `http://localhost:5180/login`, log in with `analista@pyre.com` / `clave-demo-123`, and confirm you land on the "Panel de proyectos (próximamente)" page. Then open `http://localhost:5180/` directly in a new private/incognito window (no cookie) and confirm you're redirected to `/login`.
 
 - [ ] **Step 6: Commit**
 
@@ -2017,7 +2019,7 @@ docker compose up -d --build
 docker compose exec backend alembic upgrade head
 ```
 
-Frontend: http://localhost:5173 — Backend: http://localhost:8000/health
+Frontend: http://localhost:5180 — Backend: http://localhost:8010/health
 
 ## Crear un usuario
 
