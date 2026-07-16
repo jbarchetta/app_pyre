@@ -32,7 +32,13 @@ def test_access_token_round_trip():
 
 def test_access_token_rejects_bad_signature():
     token = create_access_token(subject="user-id-123", rol="analista")
-    tampered = token[:-1] + ("A" if token[-1] != "A" else "B")
+    header, payload, signature = token.split(".")
+    # Flip the signature's first character rather than the token's last: the
+    # last base64url character can encode unused padding bits, so tampering
+    # it is flaky (sometimes decodes to the same bytes). The first character
+    # of a 32-byte HS256 signature is always fully significant.
+    tampered_signature = ("A" if signature[0] != "A" else "B") + signature[1:]
+    tampered = f"{header}.{payload}.{tampered_signature}"
 
     with pytest.raises(jwt.PyJWTError):
         decode_access_token(tampered)
