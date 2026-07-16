@@ -1392,10 +1392,10 @@ npm install -D vitest @testing-library/react @testing-library/jest-dom @testing-
 import "@testing-library/jest-dom/vitest";
 ```
 
-Modify `frontend/vite.config.ts` to add the `test` block (keep the existing `plugins` config from the scaffold):
+Modify `frontend/vite.config.ts` to add the `test` block (keep the existing `plugins` config from the scaffold). Import `defineConfig` from `"vitest/config"`, not `"vite"` — the plain `vite` export's types don't know about the `test` key and `tsc -b` fails with "Object literal may only specify known properties, and 'test' does not exist in type 'UserConfigExport'":
 
 ```typescript
-import { defineConfig } from "vite";
+import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
 
 export default defineConfig({
@@ -1436,7 +1436,23 @@ Expected: 1 test file, 1 test, PASS.
 
 Delete `frontend/src/sanity.test.tsx` after confirming — it was only to verify the harness.
 
-- [ ] **Step 4: Commit**
+- [ ] **Step 4: Add jest-dom matcher types so `tsc -b` recognizes them**
+
+The scaffold's `tsconfig.app.json` only lists `"types": ["vite/client"]`. Without also listing `@testing-library/jest-dom`, `tsc -b` fails on any use of matchers like `toBeInTheDocument`/`toHaveTextContent` with "Property 'toBeInTheDocument' does not exist on type 'Assertion<HTMLElement>'" even though the tests run fine under Vitest. Modify `frontend/tsconfig.app.json`:
+
+```json
+    "types": ["vite/client", "@testing-library/jest-dom"],
+```
+
+- [ ] **Step 5: Verify the build's type-check passes**
+
+```bash
+npx tsc -b
+```
+
+Expected: no output, exit code 0.
+
+- [ ] **Step 6: Commit**
 
 ```bash
 git add frontend
@@ -1568,10 +1584,10 @@ export async function logout(): Promise<void> {
 }
 ```
 
-`frontend/src/pages/LoginPage.tsx`:
+`frontend/src/pages/LoginPage.tsx` — note the type-only import for `FormEvent`: the scaffold's `tsconfig.app.json` has `verbatimModuleSyntax: true`, which rejects `import { FormEvent, useState } from "react"` with "'FormEvent' is a type and must be imported using a type-only import":
 
 ```tsx
-import { FormEvent, useState } from "react";
+import { useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { login } from "../api/client";
 
