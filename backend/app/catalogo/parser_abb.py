@@ -1,4 +1,4 @@
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 
 import openpyxl
 
@@ -13,8 +13,8 @@ def parse_abb_workbook(file_obj, archivo_origen: str) -> list[ComponenteImportad
     resultados: list[ComponenteImportado] = []
     path: list[tuple[tuple[float, bool], str]] = []
 
-    codigo_col = header_map["Codigo SAP"]
-    comercial_col = header_map["Codigo Comercial"]
+    codigo_col = _get_required_column(header_map, "Codigo SAP")
+    comercial_col = _get_required_column(header_map, "Codigo Comercial")
 
     for row_idx in range(3, ws.max_row + 1):
         codigo_cell = ws.cell(row=row_idx, column=codigo_col)
@@ -47,6 +47,12 @@ def _read_header_map(ws, header_row: int) -> dict[str, int]:
     return header_map
 
 
+def _get_required_column(header_map: dict[str, int], col: str) -> int:
+    if col not in header_map:
+        raise ValueError(f"Columna requerida '{col}' no encontrada en la hoja")
+    return header_map[col]
+
+
 def _update_path(path: list[tuple[tuple, str]], firma: tuple, texto: str) -> None:
     for i, (existing_firma, _) in enumerate(path):
         if existing_firma == firma:
@@ -55,10 +61,13 @@ def _update_path(path: list[tuple[tuple, str]], firma: tuple, texto: str) -> Non
     path.append((firma, texto))
 
 
-def _decimal_or_none(value) -> Decimal | None:
+def _decimal_or_none(value, row_idx: int) -> Decimal | None:
     if value is None:
         return None
-    return Decimal(str(value))
+    try:
+        return Decimal(str(value))
+    except InvalidOperation as exc:
+        raise ValueError(f"Precio inválido en fila {row_idx}: {value!r}") from exc
 
 
 def _build_componente(ws, row_idx, header_map, path, archivo_origen) -> ComponenteImportado:
@@ -74,8 +83,8 @@ def _build_componente(ws, row_idx, header_map, path, archivo_origen) -> Componen
         categoria_path=[texto for _, texto in path],
         descripcion=str(cell("Descripcion") or "").strip(),
         unidad="Unidad",
-        precio_lista=_decimal_or_none(cell("Precio de Lista USD")),
-        precio_neto=_decimal_or_none(cell("Precio NETO USD")),
+        precio_lista=_decimal_or_none(cell("Precio de Lista USD"), row_idx),
+        precio_neto=_decimal_or_none(cell("Precio NETO USD"), row_idx),
         archivo_origen=archivo_origen,
         fila_origen=row_idx,
     )

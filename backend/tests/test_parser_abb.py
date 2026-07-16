@@ -87,3 +87,90 @@ def test_raises_when_no_lista_de_precios_sheet_found():
 
     with pytest.raises(ValueError):
         parse_abb_workbook(buffer, archivo_origen="test.xlsx")
+
+
+def test_raises_clear_value_error_on_non_numeric_price():
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Lista de Precios 202607"
+
+    headers = [
+        "Codigo SAP", "Codigo Comercial", None, None, None, None, None, None,
+        "Precio de Lista USD", "Precio NETO USD", None, None, None, None, None, "Descripcion",
+    ]
+    for col, value in enumerate(headers, start=1):
+        ws.cell(row=1, column=col, value=value)
+
+    ws.cell(row=3, column=1, value="COD-BAD")
+    ws.cell(row=3, column=2, value="X-1")
+    ws.cell(row=3, column=9, value="Consultar")  # non-numeric placeholder in a price column
+    ws.cell(row=3, column=10, value=10.0)
+    ws.cell(row=3, column=16, value="Componente con precio inválido")
+
+    buffer = io.BytesIO()
+    wb.save(buffer)
+    buffer.seek(0)
+
+    with pytest.raises(ValueError):
+        parse_abb_workbook(buffer, archivo_origen="test.xlsx")
+
+
+def test_raises_clear_value_error_when_required_header_missing():
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Lista de Precios 202607"
+
+    # "Codigo Comercial" header (column 2) intentionally omitted/renamed.
+    headers = [
+        "Codigo SAP", "Otra Columna", None, None, None, None, None, None,
+        "Precio de Lista USD", "Precio NETO USD", None, None, None, None, None, "Descripcion",
+    ]
+    for col, value in enumerate(headers, start=1):
+        ws.cell(row=1, column=col, value=value)
+
+    ws.cell(row=3, column=1, value="COD-1")
+    ws.cell(row=3, column=2, value="X-1")
+    ws.cell(row=3, column=9, value=15.4)
+    ws.cell(row=3, column=10, value=7.8)
+    ws.cell(row=3, column=16, value="Componente")
+
+    buffer = io.BytesIO()
+    wb.save(buffer)
+    buffer.seek(0)
+
+    with pytest.raises(ValueError):
+        parse_abb_workbook(buffer, archivo_origen="test.xlsx")
+
+
+def test_skips_blank_row_mixed_in_among_data_rows():
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Lista de Precios 202607"
+
+    headers = [
+        "Codigo SAP", "Codigo Comercial", None, None, None, None, None, None,
+        "Precio de Lista USD", "Precio NETO USD", None, None, None, None, None, "Descripcion",
+    ]
+    for col, value in enumerate(headers, start=1):
+        ws.cell(row=1, column=col, value=value)
+
+    def data_row(row, codigo, comercial, precio_lista, precio_neto, descripcion):
+        ws.cell(row=row, column=1, value=codigo)
+        ws.cell(row=row, column=2, value=comercial)
+        ws.cell(row=row, column=9, value=precio_lista)
+        ws.cell(row=row, column=10, value=precio_neto)
+        ws.cell(row=row, column=16, value=descripcion)
+
+    data_row(3, "COD-1", "X-1", 15.4, 7.8, "Primer componente")
+    # Row 4 is entirely blank: both Codigo SAP and Codigo Comercial are None.
+    data_row(5, "COD-2", "X-2", 20.1, 10.2, "Segundo componente")
+
+    buffer = io.BytesIO()
+    wb.save(buffer)
+    buffer.seek(0)
+
+    resultados = parse_abb_workbook(buffer, archivo_origen="test.xlsx")
+
+    assert len(resultados) == 2
+    assert {r.codigo for r in resultados} == {"COD-1", "COD-2"}
+    assert all(r.fila_origen != 4 for r in resultados)
