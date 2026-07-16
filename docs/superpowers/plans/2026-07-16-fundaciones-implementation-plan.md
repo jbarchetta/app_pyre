@@ -148,6 +148,7 @@ alembic==1.13.3
 psycopg2-binary==2.9.10
 pydantic==2.9.2
 pydantic-settings==2.6.0
+email-validator==2.2.0
 passlib==1.7.4
 bcrypt==4.0.1
 pyjwt==2.9.0
@@ -998,6 +999,10 @@ git commit -m "feat: add CLI script to create analista/supervisor users"
 
 ### Task 7: Auth endpoints (login, me, logout) + dependencies
 
+> **Note:** this task uses Pydantic's `EmailStr`, which requires the `email-validator` package (already added to `requirements.txt` above). Without it, importing `app.main` raises `ImportError: email-validator is not installed`.
+>
+> **Note:** the login cookie's `secure` flag must be `settings.environment == "production"`, not `!= "development"`. `httpx`'s `TestClient` talks to `http://testserver` (plain HTTP) — a `Secure` cookie is silently dropped by its cookie jar over non-HTTPS, which breaks the `/auth/me` round-trip in tests (`TABLERO_ENVIRONMENT=test` would otherwise evaluate `secure=True`).
+
 **Files:**
 - Create: `backend/app/auth/dependencies.py`
 - Create: `backend/app/routers/auth.py`
@@ -1217,7 +1222,7 @@ def login(payload: LoginRequest, response: Response, db: Session = Depends(get_d
         key="access_token",
         value=token,
         httponly=True,
-        secure=settings.environment != "development",
+        secure=settings.environment == "production",
         samesite="lax",
         max_age=settings.jwt_expire_minutes * 60,
     )
