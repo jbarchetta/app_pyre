@@ -148,7 +148,8 @@ alembic==1.13.3
 psycopg2-binary==2.9.10
 pydantic==2.9.2
 pydantic-settings==2.6.0
-passlib[bcrypt]==1.7.4
+passlib==1.7.4
+bcrypt==4.0.1
 pyjwt==2.9.0
 python-dotenv==1.0.1
 pytest==8.3.3
@@ -755,6 +756,8 @@ git commit -m "feat: add core data model and initial alembic migration"
 ---
 
 ### Task 5: Password hashing + JWT utilities
+
+> **Known issue:** `passlib` 1.7.4 (unmaintained since 2020) crashes against `bcrypt` >= 4.1 — bcrypt removed the `__about__` attribute passlib probes for, and newer bcrypt raises instead of silently truncating during passlib's internal 72-byte self-test. `requirements.txt` above already pins `bcrypt==4.0.1` to avoid this; if `pip install` pulls a newer bcrypt anyway, run `pip install "bcrypt==4.0.1"` after.
 
 **Files:**
 - Create: `backend/app/auth/__init__.py`
