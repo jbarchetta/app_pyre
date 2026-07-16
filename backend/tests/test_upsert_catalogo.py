@@ -65,3 +65,21 @@ def test_import_writes_audit_log_entry(db_session):
 
     entrada = db_session.query(AuditLog).filter_by(usuario_id=usuario.id, accion="importar_catalogo").one()
     assert entrada.detalle["nuevos"] == 1
+
+
+def test_duplicate_code_within_same_batch_is_last_one_wins(db_session):
+    usuario = create_user("import5.test@pyre.com", "Importador", "clave-segura-123", "analista", db=db_session)
+
+    resumen = upsert_componentes(
+        db_session,
+        [_item(codigo="C5", precio_neto=Decimal("10.00")), _item(codigo="C5", precio_neto=Decimal("15.00"))],
+        usuario_id=usuario.id,
+    )
+
+    assert resumen["total_filas"] == 2
+    componentes = db_session.query(CatalogoComponente).filter_by(proveedor="ABB", codigo="C5").all()
+    assert len(componentes) == 1
+    assert componentes[0].precio_neto == Decimal("15.00")
+    historial = db_session.query(CatalogoPrecioHistorial).filter_by(componente_id=componentes[0].id).one()
+    assert historial.precio_anterior == Decimal("10.00")
+    assert historial.precio_nuevo == Decimal("15.00")
