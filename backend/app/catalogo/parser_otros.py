@@ -1,4 +1,4 @@
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 
 import openpyxl
 
@@ -39,9 +39,19 @@ def parse_otros_workbook(
             subfamilia = texto_b
             continue
 
+        if _is_subfamilia_label_row(ws, row_idx, columna_map):
+            subfamilia = texto_b
+            columna_map = None
+            continue
+
         resultados.append(_build_componente(ws, row_idx, columna_map, categoria_raiz, subfamilia, archivo_origen))
 
     return resultados
+
+
+def _is_subfamilia_label_row(ws, row_idx: int, columna_map: dict[str, int]) -> bool:
+    otras_columnas = [col for col in columna_map.values() if col != 2]
+    return all(ws.cell(row=row_idx, column=col).value is None for col in otras_columnas)
 
 
 def _read_row_labels(ws, row_idx: int) -> dict[str, int]:
@@ -53,10 +63,13 @@ def _read_row_labels(ws, row_idx: int) -> dict[str, int]:
     return labels
 
 
-def _decimal_or_none(value) -> Decimal | None:
+def _decimal_or_none(value, row_idx: int) -> Decimal | None:
     if value is None:
         return None
-    return Decimal(str(value))
+    try:
+        return Decimal(str(value))
+    except InvalidOperation as exc:
+        raise ValueError(f"Precio inválido en fila {row_idx}: {value!r}") from exc
 
 
 def _build_componente(
@@ -67,8 +80,8 @@ def _build_componente(
         return ws.cell(row=row_idx, column=col).value if col else None
 
     categoria_path = ([categoria_raiz] if categoria_raiz else []) + ([subfamilia] if subfamilia else [])
-    precio_lista = _decimal_or_none(cell("Precio Lista ((U$S)"))
-    precio_neto = _decimal_or_none(cell("Total U$S)") if cell("Total U$S)") is not None else cell("Total"))
+    precio_lista = _decimal_or_none(cell("Precio Lista ((U$S)"), row_idx)
+    precio_neto = _decimal_or_none(cell("Total U$S)") if cell("Total U$S)") is not None else cell("Total"), row_idx)
 
     return ComponenteImportado(
         proveedor="OTROS",
