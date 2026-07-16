@@ -24,7 +24,7 @@ def test_catalogo_componente_has_flexible_columns():
     inspector = inspect(engine)
     columns = {c["name"] for c in inspector.get_columns("catalogo_componente")}
 
-    assert EXPECTED_COLUMNS.issubset(columns)
+    assert columns == EXPECTED_COLUMNS
 
 
 def test_catalogo_componente_has_unique_proveedor_codigo_constraint():
