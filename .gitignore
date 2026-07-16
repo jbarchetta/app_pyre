@@ -15,3 +15,7 @@ frontend/dist/
 # OS
 .DS_Store
 Thumbs.db
+
+# Supplier catalog samples (may contain confidential pricing) — never commit
+samples/catalogo/*
+!samples/catalogo/.gitkeep
