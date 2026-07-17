@@ -235,3 +235,49 @@ def test_parse_abb_workbook_populates_atributos_for_in_scope_rows():
 
     diferencial = next(r for r in resultados if r.codigo == "COD-DIF")
     assert diferencial.atributos is None
+
+
+def test_fila_con_codigo_string_vacio_se_trata_como_breadcrumb_no_como_componente():
+    # Bug real encontrado en el Excel de ABB (~1.185 de 10.247 filas): algunas
+    # filas de sección tienen la celda "Codigo SAP" como string vacío (""), no
+    # None -- antes se colaban como "componentes" fantasma con código vacío (y
+    # a veces con el texto de una nota al pie como codigo_comercial, que
+    # revienta el límite de varchar(100) de esa columna al importar).
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Lista de Precios 202607"
+
+    headers = [
+        "Codigo SAP", "Codigo Comercial", None, None, None, None, None, None,
+        "Precio de Lista USD", "Precio NETO USD", None, None, None, None, None, "Descripcion",
+    ]
+    for col, value in enumerate(headers, start=1):
+        ws.cell(row=1, column=col, value=value)
+
+    def header_row(row, text, size, bold):
+        cell = ws.cell(row=row, column=2, value=text)
+        cell.font = Font(size=size, bold=bold)
+
+    header_row(3, "Interruptores Termomagneticos", 14, False)
+    # " " (espacio) en vez de "" -- openpyxl normaliza "" a None al guardar el
+    # archivo, lo que no reproduce el caso real (una celda con contenido en
+    # blanco pero no None). Un espacio sobrevive el guardado/lectura igual que
+    # el caso real del Excel de ABB.
+    ws.cell(row=4, column=1, value=" ")
+    header_row(4, "SH200 L", 14, True)
+
+    ws.cell(row=5, column=1, value="COD-U2")
+    ws.cell(row=5, column=2, value="SH201-C2")
+    ws.cell(row=5, column=9, value=15.4)
+    ws.cell(row=5, column=10, value=7.8)
+    ws.cell(row=5, column=16, value="Interruptor unipolar In 2A")
+
+    buffer = io.BytesIO()
+    wb.save(buffer)
+    buffer.seek(0)
+
+    resultados = parse_abb_workbook(buffer, archivo_origen="test.xlsx")
+
+    assert len(resultados) == 1
+    assert resultados[0].codigo == "COD-U2"
+    assert resultados[0].categoria_path == ["Interruptores Termomagneticos", "SH200 L"]

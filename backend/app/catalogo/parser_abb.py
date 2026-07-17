@@ -105,13 +105,18 @@ def parse_abb_workbook(file_obj, archivo_origen: str) -> list[ComponenteImportad
     for row_idx in range(3, ws.max_row + 1):
         codigo_cell = ws.cell(row=row_idx, column=codigo_col)
         comercial_cell = ws.cell(row=row_idx, column=comercial_col)
+        # Real en el Excel de ABB: algunas filas de sección tienen "Codigo SAP"
+        # en blanco pero no None (un espacio u otro whitespace) -- tratarlas
+        # igual que None evita que se cuelen como "componentes" fantasma con
+        # código vacío.
+        tiene_codigo = codigo_cell.value is not None and str(codigo_cell.value).strip()
 
-        if codigo_cell.value is None and comercial_cell.value is not None:
+        if not tiene_codigo and comercial_cell.value is not None:
             texto = str(comercial_cell.value).strip()
             if texto:
                 firma = (comercial_cell.font.sz, bool(comercial_cell.font.bold))
                 _update_path(path, firma, texto)
-        elif codigo_cell.value is not None:
+        elif tiene_codigo:
             resultados.append(_build_componente(ws, row_idx, header_map, path, archivo_origen))
 
     return resultados
