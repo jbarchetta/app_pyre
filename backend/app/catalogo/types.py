@@ -14,3 +14,4 @@ class ComponenteImportado:
     precio_neto: Decimal | None
     archivo_origen: str
     fila_origen: int
+    atributos: dict | None = None
