@@ -86,6 +86,27 @@ def obtener_tablero(
     return _tablero_response(tablero)
 
 
+class TableroUpdate(BaseModel):
+    nivel_falla_ka: Decimal
+
+
+@router.patch("/tableros/{tablero_id}", response_model=TableroResponse)
+def actualizar_tablero(
+    tablero_id: uuid.UUID,
+    payload: TableroUpdate,
+    db: Session = Depends(get_db),
+    usuario: Usuario = Depends(require_role(RolUsuario.ANALISTA, RolUsuario.SUPERVISOR)),
+):
+    tablero = db.get(Tablero, tablero_id)
+    if tablero is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tablero no encontrado")
+
+    tablero.nivel_falla_ka = payload.nivel_falla_ka
+    db.commit()
+    db.refresh(tablero)
+    return _tablero_response(tablero)
+
+
 class SeccionCreate(BaseModel):
     nombre: str
     orden: int = 0

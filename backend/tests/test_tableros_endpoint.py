@@ -71,6 +71,28 @@ def test_listar_tableros_devuelve_los_creados(client, db_session):
     assert nombres == ["TG1", "TG2"]
 
 
+def test_patch_tablero_actualiza_nivel_falla_ka(client, db_session):
+    proyecto_id = _proyecto(client, db_session, email="patchtablero.test@pyre.com")
+    tablero_id = client.post(
+        f"/proyectos/{proyecto_id}/tableros", json={"nombre": "TG1", "nivel_falla_ka": "10.00"}
+    ).json()["id"]
+
+    response = client.patch(f"/tableros/{tablero_id}", json={"nivel_falla_ka": "16.00"})
+
+    assert response.status_code == 200
+    assert response.json()["nivel_falla_ka"] == "16.00"
+
+
+def test_patch_tablero_inexistente_devuelve_404(client, db_session):
+    import uuid
+
+    _proyecto(client, db_session, email="patchtablero404.test@pyre.com")
+
+    response = client.patch(f"/tableros/{uuid.uuid4()}", json={"nivel_falla_ka": "16.00"})
+
+    assert response.status_code == 404
+
+
 def test_listar_secciones_devuelve_las_creadas(client, db_session):
     proyecto_id = _proyecto(client, db_session, email="listarsecciones.test@pyre.com")
     tablero_id = client.post(
