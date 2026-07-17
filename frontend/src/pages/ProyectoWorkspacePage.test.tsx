@@ -164,4 +164,19 @@ describe("ProyectoWorkspacePage", () => {
 
     expect(await screen.findByText("Sección 1")).toBeInTheDocument();
   });
+
+  it("keeps each tablero's zoom level when switching tabs and back", async () => {
+    mockFetchConDosTableros();
+    renderPage();
+    await screen.findByRole("tab", { name: "TG1" });
+
+    await userEvent.click(await screen.findByRole("button", { name: /acercar/i }));
+    expect(screen.getByRole("button", { name: /ajustar zoom/i })).toHaveTextContent("125%");
+
+    await userEvent.click(screen.getByRole("tab", { name: "TG2" }));
+    expect(await screen.findByRole("button", { name: /ajustar zoom/i })).toHaveTextContent("100%");
+
+    await userEvent.click(screen.getByRole("tab", { name: "TG1" }));
+    expect(await screen.findByRole("button", { name: /ajustar zoom/i })).toHaveTextContent("125%");
+  });
 });
