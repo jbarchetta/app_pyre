@@ -60,7 +60,8 @@ describe("SeccionBlock", () => {
       />,
     );
 
-    expect(screen.getByText(/sin match/i)).toBeInTheDocument();
+    const fila = screen.getByRole("row", { name: /10 a/i });
+    expect(fila).toHaveTextContent(/sin match/i);
     expect(screen.getByLabelText(/buscar código/i)).toBeInTheDocument();
   });
 });

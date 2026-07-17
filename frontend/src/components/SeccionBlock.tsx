@@ -47,49 +47,83 @@ export function SeccionBlock({ seccion, salidas, onSalidaCreada, onSalidaActuali
   }
 
   return (
-    <div>
-      <h3>{seccion.nombre}</h3>
-      <ul>
-        {salidas.map((salida) => (
-          <li key={salida.id}>
-            {salida.carga_valor} {salida.carga_unidad} — {salida.formato} —{" "}
-            {salida.componente_id ? `propuesto: ${salida.componente_id}` : "sin match"}
-            {!salida.componente_id && (
-              <ComponentePicker onSelect={(componente) => handleOverride(salida.id, componente)} />
-            )}
-          </li>
-        ))}
-      </ul>
-      <form onSubmit={handleSubmit}>
-        <label htmlFor={`carga-${seccion.id}`}>Carga</label>
-        <input id={`carga-${seccion.id}`} value={cargaValor} onChange={(e) => setCargaValor(e.target.value)} />
-        <label htmlFor={`unidad-${seccion.id}`}>Unidad</label>
-        <select id={`unidad-${seccion.id}`} value={cargaUnidad} onChange={(e) => setCargaUnidad(e.target.value)}>
-          <option value="A">A</option>
-          <option value="kW">kW</option>
-        </select>
-        <label htmlFor={`formato-${seccion.id}`}>Formato</label>
-        <select
-          id={`formato-${seccion.id}`}
-          value={formato}
-          onChange={(e) => setFormato(e.target.value as FormatoPolos)}
-        >
-          <option value="unipolar">Unipolar</option>
-          <option value="bipolar">Bipolar</option>
-          <option value="tripolar">Tripolar</option>
-          <option value="tetrapolar">Tetrapolar</option>
-        </select>
-        <label htmlFor={`proteccion-${seccion.id}`}>Protección</label>
-        <select
-          id={`proteccion-${seccion.id}`}
-          value={tipoProteccion}
-          onChange={(e) => setTipoProteccion(e.target.value as TipoProteccion)}
-        >
-          <option value="seccional_termomagnetico">Termomagnético</option>
-          <option value="seccional_diferencial">Diferencial</option>
-        </select>
+    <div className="mt-4 border border-surface-stroke bg-white">
+      <h3 className="border-b border-surface-stroke bg-industrial-gray p-4 font-bold uppercase tracking-widest">
+        {seccion.nombre}
+      </h3>
+      <table className="w-full text-left">
+        <thead>
+          <tr className="border-b border-surface-stroke text-xs uppercase tracking-widest text-secondary">
+            <th className="p-3">Carga</th>
+            <th className="p-3">Formato</th>
+            <th className="p-3">Estado</th>
+          </tr>
+        </thead>
+        <tbody>
+          {salidas.map((salida) => (
+            <tr key={salida.id} className="border-b border-surface-stroke">
+              <td className="p-3 font-mono">
+                {salida.carga_valor} {salida.carga_unidad}
+              </td>
+              <td className="p-3">{salida.formato}</td>
+              <td className="p-3">
+                {salida.componente_id ? (
+                  <span className="inline-flex items-center gap-2">
+                    <span className="h-2 w-2 bg-abb-red" /> propuesto: {salida.componente_id}
+                  </span>
+                ) : (
+                  <span className="inline-flex flex-col gap-2">
+                    <span className="inline-flex items-center gap-2">
+                      <span className="h-2 w-2 border border-secondary" /> sin match
+                    </span>
+                    <ComponentePicker onSelect={(componente) => handleOverride(salida.id, componente)} />
+                  </span>
+                )}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <form onSubmit={handleSubmit} className="flex flex-wrap items-end gap-2 p-4">
+        <div>
+          <label htmlFor={`carga-${seccion.id}`}>Carga</label>
+          <input id={`carga-${seccion.id}`} value={cargaValor} onChange={(e) => setCargaValor(e.target.value)} />
+        </div>
+        <div>
+          <label htmlFor={`unidad-${seccion.id}`}>Unidad</label>
+          <select id={`unidad-${seccion.id}`} value={cargaUnidad} onChange={(e) => setCargaUnidad(e.target.value)}>
+            <option value="A">A</option>
+            <option value="kW">kW</option>
+          </select>
+        </div>
+        <div>
+          <label htmlFor={`formato-${seccion.id}`}>Formato</label>
+          <select
+            id={`formato-${seccion.id}`}
+            value={formato}
+            onChange={(e) => setFormato(e.target.value as FormatoPolos)}
+          >
+            <option value="unipolar">Unipolar</option>
+            <option value="bipolar">Bipolar</option>
+            <option value="tripolar">Tripolar</option>
+            <option value="tetrapolar">Tetrapolar</option>
+          </select>
+        </div>
+        <div>
+          <label htmlFor={`proteccion-${seccion.id}`}>Protección</label>
+          <select
+            id={`proteccion-${seccion.id}`}
+            value={tipoProteccion}
+            onChange={(e) => setTipoProteccion(e.target.value as TipoProteccion)}
+          >
+            <option value="seccional_termomagnetico">Termomagnético</option>
+            <option value="seccional_diferencial">Diferencial</option>
+          </select>
+        </div>
         {error && <p role="alert">{error}</p>}
-        <button type="submit">Agregar salida</button>
+        <button type="submit" className="bg-abb-red px-6 py-3 text-sm uppercase tracking-widest text-white">
+          Agregar salida
+        </button>
       </form>
     </div>
   );
