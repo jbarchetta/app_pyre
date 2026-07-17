@@ -172,7 +172,7 @@ export async function crearSeccion(tableroId: string, nombre: string, orden: num
   return response.json();
 }
 
-export type FormatoPolos = "unipolar" | "bipolar" | "tetrapolar";
+export type FormatoPolos = "unipolar" | "bipolar" | "tripolar" | "tetrapolar";
 export type TipoProteccion = "seccional_termomagnetico" | "seccional_diferencial";
 
 export interface Salida {

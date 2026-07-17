@@ -31,6 +31,17 @@ describe("EsquemaVisual", () => {
     expect(screen.getByTestId("salida-sal-tetra")).toHaveAttribute("width", "96");
   });
 
+  it("draws a tripolar rectangle three poles wide", () => {
+    render(
+      <EsquemaVisual
+        tieneInterruptorPrincipal={false}
+        secciones={[{ seccion, salidas: [salida({ id: "sal-tri", formato: "tripolar" })] }]}
+      />,
+    );
+
+    expect(screen.getByTestId("salida-sal-tri")).toHaveAttribute("width", "72");
+  });
+
   it("uses the color matching tipo_proteccion", () => {
     render(
       <EsquemaVisual

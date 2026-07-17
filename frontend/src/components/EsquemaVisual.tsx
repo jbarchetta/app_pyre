@@ -6,6 +6,7 @@ const ALTO = 24;
 const POLOS_POR_FORMATO: Record<Salida["formato"], number> = {
   unipolar: 1,
   bipolar: 2,
+  tripolar: 3,
   tetrapolar: 4,
 };
 

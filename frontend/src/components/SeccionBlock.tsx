@@ -76,6 +76,7 @@ export function SeccionBlock({ seccion, salidas, onSalidaCreada, onSalidaActuali
         >
           <option value="unipolar">Unipolar</option>
           <option value="bipolar">Bipolar</option>
+          <option value="tripolar">Tripolar</option>
           <option value="tetrapolar">Tetrapolar</option>
         </select>
         <label htmlFor={`proteccion-${seccion.id}`}>Protección</label>
