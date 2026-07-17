@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -77,15 +78,24 @@ describe("DetalleTablero", () => {
 
   it("edits nivel de falla and reports the change upward", async () => {
     const onTableroActualizado = vi.fn();
-    render(
-      <DetalleTablero
-        tablero={tablero}
-        onTableroActualizado={onTableroActualizado}
-        vista={{ zoom: 1, capas: { codigos: true, embarrado: true } }}
-        onZoomChange={vi.fn()}
-        onCapasChange={vi.fn()}
-      />,
-    );
+
+    function Harness() {
+      const [tableroActual, setTableroActual] = useState(tablero);
+      return (
+        <DetalleTablero
+          tablero={tableroActual}
+          onTableroActualizado={(actualizado) => {
+            onTableroActualizado(actualizado);
+            setTableroActual(actualizado);
+          }}
+          vista={{ zoom: 1, capas: { codigos: true, embarrado: true } }}
+          onZoomChange={vi.fn()}
+          onCapasChange={vi.fn()}
+        />
+      );
+    }
+
+    render(<Harness />);
     await screen.findByText("Sección 1");
 
     await userEvent.click(screen.getByRole("button", { name: /editar nivel de falla/i }));

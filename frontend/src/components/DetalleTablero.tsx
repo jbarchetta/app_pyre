@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useState, type FormEvent } from "react";
 import {
   actualizarTablero,
   crearSeccion,
@@ -45,34 +45,18 @@ export function DetalleTablero({
   const [nivelFallaKaEdit, setNivelFallaKaEdit] = useState("");
   const [editandoInterruptorPrincipal, setEditandoInterruptorPrincipal] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  // Copia local reflejada en pantalla al instante tras un guardado exitoso.
-  // No puede depender únicamente de la prop `tablero`: el padre actualiza esa
-  // prop de forma asíncrona vía `onTableroActualizado`, y este componente
-  // necesita mostrar el valor nuevo apenas responde el PATCH.
-  const [nivelFallaKaMostrado, setNivelFallaKaMostrado] = useState(tablero.nivel_falla_ka);
-  const [interruptorPrincipalIdMostrado, setInterruptorPrincipalIdMostrado] = useState(
-    tablero.interruptor_principal_id,
-  );
 
-  useEffect(() => {
-    cargar();
-  }, [tablero.id]);
-
-  useEffect(() => {
-    setNivelFallaKaMostrado(tablero.nivel_falla_ka);
-  }, [tablero.nivel_falla_ka]);
-
-  useEffect(() => {
-    setInterruptorPrincipalIdMostrado(tablero.interruptor_principal_id);
-  }, [tablero.interruptor_principal_id]);
-
-  async function cargar() {
+  const cargar = useCallback(async () => {
     const seccionesCargadas = await listarSecciones(tablero.id);
     const conSalidas = await Promise.all(
       seccionesCargadas.map(async (seccion) => ({ seccion, salidas: await listarSalidas(seccion.id) })),
     );
     setSecciones(conSalidas);
-  }
+  }, [tablero.id]);
+
+  useEffect(() => {
+    cargar();
+  }, [cargar]);
 
   async function handleAgregarSeccion(event: FormEvent) {
     event.preventDefault();
@@ -91,7 +75,6 @@ export function DetalleTablero({
     setError(null);
     try {
       const actualizado = await actualizarTablero(tablero.id, { nivel_falla_ka: nivelFallaKaEdit });
-      setNivelFallaKaMostrado(actualizado.nivel_falla_ka);
       onTableroActualizado(actualizado);
       setEditandoNivelFalla(false);
     } catch {
@@ -103,7 +86,6 @@ export function DetalleTablero({
     setError(null);
     try {
       const actualizado = await actualizarTablero(tablero.id, { interruptor_principal_id: componente.id });
-      setInterruptorPrincipalIdMostrado(actualizado.interruptor_principal_id);
       onTableroActualizado(actualizado);
       setEditandoInterruptorPrincipal(false);
     } catch {
@@ -130,12 +112,12 @@ export function DetalleTablero({
   return (
     <div className="mt-8">
       <p>
-        Nivel de falla: {nivelFallaKaMostrado} kA{" "}
+        Nivel de falla: {tablero.nivel_falla_ka} kA{" "}
         {!editandoNivelFalla && (
           <button
             type="button"
             onClick={() => {
-              setNivelFallaKaEdit(nivelFallaKaMostrado);
+              setNivelFallaKaEdit(tablero.nivel_falla_ka);
               setEditandoNivelFalla(true);
             }}
           >
@@ -158,7 +140,7 @@ export function DetalleTablero({
         </form>
       )}
       <p>
-        Interruptor principal: {interruptorPrincipalIdMostrado ? interruptorPrincipalIdMostrado : "sin definir"}{" "}
+        Interruptor principal: {tablero.interruptor_principal_id ? tablero.interruptor_principal_id : "sin definir"}{" "}
         {!editandoInterruptorPrincipal && (
           <button type="button" onClick={() => setEditandoInterruptorPrincipal(true)}>
             editar interruptor principal
@@ -175,7 +157,7 @@ export function DetalleTablero({
       )}
 
       <EsquemaVisualCanvas
-        tieneInterruptorPrincipal={!!interruptorPrincipalIdMostrado}
+        tieneInterruptorPrincipal={!!tablero.interruptor_principal_id}
         secciones={secciones}
         zoom={vista.zoom}
         onZoomChange={onZoomChange}
