@@ -3,14 +3,15 @@
 ## Alcance de esta fase
 Solo tableros seccionables: interruptor principal + interruptores seccionales (con o sin disyuntor/diferencial), alimentando cargas e iluminación. Contactores, guardamotores y soft starters quedan fuera hasta v2+.
 
-## Motor de configuración (a implementar en el plan de Fase C)
-1. El analista carga carga (kW o A) + formato (uni/bi/tetrapolar) por salida.
-2. El sistema determina la corriente nominal necesaria.
-3. Evalúa selectividad contra el interruptor aguas arriba de la sección.
-4. Determina la capacidad de corte mínima según `tablero.nivel_falla_ka`.
-5. Propone el componente de catálogo que cumple esas condiciones al menor costo; el analista confirma o cambia.
+## Motor de configuración
 
-Las reglas de selectividad/capacidad de corte deben vivir como datos configurables, no como lógica hardcodeada — pendiente de tabla de reglas en el plan de Fase C.
+1. El analista carga carga (kW o A) + formato (uni/bi/tetrapolar) + tipo de protección (termomagnético/diferencial) por salida.
+2. Corriente nominal: si la carga está en A, se usa tal cual. Si está en kW: `kW*1000 / (tension_mono_v * cos_phi)` para uni/bipolar, `kW*1000 / (tension_tri_v * √3 * cos_phi)` para tetrapolar. `tension_mono_v` (220V), `tension_tri_v` (380V) y `cos_phi` (0.9) son configurables en `parametro_calculo`.
+3. Selectividad: el nominal del interruptor aguas arriba (hoy siempre `tablero.interruptor_principal`, no hay sub-interruptores por sección) debe ser `>= nominal_propuesto * ratio_selectividad` (default 1.6, configurable). Es una regla simplificada por ratio, no una tabla de curvas de fabricante — pendiente para un ciclo posterior si se necesita mayor precisión.
+4. Capacidad de corte: el componente propuesto debe tener `capacidad_corte_ka >= tablero.nivel_falla_ka`.
+5. De los componentes de catálogo que cumplen tipo de protección + polos (según formato) + corriente + capacidad de corte + selectividad, se propone el de menor `precio_neto` (desempate por `codigo`). Si ninguno cumple, la salida queda sin componente propuesto (`componente_id = NULL`) y el analista lo completa manualmente (`PATCH /salidas/{id}`).
+
+El motor asume que `catalogo_componente.atributos` tiene las claves `tipo`/`polos`/`corriente_nominal_a`/`capacidad_corte_ka` pobladas — ver nota en `diccionario_datos.md` sobre el estado del importador de ABB. Implementado en `backend/app/motor/` (`calculo.py`, `parametros.py`, `propuesta.py`) y expuesto vía `POST /secciones/{id}/salidas`, `PATCH /salidas/{id}`, `GET`/`PUT /parametros-calculo`.
 
 ## Precios
 - Materiales: suma de `catalogo_componente.precio_neto` (congelado en `bom_linea.precio_unitario_congelado` al cotizar) para el interruptor principal + cada salida confirmada.
