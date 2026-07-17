@@ -20,5 +20,8 @@ Thumbs.db
 samples/catalogo/*
 !samples/catalogo/.gitkeep
 
+# Real client project documents (confidential) — never commit
+project/
+
 # Brainstorming visual companion mockups (scratch, not project docs)
 .superpowers/
