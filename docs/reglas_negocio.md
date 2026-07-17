@@ -18,6 +18,18 @@ El motor asume que `catalogo_componente.atributos` tiene las claves `tipo`/`polo
 - Mano de obra: estimación del proyecto completo, excluyendo gestión de compra — pendiente de definir tabla de tasas/tiempos en el plan de Fase D.
 - Impuestos, costos financieros y tipo de cambio quedan fuera del sistema; el analista los calcula externamente sobre el Excel exportado.
 
+### Referencia: metodología interna de costeo de PYRE (para Fase D y BOM)
+
+`samples/catalogo/TABLA POLOS TABLEROS SECC. CON CAMBIOS.xlsx` (confidencial, gitignored) es la planilla que PYRE usa hoy a mano para costear tableros. No se analizó su contenido numérico en detalle (son datos internos de costeo), pero su **estructura** es relevante para fases futuras:
+
+- **Hoja `MAT`**: 5 tablas (TABLA 0 a TABLA 4) que calculan cable/barra/terminales/etiquetas necesarios según el calibre (corriente nominal) del interruptor aguas arriba, para cada tramo de la instalación (cabecera→barra, barra→disyuntor, disyuntor→térmica, térmica→bornera, barra→térmica directo). Implica que el **BOM no puede limitarse a los interruptores** — cada salida confirmada también genera línea(s) de cable/terminal/etiqueta derivadas de su calibre. Pendiente de diseñar en el ciclo de BOM de Fase C.
+- **Hojas `MO IT 1` a `MO IT 8/9`**: tiempos de mano de obra (minutos) por tarea — armado de gabinete, montaje de componentes, armado de barras (acometida y distribución), cableado de distribución, cableado de comando/instrumentación, ensayos FAT, documentación. Es la base real para la "tabla de tasas/tiempos configurable" que Fase D necesita — conviene revisarla junto al usuario al planear esa fase, en vez de inventar una estructura desde cero.
+- **Hoja `GRAFICO`**: contiene un diagrama unifilar (imagen) de referencia — confirmado con el usuario que **no** es el modelo a seguir para el "esquema visual" del sistema (ver más abajo).
+
+### Esquema visual (aclaración de alcance)
+
+El "esquema visual" del roadmap (`configurador-tableros-design.md`) es deliberadamente simple: un bloque proporcional por salida, dimensionado según su formato (ej. termomagnética bipolar = cuadrado de 2 unidades, tetrapolar = 4 unidades; interruptores principales/mayores = cuadrado más grande), apilado dentro de su sección. El objetivo es ayudar al analista a orientarse visualmente sobre el formato físico que está tomando el tablero mientras lo carga — **no** es un diagrama unifilar eléctrico completo (confirmado explícitamente: no se sigue el estilo de la hoja `GRAFICO` del Excel de costeo).
+
 ## Roles
 - **Analista**: crea/edita sus propios proyectos; puede subir/actualizar catálogo.
 - **Supervisor**: además ve y revisa los proyectos de todos los analistas.
