@@ -59,9 +59,17 @@ describe("ProyectoDetallePage", () => {
     await screen.findByText("TG1");
 
     await userEvent.type(screen.getByLabelText(/^nombre$/i), "TG2");
-    await userEvent.type(screen.getByLabelText(/nivel de falla/i), "10.00");
     await userEvent.click(screen.getByRole("button", { name: /crear tablero/i }));
 
     expect(await screen.findByText("TG2")).toBeInTheDocument();
+  });
+
+  it("defaults nivel de falla to a standard value so it doesn't block starting a tablero", async () => {
+    renderPage();
+    await screen.findByText("TG1");
+
+    const nivelFalla = screen.getByLabelText(/nivel de falla/i) as HTMLInputElement;
+
+    expect(nivelFalla.value).toBe("10");
   });
 });

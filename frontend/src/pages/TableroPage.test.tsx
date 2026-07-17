@@ -34,6 +34,18 @@ describe("TableroPage", () => {
             json: async () => [{ id: "s1", tablero_id: "t1", nombre: "Sección 1", orden: 0 }],
           });
         }
+        if (init?.method === "PATCH") {
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({
+              id: "t1",
+              proyecto_id: "p1",
+              nombre: "TG1",
+              nivel_falla_ka: "16.00",
+              interruptor_principal_id: "c1",
+            }),
+          });
+        }
         return Promise.resolve({
           ok: true,
           json: async () => ({
@@ -63,5 +75,22 @@ describe("TableroPage", () => {
     await userEvent.click(screen.getByRole("button", { name: /agregar sección/i }));
 
     expect(await screen.findByText("Sección nueva")).toBeInTheDocument();
+  });
+
+  it("edits nivel de falla so it doesn't stay locked at the value chosen when starting the tablero", async () => {
+    renderPage();
+    await screen.findByText("TG1");
+
+    await userEvent.click(screen.getByRole("button", { name: /editar/i }));
+    const input = screen.getByLabelText(/nuevo nivel de falla/i) as HTMLInputElement;
+    await userEvent.clear(input);
+    await userEvent.type(input, "16");
+    await userEvent.click(screen.getByRole("button", { name: /guardar/i }));
+
+    expect(fetch).toHaveBeenCalledWith(
+      expect.stringContaining("/tableros/t1"),
+      expect.objectContaining({ method: "PATCH" }),
+    );
+    expect(await screen.findByText(/nivel de falla: 16.00 kA/i)).toBeInTheDocument();
   });
 });

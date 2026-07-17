@@ -10,12 +10,17 @@ import {
 } from "../api/client";
 import { ComponentePicker } from "../components/ComponentePicker";
 
+// Icc estándar de arranque para no bloquear la creación del tablero — el
+// analista lo puede editar acá o más tarde desde TableroPage si el estudio
+// eléctrico del sitio da un valor distinto.
+const NIVEL_FALLA_KA_POR_DEFECTO = "10";
+
 export function ProyectoDetallePage() {
   const { id } = useParams<{ id: string }>();
   const [proyecto, setProyecto] = useState<Proyecto | null>(null);
   const [tableros, setTableros] = useState<Tablero[]>([]);
   const [nombre, setNombre] = useState("");
-  const [nivelFallaKa, setNivelFallaKa] = useState("");
+  const [nivelFallaKa, setNivelFallaKa] = useState(NIVEL_FALLA_KA_POR_DEFECTO);
   const [interruptorPrincipal, setInterruptorPrincipal] = useState<ComponenteBusqueda | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -37,7 +42,7 @@ export function ProyectoDetallePage() {
       const tablero = await crearTablero(id, nombre, nivelFallaKa, interruptorPrincipal?.id ?? null);
       setTableros((actuales) => [...actuales, tablero]);
       setNombre("");
-      setNivelFallaKa("");
+      setNivelFallaKa(NIVEL_FALLA_KA_POR_DEFECTO);
       setInterruptorPrincipal(null);
     } catch {
       setError("No se pudo crear el tablero");

@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { useParams } from "react-router-dom";
 import {
+  actualizarTablero,
   crearSeccion,
   listarSalidas,
   listarSecciones,
@@ -22,6 +23,8 @@ export function TableroPage() {
   const [tablero, setTablero] = useState<Tablero | null>(null);
   const [secciones, setSecciones] = useState<SeccionConSalidas[]>([]);
   const [nombreSeccion, setNombreSeccion] = useState("");
+  const [editandoNivelFalla, setEditandoNivelFalla] = useState(false);
+  const [nivelFallaKaEdit, setNivelFallaKaEdit] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -54,6 +57,19 @@ export function TableroPage() {
     }
   }
 
+  async function handleGuardarNivelFalla(event: FormEvent) {
+    event.preventDefault();
+    if (!id) return;
+    setError(null);
+    try {
+      const actualizado = await actualizarTablero(id, nivelFallaKaEdit);
+      setTablero(actualizado);
+      setEditandoNivelFalla(false);
+    } catch {
+      setError("No se pudo actualizar el nivel de falla");
+    }
+  }
+
   function handleSalidaCreada(seccionId: string, salida: Salida) {
     setSecciones((actuales) =>
       actuales.map((s) => (s.seccion.id === seccionId ? { ...s, salidas: [...s.salidas, salida] } : s)),
@@ -75,7 +91,34 @@ export function TableroPage() {
   return (
     <div>
       <h1>{tablero.nombre}</h1>
-      <p>Nivel de falla: {tablero.nivel_falla_ka} kA</p>
+      <p>
+        Nivel de falla: {tablero.nivel_falla_ka} kA{" "}
+        {!editandoNivelFalla && (
+          <button
+            type="button"
+            onClick={() => {
+              setNivelFallaKaEdit(tablero.nivel_falla_ka);
+              setEditandoNivelFalla(true);
+            }}
+          >
+            editar
+          </button>
+        )}
+      </p>
+      {editandoNivelFalla && (
+        <form onSubmit={handleGuardarNivelFalla}>
+          <label htmlFor="nivel-falla-edit">Nuevo nivel de falla (kA)</label>
+          <input
+            id="nivel-falla-edit"
+            value={nivelFallaKaEdit}
+            onChange={(e) => setNivelFallaKaEdit(e.target.value)}
+          />
+          <button type="submit">Guardar</button>
+          <button type="button" onClick={() => setEditandoNivelFalla(false)}>
+            Cancelar
+          </button>
+        </form>
+      )}
       <p>
         Interruptor principal: {tablero.interruptor_principal_id ? tablero.interruptor_principal_id : "sin definir"}
       </p>
