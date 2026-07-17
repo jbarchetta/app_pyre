@@ -120,7 +120,7 @@ export function SeccionBlock({ seccion, salidas, onSalidaCreada, onSalidaActuali
             <option value="seccional_diferencial">Diferencial</option>
           </select>
         </div>
-        {error && <p role="alert">{error}</p>}
+        {error && <p role="alert" className="text-error">{error}</p>}
         <button type="submit" className="bg-abb-red px-6 py-3 text-sm uppercase tracking-widest text-white">
           Agregar salida
         </button>

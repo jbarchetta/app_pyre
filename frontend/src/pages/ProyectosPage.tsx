@@ -91,7 +91,7 @@ export function ProyectosPage() {
             <input id="cliente" ref={clienteInputRef} value={cliente} onChange={(e) => setCliente(e.target.value)} />
             <label htmlFor="nombre">Nombre</label>
             <input id="nombre" value={nombre} onChange={(e) => setNombre(e.target.value)} />
-            {error && <p role="alert">{error}</p>}
+            {error && <p role="alert" className="text-error">{error}</p>}
             <div className="mt-4 flex gap-2">
               <button type="submit" className="bg-abb-red px-6 py-3 text-sm uppercase tracking-widest text-white">
                 Crear proyecto

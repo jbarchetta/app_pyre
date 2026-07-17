@@ -177,7 +177,7 @@ export function DetalleTablero({
       <form onSubmit={handleAgregarSeccion}>
         <label htmlFor="nombre-seccion">Nueva sección</label>
         <input id="nombre-seccion" value={nombreSeccion} onChange={(e) => setNombreSeccion(e.target.value)} />
-        {error && <p role="alert">{error}</p>}
+        {error && <p role="alert" className="text-error">{error}</p>}
         <button type="submit">Agregar sección</button>
       </form>
     </div>

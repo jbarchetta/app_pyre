@@ -130,7 +130,7 @@ export function ProyectoWorkspacePage() {
         <input id="nivel-falla" value={nivelFallaKa} onChange={(e) => setNivelFallaKa(e.target.value)} />
         <p>Interruptor principal{interruptorPrincipal ? `: ${interruptorPrincipal.codigo}` : " (opcional)"}</p>
         <ComponentePicker onSelect={setInterruptorPrincipal} />
-        {error && <p role="alert">{error}</p>}
+        {error && <p role="alert" className="text-error">{error}</p>}
         <button type="submit" className="self-start bg-abb-red px-6 py-3 text-sm uppercase tracking-widest text-white">
           Crear tablero
         </button>
