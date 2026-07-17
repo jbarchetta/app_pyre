@@ -111,50 +111,69 @@ export function DetalleTablero({
 
   return (
     <div className="mt-8">
-      <p>
-        Nivel de falla: {tablero.nivel_falla_ka} kA{" "}
-        {!editandoNivelFalla && (
-          <button
-            type="button"
-            onClick={() => {
-              setNivelFallaKaEdit(tablero.nivel_falla_ka);
-              setEditandoNivelFalla(true);
-            }}
-          >
-            editar nivel de falla
-          </button>
+      <div className="flex flex-col gap-2">
+        <p className="flex flex-wrap items-center gap-2">
+          Nivel de falla: {tablero.nivel_falla_ka} kA{" "}
+          {!editandoNivelFalla && (
+            <button
+              type="button"
+              className="text-abb-red underline text-sm"
+              onClick={() => {
+                setNivelFallaKaEdit(tablero.nivel_falla_ka);
+                setEditandoNivelFalla(true);
+              }}
+            >
+              editar nivel de falla
+            </button>
+          )}
+        </p>
+        {editandoNivelFalla && (
+          <form onSubmit={handleGuardarNivelFalla} className="mt-2 flex flex-col gap-2">
+            <label htmlFor="nivel-falla-edit">Nuevo nivel de falla (kA)</label>
+            <input
+              id="nivel-falla-edit"
+              value={nivelFallaKaEdit}
+              onChange={(e) => setNivelFallaKaEdit(e.target.value)}
+            />
+            <div className="flex gap-2">
+              <button type="submit" className="bg-abb-red px-6 py-3 text-sm uppercase tracking-widest text-white">
+                Guardar
+              </button>
+              <button
+                type="button"
+                className="border border-surface-stroke px-6 py-3 text-sm uppercase tracking-widest"
+                onClick={() => setEditandoNivelFalla(false)}
+              >
+                Cancelar
+              </button>
+            </div>
+          </form>
         )}
-      </p>
-      {editandoNivelFalla && (
-        <form onSubmit={handleGuardarNivelFalla}>
-          <label htmlFor="nivel-falla-edit">Nuevo nivel de falla (kA)</label>
-          <input
-            id="nivel-falla-edit"
-            value={nivelFallaKaEdit}
-            onChange={(e) => setNivelFallaKaEdit(e.target.value)}
-          />
-          <button type="submit">Guardar</button>
-          <button type="button" onClick={() => setEditandoNivelFalla(false)}>
-            Cancelar
-          </button>
-        </form>
-      )}
-      <p>
-        Interruptor principal: {tablero.interruptor_principal_id ? tablero.interruptor_principal_id : "sin definir"}{" "}
-        {!editandoInterruptorPrincipal && (
-          <button type="button" onClick={() => setEditandoInterruptorPrincipal(true)}>
-            editar interruptor principal
-          </button>
+        <p className="flex flex-wrap items-center gap-2">
+          Interruptor principal: {tablero.interruptor_principal_id ? tablero.interruptor_principal_id : "sin definir"}{" "}
+          {!editandoInterruptorPrincipal && (
+            <button
+              type="button"
+              className="text-abb-red underline text-sm"
+              onClick={() => setEditandoInterruptorPrincipal(true)}
+            >
+              editar interruptor principal
+            </button>
+          )}
+        </p>
+        {editandoInterruptorPrincipal && (
+          <div className="mt-2 flex flex-col gap-2">
+            <ComponentePicker onSelect={handleSeleccionarInterruptorPrincipal} />
+            <button
+              type="button"
+              className="self-start border border-surface-stroke px-6 py-3 text-sm uppercase tracking-widest"
+              onClick={() => setEditandoInterruptorPrincipal(false)}
+            >
+              Cancelar
+            </button>
+          </div>
         )}
-      </p>
-      {editandoInterruptorPrincipal && (
-        <div>
-          <ComponentePicker onSelect={handleSeleccionarInterruptorPrincipal} />
-          <button type="button" onClick={() => setEditandoInterruptorPrincipal(false)}>
-            Cancelar
-          </button>
-        </div>
-      )}
+      </div>
 
       <EsquemaVisualCanvas
         tieneInterruptorPrincipal={!!tablero.interruptor_principal_id}
@@ -174,11 +193,16 @@ export function DetalleTablero({
           onSalidaActualizada={(salida) => handleSalidaActualizada(seccion.id, salida)}
         />
       ))}
-      <form onSubmit={handleAgregarSeccion}>
+      <form onSubmit={handleAgregarSeccion} className="mt-6 flex flex-col gap-2">
         <label htmlFor="nombre-seccion">Nueva sección</label>
         <input id="nombre-seccion" value={nombreSeccion} onChange={(e) => setNombreSeccion(e.target.value)} />
         {error && <p role="alert" className="text-error">{error}</p>}
-        <button type="submit">Agregar sección</button>
+        <button
+          type="submit"
+          className="self-start bg-abb-red px-6 py-3 text-sm uppercase tracking-widest text-white"
+        >
+          Agregar sección
+        </button>
       </form>
     </div>
   );
