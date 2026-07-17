@@ -224,6 +224,7 @@ export async function actualizarSalida(salidaId: string, componenteId: string | 
 export interface ComponenteBusqueda {
   id: string;
   codigo: string;
+  codigo_comercial: string | null;
   descripcion: string;
   precio_neto: string | null;
 }
