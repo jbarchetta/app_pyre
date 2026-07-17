@@ -26,8 +26,8 @@ export function CatalogoPage() {
   }
 
   return (
-    <form onSubmit={handleSubmit}>
-      <h1>Importar catálogo</h1>
+    <form onSubmit={handleSubmit} className="flex max-w-md flex-col gap-3 border border-surface-stroke bg-white p-8">
+      <h1 className="text-xl font-bold">Importar catálogo</h1>
       <label htmlFor="proveedor">Proveedor</label>
       <select id="proveedor" value={proveedor} onChange={(e) => setProveedor(e.target.value)}>
         <option value="abb">ABB</option>
@@ -40,10 +40,12 @@ export function CatalogoPage() {
         accept=".xlsx"
         onChange={(e) => setArchivo(e.target.files?.[0] ?? null)}
       />
-      {error && <p role="alert">{error}</p>}
-      <button type="submit">Importar</button>
+      {error && <p role="alert" className="text-error">{error}</p>}
+      <button type="submit" className="self-start bg-abb-red px-6 py-3 text-sm uppercase tracking-widest text-white">
+        Importar
+      </button>
       {resumen && (
-        <p data-testid="resumen">
+        <p data-testid="resumen" className="font-mono text-sm">
           Total: {resumen.total_filas} — Nuevos: {resumen.nuevos} — Actualizados: {resumen.actualizados} — Sin
           cambios: {resumen.sin_cambios}
         </p>

@@ -29,8 +29,8 @@ export function ParametrosCalculoPage() {
   if (!parametros) return <p>Cargando...</p>;
 
   return (
-    <form onSubmit={handleSubmit}>
-      <h1>Parámetros de cálculo</h1>
+    <form onSubmit={handleSubmit} className="flex max-w-md flex-col gap-3 border border-surface-stroke bg-white p-8">
+      <h1 className="text-xl font-bold">Parámetros de cálculo</h1>
       <label htmlFor="tension-mono">Tensión monofásica (V)</label>
       <input
         id="tension-mono"
@@ -55,9 +55,11 @@ export function ParametrosCalculoPage() {
         value={parametros.ratio_selectividad}
         onChange={(e) => setParametros({ ...parametros, ratio_selectividad: e.target.value })}
       />
-      {error && <p role="alert">{error}</p>}
+      {error && <p role="alert" className="text-error">{error}</p>}
       {guardado && <p>Guardado</p>}
-      <button type="submit">Guardar</button>
+      <button type="submit" className="self-start bg-abb-red px-6 py-3 text-sm uppercase tracking-widest text-white">
+        Guardar
+      </button>
     </form>
   );
 }
