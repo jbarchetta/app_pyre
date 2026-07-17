@@ -87,7 +87,8 @@ def obtener_tablero(
 
 
 class TableroUpdate(BaseModel):
-    nivel_falla_ka: Decimal
+    nivel_falla_ka: Decimal | None = None
+    interruptor_principal_id: uuid.UUID | None = None
 
 
 @router.patch("/tableros/{tablero_id}", response_model=TableroResponse)
@@ -101,7 +102,14 @@ def actualizar_tablero(
     if tablero is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tablero no encontrado")
 
-    tablero.nivel_falla_ka = payload.nivel_falla_ka
+    # exclude_unset: un PATCH solo toca los campos que el cliente mandó — mandar
+    # nivel_falla_ka sin interruptor_principal_id no debe borrar este último.
+    cambios = payload.model_dump(exclude_unset=True)
+    if "nivel_falla_ka" in cambios:
+        tablero.nivel_falla_ka = cambios["nivel_falla_ka"]
+    if "interruptor_principal_id" in cambios:
+        tablero.interruptor_principal_id = cambios["interruptor_principal_id"]
+
     db.commit()
     db.refresh(tablero)
     return _tablero_response(tablero)

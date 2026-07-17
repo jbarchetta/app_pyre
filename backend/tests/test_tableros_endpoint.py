@@ -1,3 +1,6 @@
+from decimal import Decimal
+
+from app.models import CatalogoComponente
 from app.scripts.create_user import create_user
 
 
@@ -6,6 +9,23 @@ def _proyecto(client, db_session, email="tableros.test@pyre.com"):
     client.post("/auth/login", json={"email": email, "password": "clave-segura-123"})
     respuesta = client.post("/proyectos", json={"cliente": "Cliente Tablero", "nombre": "Proyecto Tablero"})
     return respuesta.json()["id"]
+
+
+def _componente(db_session, codigo):
+    componente = CatalogoComponente(
+        proveedor="ABB",
+        codigo=codigo,
+        categoria_path=["Interruptores Termomagneticos"],
+        categoria_raiz="Interruptores Termomagneticos",
+        descripcion=f"Interruptor {codigo}",
+        unidad="Unidad",
+        precio_neto=Decimal("500.00"),
+        archivo_origen="test.xlsx",
+        fila_origen=1,
+    )
+    db_session.add(componente)
+    db_session.commit()
+    return componente
 
 
 def test_crear_tablero_devuelve_el_tablero_creado(client, db_session):
@@ -81,6 +101,21 @@ def test_patch_tablero_actualiza_nivel_falla_ka(client, db_session):
 
     assert response.status_code == 200
     assert response.json()["nivel_falla_ka"] == "16.00"
+
+
+def test_patch_tablero_actualiza_interruptor_principal_sin_tocar_nivel_falla(client, db_session):
+    proyecto_id = _proyecto(client, db_session, email="patchprincipal.test@pyre.com")
+    tablero_id = client.post(
+        f"/proyectos/{proyecto_id}/tableros", json={"nombre": "TG1", "nivel_falla_ka": "10.00"}
+    ).json()["id"]
+    componente = _componente(db_session, "PATCH-PRINC-1")
+
+    response = client.patch(f"/tableros/{tablero_id}", json={"interruptor_principal_id": str(componente.id)})
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["interruptor_principal_id"] == str(componente.id)
+    assert body["nivel_falla_ka"] == "10.00"
 
 
 def test_patch_tablero_inexistente_devuelve_404(client, db_session):
