@@ -1,4 +1,5 @@
 import logging
+import re
 from decimal import Decimal, InvalidOperation
 
 import openpyxl
@@ -6,6 +7,88 @@ import openpyxl
 from app.catalogo.types import ComponenteImportado
 
 logger = logging.getLogger(__name__)
+
+FAMILIAS_TERMOMAGNETICO = {
+    "Interruptores Termomagnéticos",
+    "Interruptores Termomagnéticos - Con posibilidad de utilizar accesorios",
+    "Interruptores Termomagnéticos - Sin posibilidad de utilizar accesorios",
+    "Interruptores automáticos en caja moldeada",
+}
+FAMILIA_DIFERENCIAL_COMBO = "Interruptores termomagnéticos con protección diferencial"
+
+_POLOS_MAP = {"uni": 1, "bi": 2, "tri": 3, "tetra": 4}
+_POLOS_DESCRIPCION_RE = re.compile(r"\b(uni|bi|tri|tetra)polar", re.IGNORECASE)
+_POLOS_CATEGORIA_RE = re.compile(r"\b(uni|bi|tri|tetra)polar(es)?\b", re.IGNORECASE)
+_CORRIENTE_RE = re.compile(r"In\s*=?\s*(\d+(?:[.,]\d+)?)")
+_CAPACIDAD_DESCRIPCION_RE = re.compile(r"Ic[nu]\s*[:=]?\s*(\d+(?:[.,]\d+)?)\s*kA", re.IGNORECASE)
+_CAPACIDAD_CATEGORIA_RE = re.compile(r"(\d+(?:[.,]\d+)?)\s*kA", re.IGNORECASE)
+
+
+def _texto_a_decimal(texto: str) -> Decimal:
+    return Decimal(texto.replace(",", "."))
+
+
+def _extraer_polos(categoria_path: list[str], descripcion: str) -> int | None:
+    match = _POLOS_DESCRIPCION_RE.search(descripcion or "")
+    if match:
+        return _POLOS_MAP[match.group(1).lower()]
+    for nivel in categoria_path:
+        match = _POLOS_CATEGORIA_RE.search(nivel)
+        if match:
+            return _POLOS_MAP[match.group(1).lower()]
+    return None
+
+
+def _extraer_corriente_nominal(descripcion: str) -> Decimal | None:
+    match = _CORRIENTE_RE.search(descripcion or "")
+    if not match:
+        return None
+    return _texto_a_decimal(match.group(1))
+
+
+def _extraer_capacidad_corte_termomagnetico(descripcion: str) -> Decimal | None:
+    valores = _CAPACIDAD_DESCRIPCION_RE.findall(descripcion or "")
+    if not valores:
+        return None
+    return min(_texto_a_decimal(v) for v in valores)
+
+
+def _extraer_capacidad_corte_combo(categoria_path: list[str]) -> Decimal | None:
+    if len(categoria_path) < 2:
+        return None
+    match = _CAPACIDAD_CATEGORIA_RE.search(categoria_path[1])
+    if not match:
+        return None
+    return _texto_a_decimal(match.group(1))
+
+
+def _extraer_atributos(categoria_path: list[str], descripcion: str) -> dict | None:
+    if not categoria_path:
+        return None
+    raiz = categoria_path[0]
+
+    if raiz in FAMILIAS_TERMOMAGNETICO:
+        tipo = "seccional_termomagnetico"
+        polos = _extraer_polos(categoria_path, descripcion)
+        corriente = _extraer_corriente_nominal(descripcion)
+        capacidad = _extraer_capacidad_corte_termomagnetico(descripcion)
+    elif raiz == FAMILIA_DIFERENCIAL_COMBO:
+        tipo = "seccional_diferencial"
+        polos = _extraer_polos(categoria_path, descripcion)
+        corriente = _extraer_corriente_nominal(descripcion)
+        capacidad = _extraer_capacidad_corte_combo(categoria_path)
+    else:
+        return None
+
+    if polos is None or corriente is None or capacidad is None:
+        return None
+
+    return {
+        "tipo": tipo,
+        "polos": polos,
+        "corriente_nominal_a": float(corriente),
+        "capacidad_corte_ka": float(capacidad),
+    }
 
 
 def parse_abb_workbook(file_obj, archivo_origen: str) -> list[ComponenteImportado]:
