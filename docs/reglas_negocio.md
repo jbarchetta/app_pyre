@@ -45,4 +45,14 @@ El "esquema visual" del roadmap (`configurador-tableros-design.md`) es deliberad
 - El catálogo ABB se importa completo (todas las categorías, no solo las de tableros seccionables) para poder reutilizarse en otros proyectos de PYRE. La jerarquía de categorías (`categoria_path`) se parsea automáticamente desde el formato visual del Excel de ABB (tamaño/negrita de fuente) — funciona de forma verificada para interruptores termomagnéticos y diferenciales; en categorías menos usadas por ahora (contactores, UPS, relés, accesorios) el parseo es "mejor esfuerzo" y se corrige cuando una fase futura empiece a usarlas.
 - Celdas de precio no numéricas (ej. `"Consultar"` en ABB, `"#DIV/0!"` en el archivo de otros materiales — confirmado contra los archivos reales: ~0.5% de las filas de ABB y ~10% de las filas de otros materiales) se importan igual, con el precio en `NULL`, en vez de abortar toda la importación — el sistema registra un warning en el log del backend por cada celda así, pero no bloquea el resto del archivo.
 
+### Categorías de ABB en alcance del motor de configuración
+
+El motor solo puede proponer componentes de estas categorías (`categoria_path[0]` del catálogo ABB) porque son las únicas con capacidad de corte (Icn/Icu) disponible de forma consistente en el Excel real de ABB:
+
+- `Interruptores Termomagnéticos` (y las variantes "con"/"sin posibilidad de utilizar accesorios") → `tipo=seccional_termomagnetico`.
+- `Interruptores automáticos en caja moldeada` (MCCB, familia Tmax XT) → `tipo=seccional_termomagnetico`, típicamente los candidatos a interruptor principal por su corriente/capacidad de corte mayor. **Excepción dentro de esta categoría:** las subcategorías `Partes interruptivas` (repuestos del mecanismo de disparo, sin carcasa) y `Relés electrónicos avanzados` (accesorios de protección) quedan deliberadamente sin `atributos` — ver `docs/consultas_ingenieria.md` #1, todavía no está confirmado con ingeniería si una "parte interruptiva" es un producto instalable por sí sola.
+- `Interruptores termomagnéticos con protección diferencial` → `tipo=seccional_diferencial`.
+
+`Interruptores Diferenciales` (puros) quedan fuera: el Excel real nunca trae Icn/Icu para esa familia, solo sensibilidad (mA) — no hay forma de validar que cumplan el nivel de falla del tablero. El analista los sigue pudiendo cargar manualmente.
+
 Este documento se actualiza a medida que se implementan las fases posteriores.

@@ -34,5 +34,6 @@ Los puertos de host de este proyecto se eligieron deliberadamente fuera de los d
 ## Documentos de referencia
 - `docs/diccionario_datos.md` — qué significa cada tabla/columna.
 - `docs/reglas_negocio.md` — reglas de cálculo y de acceso vigentes.
+- `docs/consultas_ingenieria.md` — preguntas técnicas/de negocio pendientes de confirmar con un ingeniero eléctrico de PYRE.
 - `docs/superpowers/specs/` — specs de diseño aprobadas.
 - `docs/superpowers/plans/` — planes de implementación.
