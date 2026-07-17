@@ -16,7 +16,9 @@ class CatalogoComponente(Base):
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     proveedor: Mapped[str] = mapped_column(String(100), nullable=False)
     codigo: Mapped[str] = mapped_column(String(100), nullable=False)
-    codigo_comercial: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    # 200, no 100: algunas filas reales del Excel de ABB usan esta columna para
+    # notas al pie de hasta ~120 caracteres en vez de un código comercial real.
+    codigo_comercial: Mapped[str | None] = mapped_column(String(200), nullable=True)
     categoria_path: Mapped[list] = mapped_column(JSONB, nullable=False)
     categoria_raiz: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
     descripcion: Mapped[str] = mapped_column(String(1000), nullable=False)

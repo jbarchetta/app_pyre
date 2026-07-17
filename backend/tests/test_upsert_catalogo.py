@@ -6,11 +6,11 @@ from app.models import AuditLog, CatalogoComponente, CatalogoPrecioHistorial
 from app.scripts.create_user import create_user
 
 
-def _item(codigo="C1", precio_neto=Decimal("10.00"), atributos=None):
+def _item(codigo="C1", precio_neto=Decimal("10.00"), atributos=None, codigo_comercial="COM1"):
     return ComponenteImportado(
         proveedor="ABB",
         codigo=codigo,
-        codigo_comercial="COM1",
+        codigo_comercial=codigo_comercial,
         categoria_path=["Interruptores Termomagneticos", "SH200 L"],
         descripcion="Interruptor de prueba",
         unidad="Unidad",
@@ -131,3 +131,20 @@ def test_import_grande_busca_existentes_en_lotes(db_session):
     # probando que la búsqueda en lotes encuentra coincidencias en todos los chunks.
     resumen2 = upsert_componentes(db_session, items, usuario_id=usuario.id)
     assert resumen2["sin_cambios"] == 1200
+
+
+def test_codigo_comercial_largo_no_falla_al_insertar(db_session):
+    # Bug real en el Excel de ABB: algunas filas usan "Codigo SAP" como
+    # placeholder de texto (ej. "Nota:") con una nota al pie completa como
+    # "Codigo Comercial" -- hasta 118 caracteres reales, más que el límite
+    # original de la columna (100).
+    usuario = create_user("import8.test@pyre.com", "Importador", "clave-segura-123", "analista", db=db_session)
+    comercial_largo = "Nota al pie muy larga que en el Excel real de ABB aparece en la columna Codigo Comercial de alguna fila" * 1
+    assert len(comercial_largo) > 100
+
+    upsert_componentes(
+        db_session, [_item(codigo="C8", codigo_comercial=comercial_largo)], usuario_id=usuario.id
+    )
+
+    componente = db_session.query(CatalogoComponente).filter_by(proveedor="ABB", codigo="C8").one()
+    assert componente.codigo_comercial == comercial_largo
