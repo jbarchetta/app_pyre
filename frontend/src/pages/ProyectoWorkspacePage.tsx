@@ -19,7 +19,7 @@ export function ProyectoWorkspacePage() {
   const { id } = useParams<{ id: string }>();
   const [searchParams, setSearchParams] = useSearchParams();
   const [proyecto, setProyecto] = useState<Proyecto | null>(null);
-  const [tableros, setTableros] = useState<Tablero[]>([]);
+  const [tableros, setTableros] = useState<Tablero[] | null>(null);
   const [nombre, setNombre] = useState("");
   const [nivelFallaKa, setNivelFallaKa] = useState(NIVEL_FALLA_KA_POR_DEFECTO);
   const [interruptorPrincipal, setInterruptorPrincipal] = useState<ComponenteBusqueda | null>(null);
@@ -35,9 +35,6 @@ export function ProyectoWorkspacePage() {
       .catch(() => setError("No se pudieron cargar los tableros"));
   }, [id]);
 
-  const tableroActivoId = searchParams.get("tablero") ?? tableros[0]?.id ?? null;
-  const tableroActivo = tableros.find((t) => t.id === tableroActivoId) ?? null;
-
   function handleSeleccionarTablero(tableroId: string) {
     setSearchParams({ tablero: tableroId });
   }
@@ -48,7 +45,7 @@ export function ProyectoWorkspacePage() {
     setError(null);
     try {
       const tablero = await crearTablero(id, nombre, nivelFallaKa, interruptorPrincipal?.id ?? null);
-      setTableros((actuales) => [...actuales, tablero]);
+      setTableros((actuales) => [...(actuales ?? []), tablero]);
       setNombre("");
       setNivelFallaKa(NIVEL_FALLA_KA_POR_DEFECTO);
       setInterruptorPrincipal(null);
@@ -58,7 +55,13 @@ export function ProyectoWorkspacePage() {
     }
   }
 
-  if (!proyecto) return <p>Cargando...</p>;
+  if (!proyecto || tableros === null) return <p>Cargando...</p>;
+
+  const tableroParamId = searchParams.get("tablero");
+  const tableroActivoId = tableros.find((t) => t.id === tableroParamId)
+    ? tableroParamId
+    : (tableros[0]?.id ?? null);
+  const tableroActivo = tableros.find((t) => t.id === tableroActivoId) ?? null;
 
   return (
     <div>

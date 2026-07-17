@@ -82,6 +82,14 @@ describe("ProyectoWorkspacePage", () => {
     expect(screen.queryByRole("tab")).not.toBeInTheDocument();
   });
 
+  it("falls back to the first tablero when the tablero query param doesn't match any real tablero", async () => {
+    mockFetchConDosTableros();
+    renderPage("/proyectos/p1?tablero=nonexistent");
+
+    expect(await screen.findByRole("tab", { name: "TG1" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.queryByText(/creá tu primer tablero/i)).not.toBeInTheDocument();
+  });
+
   it("creates a new tablero, adds a tab for it, and activates it", async () => {
     mockFetchConDosTableros();
     vi.stubGlobal(
