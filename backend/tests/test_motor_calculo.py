@@ -41,9 +41,26 @@ def test_carga_en_kw_tetrapolar_usa_tension_tri_y_raiz_de_3():
     assert round(resultado, 2) == Decimal("16.88")
 
 
+def test_carga_en_kw_tripolar_usa_tambien_tension_tri():
+    resultado = calcular_corriente_nominal(Decimal("10"), "kW", FormatoPolos.TRIPOLAR, _parametros())
+
+    assert round(resultado, 2) == Decimal("16.88")
+
+
 def test_unidad_no_soportada_lanza_value_error():
     with pytest.raises(ValueError):
         calcular_corriente_nominal(Decimal("5"), "V", FormatoPolos.UNIPOLAR, _parametros())
+
+
+def test_carga_en_amperios_con_decimales_lanza_value_error():
+    with pytest.raises(ValueError):
+        calcular_corriente_nominal(Decimal("16.5"), "A", FormatoPolos.UNIPOLAR, _parametros())
+
+
+def test_carga_en_amperios_con_ceros_decimales_no_lanza_error():
+    resultado = calcular_corriente_nominal(Decimal("16.00"), "A", FormatoPolos.UNIPOLAR, _parametros())
+
+    assert resultado == Decimal("16.00")
 
 
 def test_selectividad_ok_justo_en_el_limite():

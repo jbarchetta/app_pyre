@@ -9,13 +9,15 @@ def calcular_corriente_nominal(
     carga_valor: Decimal, carga_unidad: str, formato: FormatoPolos, parametros: ParametroCalculo
 ) -> Decimal:
     if carga_unidad == "A":
+        if carga_valor != carga_valor.to_integral_value():
+            raise ValueError("La carga en amperios debe ser un número entero")
         return carga_valor
 
     if carga_unidad != "kW":
         raise ValueError(f"Unidad de carga no soportada: {carga_unidad}")
 
     potencia_va = carga_valor * 1000
-    if formato == FormatoPolos.TETRAPOLAR:
+    if formato in (FormatoPolos.TRIPOLAR, FormatoPolos.TETRAPOLAR):
         denominador = parametros.tension_tri_v * RAIZ_DE_3 * parametros.cos_phi
     else:
         denominador = parametros.tension_mono_v * parametros.cos_phi

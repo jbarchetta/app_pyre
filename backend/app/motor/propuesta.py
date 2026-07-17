@@ -8,6 +8,7 @@ from app.motor.calculo import verificar_selectividad
 POLOS_POR_FORMATO = {
     FormatoPolos.UNIPOLAR: 1,
     FormatoPolos.BIPOLAR: 2,
+    FormatoPolos.TRIPOLAR: 3,
     FormatoPolos.TETRAPOLAR: 4,
 }
 

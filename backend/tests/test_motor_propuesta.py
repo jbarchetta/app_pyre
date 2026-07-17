@@ -119,3 +119,14 @@ def test_sin_candidatos_devuelve_none(db_session):
     )
 
     assert resultado is None
+
+
+def test_propone_tripolar_por_cantidad_de_polos(db_session):
+    tripolar = _componente(db_session, "PROP-TRI-1", polos=3, corriente=20, ka=6)
+
+    resultado = proponer_componente(
+        db_session, TipoProteccion.SECCIONAL_TERMOMAGNETICO, FormatoPolos.TRIPOLAR,
+        Decimal("16"), Decimal("6"), Decimal("40"), _parametros(),
+    )
+
+    assert resultado.id == tripolar.id

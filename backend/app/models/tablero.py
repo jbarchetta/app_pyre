@@ -13,6 +13,7 @@ from app.database import Base
 class FormatoPolos(str, enum.Enum):
     UNIPOLAR = "unipolar"
     BIPOLAR = "bipolar"
+    TRIPOLAR = "tripolar"
     TETRAPOLAR = "tetrapolar"
 
 
