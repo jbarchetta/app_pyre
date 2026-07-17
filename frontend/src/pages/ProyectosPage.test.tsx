@@ -65,4 +65,23 @@ describe("ProyectosPage", () => {
 
     expect(await screen.findByText(/Proyecto Nuevo/i)).toBeInTheDocument();
   });
+
+  it("closing via Cancelar clears the form and does not create a project", async () => {
+    render(
+      <MemoryRouter>
+        <ProyectosPage />
+      </MemoryRouter>,
+    );
+    await screen.findByText(/Proyecto Existente/i);
+
+    await userEvent.click(screen.getByRole("button", { name: /nuevo proyecto/i }));
+    await userEvent.type(screen.getByLabelText(/^cliente$/i), "Algo tipeado");
+    await userEvent.click(screen.getByRole("button", { name: /cancelar/i }));
+
+    expect(screen.queryByLabelText(/^cliente$/i)).not.toBeInTheDocument();
+    expect(fetch).not.toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ method: "POST" }));
+
+    await userEvent.click(screen.getByRole("button", { name: /nuevo proyecto/i }));
+    expect((screen.getByLabelText(/^cliente$/i) as HTMLInputElement).value).toBe("");
+  });
 });

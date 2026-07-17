@@ -1,4 +1,4 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import { crearProyecto, listarProyectos, type Proyecto } from "../api/client";
 
@@ -8,12 +8,32 @@ export function ProyectosPage() {
   const [cliente, setCliente] = useState("");
   const [nombre, setNombre] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const clienteInputRef = useRef<HTMLInputElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     listarProyectos()
       .then(setProyectos)
       .catch(() => setError("No se pudieron cargar los proyectos"));
   }, []);
+
+  const cerrarModal = useCallback(() => {
+    setModalAbierto(false);
+    setCliente("");
+    setNombre("");
+    setError(null);
+    triggerRef.current?.focus();
+  }, []);
+
+  useEffect(() => {
+    if (!modalAbierto) return;
+    clienteInputRef.current?.focus();
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") cerrarModal();
+    }
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [modalAbierto, cerrarModal]);
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
@@ -34,6 +54,7 @@ export function ProyectosPage() {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Proyectos</h1>
         <button
+          ref={triggerRef}
           type="button"
           onClick={() => setModalAbierto(true)}
           className="bg-abb-red px-6 py-3 text-sm uppercase tracking-widest text-white"
@@ -56,14 +77,18 @@ export function ProyectosPage() {
       </div>
 
       {modalAbierto && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black/40">
+        <div className="fixed inset-0 flex items-center justify-center bg-black/40" onClick={cerrarModal}>
           <form
             onSubmit={handleSubmit}
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="nuevo-proyecto-titulo"
             className="flex w-96 flex-col gap-2 border border-surface-stroke bg-white p-8"
           >
-            <h2 className="text-lg font-bold">Nuevo proyecto</h2>
+            <h2 id="nuevo-proyecto-titulo" className="text-lg font-bold">Nuevo proyecto</h2>
             <label htmlFor="cliente">Cliente</label>
-            <input id="cliente" value={cliente} onChange={(e) => setCliente(e.target.value)} />
+            <input id="cliente" ref={clienteInputRef} value={cliente} onChange={(e) => setCliente(e.target.value)} />
             <label htmlFor="nombre">Nombre</label>
             <input id="nombre" value={nombre} onChange={(e) => setNombre(e.target.value)} />
             {error && <p role="alert">{error}</p>}
@@ -71,7 +96,7 @@ export function ProyectosPage() {
               <button type="submit" className="bg-abb-red px-6 py-3 text-sm uppercase tracking-widest text-white">
                 Crear proyecto
               </button>
-              <button type="button" onClick={() => setModalAbierto(false)} className="px-6 py-3 text-sm uppercase tracking-widest">
+              <button type="button" onClick={cerrarModal} className="px-6 py-3 text-sm uppercase tracking-widest">
                 Cancelar
               </button>
             </div>
