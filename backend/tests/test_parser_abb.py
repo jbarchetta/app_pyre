@@ -183,3 +183,55 @@ def test_skips_blank_row_mixed_in_among_data_rows():
     assert len(resultados) == 2
     assert {r.codigo for r in resultados} == {"COD-1", "COD-2"}
     assert all(r.fila_origen != 4 for r in resultados)
+
+
+def test_parse_abb_workbook_populates_atributos_for_in_scope_rows():
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Lista de Precios 202607"
+
+    headers = [
+        "Codigo SAP", "Codigo Comercial", None, None, None, None, None, None,
+        "Precio de Lista USD", "Precio NETO USD", None, None, None, None, None, "Descripcion",
+    ]
+    for col, value in enumerate(headers, start=1):
+        ws.cell(row=1, column=col, value=value)
+
+    def header_row(row, text, size, bold):
+        cell = ws.cell(row=row, column=2, value=text)
+        cell.font = Font(size=size, bold=bold)
+
+    def data_row(row, codigo, comercial, precio_lista, precio_neto, descripcion):
+        ws.cell(row=row, column=1, value=codigo)
+        ws.cell(row=row, column=2, value=comercial)
+        ws.cell(row=row, column=9, value=precio_lista)
+        ws.cell(row=row, column=10, value=precio_neto)
+        ws.cell(row=row, column=16, value=descripcion)
+
+    header_row(3, "Interruptores Termomagnéticos", 14, False)
+    header_row(4, "SH200 L", 14, True)
+    header_row(6, "Curva C - Icn: 4,5kA (IEC 60898)", 10, True)
+    header_row(7, "Unipolares", 12, False)
+    data_row(8, "COD-U2", "SH201-C2", 15.4, 7.8, "Interruptor termomagnético unipolar In 2A Icn = 4,5kA @ IEC60898 Curva C")
+    header_row(9, "Interruptores Diferenciales", 14, False)
+    header_row(10, "F200", 14, True)
+    header_row(11, "30mA", 10, True)
+    header_row(12, "Bipolares", 12, False)
+    data_row(13, "COD-DIF", "F202-30", 50.0, 25.0, "Interruptor diferencial bipolar In 16. Sens = 10 mA")
+
+    buffer = io.BytesIO()
+    wb.save(buffer)
+    buffer.seek(0)
+
+    resultados = parse_abb_workbook(buffer, archivo_origen="test.xlsx")
+
+    termomagnetico = next(r for r in resultados if r.codigo == "COD-U2")
+    assert termomagnetico.atributos == {
+        "tipo": "seccional_termomagnetico",
+        "polos": 1,
+        "corriente_nominal_a": 2.0,
+        "capacidad_corte_ka": 4.5,
+    }
+
+    diferencial = next(r for r in resultados if r.codigo == "COD-DIF")
+    assert diferencial.atributos is None

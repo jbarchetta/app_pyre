@@ -166,15 +166,18 @@ def _build_componente(ws, row_idx, header_map, path, archivo_origen) -> Componen
         return ws.cell(row=row_idx, column=col).value if col else None
 
     comercial = cell("Codigo Comercial")
+    categoria_path = [texto for _, texto in path]
+    descripcion = str(cell("Descripcion") or "").strip()
     return ComponenteImportado(
         proveedor="ABB",
         codigo=str(cell("Codigo SAP")).strip(),
         codigo_comercial=str(comercial).strip() if comercial else None,
-        categoria_path=[texto for _, texto in path],
-        descripcion=str(cell("Descripcion") or "").strip(),
+        categoria_path=categoria_path,
+        descripcion=descripcion,
         unidad="Unidad",
         precio_lista=_decimal_or_none(cell("Precio de Lista USD"), row_idx),
         precio_neto=_decimal_or_none(cell("Precio NETO USD"), row_idx),
+        atributos=_extraer_atributos(categoria_path, descripcion),
         archivo_origen=archivo_origen,
         fila_origen=row_idx,
     )
