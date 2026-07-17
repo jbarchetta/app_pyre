@@ -38,7 +38,10 @@ def _componente(db_session, codigo, tipo="seccional_termomagnetico", polos=1, co
 
 def test_crear_salida_propone_componente_cuando_hay_match(client, db_session):
     principal = _componente(db_session, "SAL-PRINC-1", tipo="interruptor_principal", corriente=100, ka=15)
-    barato = _componente(db_session, "SAL-C1", corriente=20, ka=10, precio="50.00")
+    # precio deliberadamente por debajo de 50.00 (el precio por defecto de otros
+    # fixtures del resto de la suite) para que este test sea robusto sin importar
+    # qué otros archivos ya corrieron.
+    barato = _componente(db_session, "SAL-C1", corriente=20, ka=10, precio="15.00")
     seccion_id = _setup_tablero(
         client, db_session, "salidas1.test@pyre.com", interruptor_principal_id=str(principal.id)
     )

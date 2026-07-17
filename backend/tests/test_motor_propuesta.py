@@ -41,8 +41,11 @@ def _componente(db_session, codigo, tipo="seccional_termomagnetico", polos=1, co
 
 
 def test_propone_el_mas_barato_que_cumple(db_session):
-    _componente(db_session, "PROP-C1", corriente=20, ka=6, precio="80.00")
-    barato = _componente(db_session, "PROP-C2", corriente=20, ka=6, precio="50.00")
+    # precio deliberadamente por debajo de 50.00 (el precio por defecto de otros
+    # fixtures del resto de la suite, ej. test_motor_configuracion_integracion.py)
+    # para que este test sea robusto sin importar qué otros archivos ya corrieron.
+    _componente(db_session, "PROP-C1", corriente=20, ka=6, precio="30.00")
+    barato = _componente(db_session, "PROP-C2", corriente=20, ka=6, precio="15.00")
 
     resultado = proponer_componente(
         db_session, TipoProteccion.SECCIONAL_TERMOMAGNETICO, FormatoPolos.UNIPOLAR,
