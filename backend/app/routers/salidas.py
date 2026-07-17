@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from app.auth.dependencies import require_role
+from app.auth.dependencies import get_current_user, require_role
 from app.database import get_db
 from app.models import (
     CatalogoComponente,
@@ -129,3 +129,14 @@ def actualizar_salida(
     db.commit()
     db.refresh(salida)
     return _salida_response(salida)
+
+
+@router.get("/secciones/{seccion_id}/salidas", response_model=list[SalidaResponse])
+def listar_salidas(
+    seccion_id: uuid.UUID, db: Session = Depends(get_db), usuario: Usuario = Depends(get_current_user)
+):
+    seccion = db.get(Seccion, seccion_id)
+    if seccion is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Sección no encontrada")
+    salidas = db.query(Salida).filter(Salida.seccion_id == seccion_id).order_by(Salida.posicion_orden).all()
+    return [_salida_response(s) for s in salidas]

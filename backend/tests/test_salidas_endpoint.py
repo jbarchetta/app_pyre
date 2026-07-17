@@ -132,3 +132,22 @@ def test_patch_salida_permite_override_manual(client, db_session):
 
     assert response.status_code == 200
     assert response.json()["componente_id"] == str(manual.id)
+
+
+def test_listar_salidas_devuelve_las_creadas(client, db_session):
+    seccion_id = _setup_tablero(client, db_session, "salidas6.test@pyre.com")
+    primera = client.post(
+        f"/secciones/{seccion_id}/salidas",
+        json={
+            "carga_valor": "10",
+            "carga_unidad": "A",
+            "formato": "unipolar",
+            "tipo_proteccion": "seccional_termomagnetico",
+        },
+    ).json()
+
+    response = client.get(f"/secciones/{seccion_id}/salidas")
+
+    assert response.status_code == 200
+    ids = [s["id"] for s in response.json()]
+    assert ids == [primera["id"]]

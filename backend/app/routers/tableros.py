@@ -65,6 +65,17 @@ def crear_tablero(
     return _tablero_response(tablero)
 
 
+@router.get("/proyectos/{proyecto_id}/tableros", response_model=list[TableroResponse])
+def listar_tableros(
+    proyecto_id: uuid.UUID, db: Session = Depends(get_db), usuario: Usuario = Depends(get_current_user)
+):
+    proyecto = db.get(Proyecto, proyecto_id)
+    if proyecto is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Proyecto no encontrado")
+    tableros = db.query(Tablero).filter(Tablero.proyecto_id == proyecto_id).all()
+    return [_tablero_response(t) for t in tableros]
+
+
 @router.get("/tableros/{tablero_id}", response_model=TableroResponse)
 def obtener_tablero(
     tablero_id: uuid.UUID, db: Session = Depends(get_db), usuario: Usuario = Depends(get_current_user)
@@ -111,3 +122,14 @@ def crear_seccion(
     db.commit()
     db.refresh(seccion)
     return _seccion_response(seccion)
+
+
+@router.get("/tableros/{tablero_id}/secciones", response_model=list[SeccionResponse])
+def listar_secciones(
+    tablero_id: uuid.UUID, db: Session = Depends(get_db), usuario: Usuario = Depends(get_current_user)
+):
+    tablero = db.get(Tablero, tablero_id)
+    if tablero is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tablero no encontrado")
+    secciones = db.query(Seccion).filter(Seccion.tablero_id == tablero_id).order_by(Seccion.orden).all()
+    return [_seccion_response(s) for s in secciones]

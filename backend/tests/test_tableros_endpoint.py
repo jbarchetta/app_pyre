@@ -57,3 +57,30 @@ def test_crear_seccion_en_tablero_inexistente_devuelve_404(client, db_session):
     response = client.post(f"/tableros/{uuid.uuid4()}/secciones", json={"nombre": "X"})
 
     assert response.status_code == 404
+
+
+def test_listar_tableros_devuelve_los_creados(client, db_session):
+    proyecto_id = _proyecto(client, db_session, email="listartableros.test@pyre.com")
+    client.post(f"/proyectos/{proyecto_id}/tableros", json={"nombre": "TG1", "nivel_falla_ka": "10.00"})
+    client.post(f"/proyectos/{proyecto_id}/tableros", json={"nombre": "TG2", "nivel_falla_ka": "10.00"})
+
+    response = client.get(f"/proyectos/{proyecto_id}/tableros")
+
+    assert response.status_code == 200
+    nombres = [t["nombre"] for t in response.json()]
+    assert nombres == ["TG1", "TG2"]
+
+
+def test_listar_secciones_devuelve_las_creadas(client, db_session):
+    proyecto_id = _proyecto(client, db_session, email="listarsecciones.test@pyre.com")
+    tablero_id = client.post(
+        f"/proyectos/{proyecto_id}/tableros", json={"nombre": "TG1", "nivel_falla_ka": "10.00"}
+    ).json()["id"]
+    client.post(f"/tableros/{tablero_id}/secciones", json={"nombre": "Sección A", "orden": 1})
+    client.post(f"/tableros/{tablero_id}/secciones", json={"nombre": "Sección B", "orden": 2})
+
+    response = client.get(f"/tableros/{tablero_id}/secciones")
+
+    assert response.status_code == 200
+    nombres = [s["nombre"] for s in response.json()]
+    assert nombres == ["Sección A", "Sección B"]
