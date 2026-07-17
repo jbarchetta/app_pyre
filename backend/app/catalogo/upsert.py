@@ -49,6 +49,7 @@ def upsert_componentes(db: Session, items: list[ComponenteImportado], usuario_id
                 unidad=item.unidad,
                 precio_lista=item.precio_lista,
                 precio_neto=item.precio_neto,
+                atributos=item.atributos,
                 archivo_origen=item.archivo_origen,
                 fila_origen=item.fila_origen,
             )
@@ -78,6 +79,7 @@ def upsert_componentes(db: Session, items: list[ComponenteImportado], usuario_id
         existente.categoria_raiz = item.categoria_path[0] if item.categoria_path else existente.categoria_raiz
         existente.codigo_comercial = item.codigo_comercial
         existente.unidad = item.unidad
+        existente.atributos = item.atributos
         existente.archivo_origen = item.archivo_origen
         existente.fila_origen = item.fila_origen
 

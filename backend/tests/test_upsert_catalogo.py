@@ -6,7 +6,7 @@ from app.models import AuditLog, CatalogoComponente, CatalogoPrecioHistorial
 from app.scripts.create_user import create_user
 
 
-def _item(codigo="C1", precio_neto=Decimal("10.00")):
+def _item(codigo="C1", precio_neto=Decimal("10.00"), atributos=None):
     return ComponenteImportado(
         proveedor="ABB",
         codigo=codigo,
@@ -18,6 +18,7 @@ def _item(codigo="C1", precio_neto=Decimal("10.00")):
         precio_neto=precio_neto,
         archivo_origen="abb.xlsx",
         fila_origen=8,
+        atributos=atributos,
     )
 
 
@@ -83,3 +84,25 @@ def test_duplicate_code_within_same_batch_is_last_one_wins(db_session):
     historial = db_session.query(CatalogoPrecioHistorial).filter_by(componente_id=componentes[0].id).one()
     assert historial.precio_anterior == Decimal("10.00")
     assert historial.precio_nuevo == Decimal("15.00")
+
+
+def test_atributos_se_guarda_al_insertar(db_session):
+    usuario = create_user("import6.test@pyre.com", "Importador", "clave-segura-123", "analista", db=db_session)
+    atributos = {"tipo": "seccional_termomagnetico", "polos": 1, "corriente_nominal_a": 16.0, "capacidad_corte_ka": 6.0}
+
+    upsert_componentes(db_session, [_item(codigo="C6", atributos=atributos)], usuario_id=usuario.id)
+
+    componente = db_session.query(CatalogoComponente).filter_by(proveedor="ABB", codigo="C6").one()
+    assert componente.atributos == atributos
+
+
+def test_atributos_se_actualiza_en_reimportacion(db_session):
+    usuario = create_user("import7.test@pyre.com", "Importador", "clave-segura-123", "analista", db=db_session)
+    viejo = {"tipo": "seccional_termomagnetico", "polos": 1, "corriente_nominal_a": 16.0, "capacidad_corte_ka": 6.0}
+    nuevo = {"tipo": "seccional_termomagnetico", "polos": 1, "corriente_nominal_a": 20.0, "capacidad_corte_ka": 6.0}
+    upsert_componentes(db_session, [_item(codigo="C7", atributos=viejo)], usuario_id=usuario.id)
+
+    upsert_componentes(db_session, [_item(codigo="C7", atributos=nuevo)], usuario_id=usuario.id)
+
+    componente = db_session.query(CatalogoComponente).filter_by(proveedor="ABB", codigo="C7").one()
+    assert componente.atributos == nuevo

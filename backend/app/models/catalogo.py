@@ -23,7 +23,11 @@ class CatalogoComponente(Base):
     unidad: Mapped[str] = mapped_column(String(20), nullable=False)
     precio_lista: Mapped[Decimal | None] = mapped_column(Numeric(12, 4), nullable=True)
     precio_neto: Mapped[Decimal | None] = mapped_column(Numeric(12, 4), nullable=True)
-    atributos: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    # none_as_null=True: sin esto, SQLAlchemy guarda Python None como el literal
+    # JSON 'null' en vez de SQL NULL, lo que rompe silenciosamente cualquier
+    # filtro `.isnot(None)` (la columna deja de ser NULL para Postgres, pero
+    # sigue leyéndose como None en Python) -- ver app/motor/propuesta.py.
+    atributos: Mapped[dict | None] = mapped_column(JSONB(none_as_null=True), nullable=True)
     archivo_origen: Mapped[str] = mapped_column(String(500), nullable=False)
     fila_origen: Mapped[int] = mapped_column(Integer, nullable=False)
     vigente_desde: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
