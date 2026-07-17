@@ -7,6 +7,12 @@ from sqlalchemy.orm import Session
 from app.catalogo.types import ComponenteImportado
 from app.models import AuditLog, CatalogoComponente, CatalogoPrecioHistorial
 
+# Postgres rechaza un único IN compuesto de (proveedor, codigo) con miles de
+# pares ("stack depth limit exceeded" -- reproducido importando el catálogo
+# real de ABB, 10.247 filas). Buscar en lotes evita esa profundidad de
+# expresión sin importar cuántas filas tenga el archivo.
+_TAMANO_LOTE_BUSQUEDA = 500
+
 
 def _precio_o_fallback(precio_neto: Decimal | None, precio_lista: Decimal | None) -> Decimal:
     if precio_neto is not None:
@@ -16,22 +22,30 @@ def _precio_o_fallback(precio_neto: Decimal | None, precio_lista: Decimal | None
     return Decimal(0)
 
 
+def _existentes_por_clave(
+    db: Session, claves: set[tuple[str, str]]
+) -> dict[tuple[str, str], CatalogoComponente]:
+    componentes_por_clave: dict[tuple[str, str], CatalogoComponente] = {}
+    claves_lista = list(claves)
+    for inicio in range(0, len(claves_lista), _TAMANO_LOTE_BUSQUEDA):
+        lote = claves_lista[inicio : inicio + _TAMANO_LOTE_BUSQUEDA]
+        encontrados = (
+            db.query(CatalogoComponente)
+            .filter(tuple_(CatalogoComponente.proveedor, CatalogoComponente.codigo).in_(lote))
+            .all()
+        )
+        for componente in encontrados:
+            componentes_por_clave[(componente.proveedor, componente.codigo)] = componente
+    return componentes_por_clave
+
+
 def upsert_componentes(db: Session, items: list[ComponenteImportado], usuario_id: uuid.UUID) -> dict:
     nuevos = 0
     actualizados = 0
     sin_cambios = 0
 
     claves = {(item.proveedor, item.codigo) for item in items}
-    existentes_db = (
-        db.query(CatalogoComponente)
-        .filter(tuple_(CatalogoComponente.proveedor, CatalogoComponente.codigo).in_(claves))
-        .all()
-        if claves
-        else []
-    )
-    componentes_por_clave: dict[tuple[str, str], CatalogoComponente] = {
-        (c.proveedor, c.codigo): c for c in existentes_db
-    }
+    componentes_por_clave = _existentes_por_clave(db, claves)
 
     for item in items:
         clave = (item.proveedor, item.codigo)

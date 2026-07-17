@@ -106,3 +106,28 @@ def test_atributos_se_actualiza_en_reimportacion(db_session):
 
     componente = db_session.query(CatalogoComponente).filter_by(proveedor="ABB", codigo="C7").one()
     assert componente.atributos == nuevo
+
+
+def test_import_grande_busca_existentes_en_lotes(db_session):
+    # Bug real encontrado al importar el catálogo completo de ABB (10.247
+    # filas): un único IN compuesto de (proveedor, codigo) con esa cantidad de
+    # pares supera el límite de profundidad del parser de Postgres
+    # (psycopg2.errors.StatementTooComplex: "stack depth limit exceeded").
+    # Reproducir el crash exacto acá sería lento y depende del
+    # `max_stack_depth` configurado en cada entorno de Postgres -- este test
+    # en cambio prueba directamente que la búsqueda por lotes (chunking) da el
+    # resultado correcto cuando la cantidad de items supera el tamaño de un
+    # lote interno (1200 items, tamaño de lote 500 -> 3 lotes). La corrección
+    # real contra el archivo de ABB real se verificó a mano (ver
+    # docs/superpowers/plans -- Task de búsqueda del catálogo).
+    usuario = create_user("importgrande.test@pyre.com", "Importador", "clave-segura-123", "analista", db=db_session)
+    items = [_item(codigo=f"BIG-{i}") for i in range(1200)]
+
+    resumen = upsert_componentes(db_session, items, usuario_id=usuario.id)
+
+    assert resumen == {"total_filas": 1200, "nuevos": 1200, "actualizados": 0, "sin_cambios": 0}
+
+    # reimportar el mismo lote grande debe reconocerlos todos como existentes,
+    # probando que la búsqueda en lotes encuentra coincidencias en todos los chunks.
+    resumen2 = upsert_componentes(db_session, items, usuario_id=usuario.id)
+    assert resumen2["sin_cambios"] == 1200
