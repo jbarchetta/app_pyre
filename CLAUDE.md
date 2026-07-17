@@ -14,7 +14,7 @@ Sistema web para PYRE (integrador ABB) que administra el catálogo de componente
 
 - ✅ **Fase A — Fundaciones**: Docker Compose, auth (analista/supervisor), modelo de datos base, login React funcionando. Mergeada a `master`.
 - ✅ **Fase B — Catálogo**: importador de Excel ABB (jerarquía completa, ~10.247 filas) + otros materiales, con historial de precios y auditoría. Mergeada a `master`.
-- ⬜ **Fase C — Motor de configuración + BOM + esquema visual**: no arrancada. Va a poblar y consultar el campo `atributos` (JSONB) que Fase B dejó reservado.
+- 🟨 **Fase C — Motor de configuración + BOM + esquema visual**: ciclo 1 (backend del motor de configuración: modelo de datos, reglas de cálculo, API REST) mergeado a `master`. Spec: `docs/superpowers/specs/2026-07-16-fase-c-motor-configuracion-design.md`; plan: `docs/superpowers/plans/2026-07-16-fase-c-motor-configuracion-implementation-plan.md`. Falta: UI mínima (plan aparte), poblar `atributos` desde el Excel real de ABB (el motor hoy asume esas claves ya cargadas), BOM y esquema visual.
 - ⬜ **Pista B — Agente de extracción CAD/PDF**: no arrancada (pensada para correr en paralelo a la pista principal).
 - ⬜ **Fase D/E — Precios/mano de obra + exportables + UI pulida + hardening**: no arrancadas.
 
