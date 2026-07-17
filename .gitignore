@@ -19,3 +19,6 @@ Thumbs.db
 # Supplier catalog samples (may contain confidential pricing) — never commit
 samples/catalogo/*
 !samples/catalogo/.gitkeep
+
+# Brainstorming visual companion mockups (scratch, not project docs)
+.superpowers/
