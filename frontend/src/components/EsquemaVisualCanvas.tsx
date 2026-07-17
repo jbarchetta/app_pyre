@@ -40,7 +40,8 @@ export function EsquemaVisualCanvas({
           <button
             type="button"
             aria-label="Ajustar zoom"
-            className="font-mono text-xs"
+            title="Restablecer a 100%"
+            className="border border-surface-stroke px-2 py-1 font-mono text-xs hover:bg-industrial-gray"
             onClick={() => onZoomChange(1)}
           >
             {Math.round(zoom * 100)}%
@@ -73,7 +74,7 @@ export function EsquemaVisualCanvas({
           </label>
         </div>
       )}
-      <div className="blueprint-grid flex justify-center overflow-auto p-8">
+      <div className="blueprint-grid flex max-h-[70vh] justify-center overflow-auto p-8">
         <EsquemaVisual
           tieneInterruptorPrincipal={tieneInterruptorPrincipal}
           secciones={secciones}
