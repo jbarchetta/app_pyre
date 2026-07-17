@@ -1,12 +1,12 @@
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { RequireAuth } from "./auth/RequireAuth";
+import { Layout } from "./components/Layout";
 import { CatalogoPage } from "./pages/CatalogoPage";
 import { DashboardPage } from "./pages/DashboardPage";
 import { LoginPage } from "./pages/LoginPage";
 import { ParametrosCalculoPage } from "./pages/ParametrosCalculoPage";
-import { ProyectoDetallePage } from "./pages/ProyectoDetallePage";
 import { ProyectosPage } from "./pages/ProyectosPage";
-import { TableroPage } from "./pages/TableroPage";
+import { ProyectoWorkspacePage } from "./pages/ProyectoWorkspacePage";
 
 export function App() {
   return (
@@ -14,53 +14,18 @@ export function App() {
       <Routes>
         <Route path="/login" element={<LoginPage />} />
         <Route
-          path="/"
           element={
             <RequireAuth>
-              <DashboardPage />
+              <Layout />
             </RequireAuth>
           }
-        />
-        <Route
-          path="/catalogo"
-          element={
-            <RequireAuth>
-              <CatalogoPage />
-            </RequireAuth>
-          }
-        />
-        <Route
-          path="/proyectos"
-          element={
-            <RequireAuth>
-              <ProyectosPage />
-            </RequireAuth>
-          }
-        />
-        <Route
-          path="/proyectos/:id"
-          element={
-            <RequireAuth>
-              <ProyectoDetallePage />
-            </RequireAuth>
-          }
-        />
-        <Route
-          path="/tableros/:id"
-          element={
-            <RequireAuth>
-              <TableroPage />
-            </RequireAuth>
-          }
-        />
-        <Route
-          path="/parametros-calculo"
-          element={
-            <RequireAuth>
-              <ParametrosCalculoPage />
-            </RequireAuth>
-          }
-        />
+        >
+          <Route path="/" element={<DashboardPage />} />
+          <Route path="/catalogo" element={<CatalogoPage />} />
+          <Route path="/proyectos" element={<ProyectosPage />} />
+          <Route path="/proyectos/:id" element={<ProyectoWorkspacePage />} />
+          <Route path="/parametros-calculo" element={<ParametrosCalculoPage />} />
+        </Route>
       </Routes>
     </BrowserRouter>
   );
