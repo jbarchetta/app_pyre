@@ -21,14 +21,16 @@ export function Layout() {
         <nav className="flex flex-col gap-1" aria-label="Navegación principal">
           {NAV_ITEMS.map((item) =>
             item.disabled ? (
-              <span
+              <button
                 key={item.label}
+                type="button"
+                disabled
                 aria-disabled="true"
-                className="flex items-center justify-between px-3 py-3 text-sm uppercase tracking-widest text-secondary opacity-50"
+                className="flex items-center justify-between px-3 py-3 text-sm uppercase tracking-widest text-secondary opacity-50 disabled:cursor-not-allowed"
               >
                 {item.label}
                 <span className="font-mono text-[10px]">Próximo módulo</span>
-              </span>
+              </button>
             ) : (
               <NavLink
                 key={item.label}
