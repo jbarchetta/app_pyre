@@ -13,6 +13,7 @@ EXPECTED_TABLES = {
     "catalogo_precio_historial",
     "extraccion_cad",
     "audit_log",
+    "parametro_calculo",
 }
 
 
