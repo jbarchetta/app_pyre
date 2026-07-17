@@ -1,3 +1,4 @@
+import { useId } from "react";
 import type { Salida, Seccion } from "../api/client";
 
 const ANCHO_POR_POLO = 24;
@@ -32,21 +33,22 @@ export function EsquemaVisual({
   zoom = 1,
   capas = CAPAS_POR_DEFECTO,
 }: EsquemaVisualProps) {
+  const patternId = useId();
   const offsetEmbarrado = capas.embarrado ? ALTO_EMBARRADO : 0;
   const altoBase = 50 + offsetEmbarrado + secciones.length * (ALTO + 20) + 20;
-  const anchoViewBox = ANCHO_BASE / zoom;
-  const altoViewBox = altoBase / zoom;
+  const anchoRenderizado = ANCHO_BASE * zoom;
+  const altoRenderizado = altoBase * zoom;
 
   return (
     <svg
       role="img"
       aria-label="Esquema visual del tablero"
-      width={ANCHO_BASE}
-      height={altoBase}
-      viewBox={`0 0 ${anchoViewBox} ${altoViewBox}`}
+      width={anchoRenderizado}
+      height={altoRenderizado}
+      viewBox={`0 0 ${ANCHO_BASE} ${altoBase}`}
     >
       <defs>
-        <pattern id="rayas-diferencial" patternUnits="userSpaceOnUse" width={4} height={4} patternTransform="rotate(45)">
+        <pattern id={patternId} patternUnits="userSpaceOnUse" width={4} height={4} patternTransform="rotate(45)">
           <rect width={4} height={4} fill="#ffffff" />
           <line x1={0} y1={0} x2={0} y2={4} stroke="#1a1c1c" strokeWidth={2} />
         </pattern>
@@ -86,7 +88,7 @@ export function EsquemaVisual({
               const fill = !asignada
                 ? "none"
                 : salida.tipo_proteccion === "seccional_diferencial"
-                  ? "url(#rayas-diferencial)"
+                  ? `url(#${patternId})`
                   : "#1a1c1c";
               return (
                 <g key={salida.id}>

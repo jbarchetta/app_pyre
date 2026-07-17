@@ -61,7 +61,8 @@ describe("EsquemaVisual", () => {
       />,
     );
 
-    expect(screen.getByTestId("salida-sal-dif")).toHaveAttribute("fill", "url(#rayas-diferencial)");
+    const fill = screen.getByTestId("salida-sal-dif").getAttribute("fill");
+    expect(fill).toMatch(/^url\(#.+\)$/);
   });
 
   it("draws a dashed outline with no fill when there is no matched component", () => {
@@ -117,11 +118,12 @@ describe("EsquemaVisual", () => {
     expect(screen.queryByTestId("embarrado")).not.toBeInTheDocument();
   });
 
-  it("scales the viewBox down when zoomed in, so content renders larger", () => {
+  it("scales the rendered width up when zoomed in, without clipping the viewBox", () => {
     render(<EsquemaVisual tieneInterruptorPrincipal={false} secciones={[]} zoom={2} />);
 
     const svg = screen.getByRole("img", { name: /esquema visual del tablero/i });
+    expect(svg).toHaveAttribute("width", "960");
     const [, , viewBoxAncho] = svg.getAttribute("viewBox")!.split(" ").map(Number);
-    expect(viewBoxAncho).toBe(240);
+    expect(viewBoxAncho).toBe(480);
   });
 });
