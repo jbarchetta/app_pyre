@@ -81,7 +81,7 @@ describe("TableroPage", () => {
     renderPage();
     await screen.findByText("TG1");
 
-    await userEvent.click(screen.getByRole("button", { name: /editar/i }));
+    await userEvent.click(screen.getByRole("button", { name: /editar nivel de falla/i }));
     const input = screen.getByLabelText(/nuevo nivel de falla/i) as HTMLInputElement;
     await userEvent.clear(input);
     await userEvent.type(input, "16");
@@ -92,5 +92,59 @@ describe("TableroPage", () => {
       expect.objectContaining({ method: "PATCH" }),
     );
     expect(await screen.findByText(/nivel de falla: 16.00 kA/i)).toBeInTheDocument();
+  });
+
+  it("edits interruptor principal via the catalog picker after the tablero already exists", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockImplementation((url: string, init?: RequestInit) => {
+        if (init?.method === "PATCH") {
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({
+              id: "t1",
+              proyecto_id: "p1",
+              nombre: "TG1",
+              nivel_falla_ka: "10.00",
+              interruptor_principal_id: "c2",
+            }),
+          });
+        }
+        if (url.includes("/catalogo/buscar")) {
+          return Promise.resolve({
+            ok: true,
+            json: async () => [{ id: "c2", codigo: "XT2N250", descripcion: "Interruptor 250A", precio_neto: "600.00" }],
+          });
+        }
+        if (url.includes("/secciones/") && url.includes("/salidas")) {
+          return Promise.resolve({ ok: true, json: async () => [] });
+        }
+        if (url.includes("/tableros/t1/secciones")) {
+          return Promise.resolve({
+            ok: true,
+            json: async () => [{ id: "s1", tablero_id: "t1", nombre: "Sección 1", orden: 0 }],
+          });
+        }
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({
+            id: "t1",
+            proyecto_id: "p1",
+            nombre: "TG1",
+            nivel_falla_ka: "10.00",
+            interruptor_principal_id: "c1",
+          }),
+        });
+      }),
+    );
+
+    renderPage();
+    await screen.findByText("TG1");
+
+    await userEvent.click(screen.getByRole("button", { name: /editar interruptor principal/i }));
+    await userEvent.type(screen.getByLabelText(/buscar código/i), "XT2N250");
+    await userEvent.click(await screen.findByRole("button", { name: /XT2N250/i }));
+
+    expect(await screen.findByText(/interruptor principal: c2/i)).toBeInTheDocument();
   });
 });

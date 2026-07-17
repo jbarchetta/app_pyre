@@ -6,10 +6,12 @@ import {
   listarSalidas,
   listarSecciones,
   obtenerTablero,
+  type ComponenteBusqueda,
   type Salida,
   type Seccion,
   type Tablero,
 } from "../api/client";
+import { ComponentePicker } from "../components/ComponentePicker";
 import { EsquemaVisual } from "../components/EsquemaVisual";
 import { SeccionBlock } from "../components/SeccionBlock";
 
@@ -25,6 +27,7 @@ export function TableroPage() {
   const [nombreSeccion, setNombreSeccion] = useState("");
   const [editandoNivelFalla, setEditandoNivelFalla] = useState(false);
   const [nivelFallaKaEdit, setNivelFallaKaEdit] = useState("");
+  const [editandoInterruptorPrincipal, setEditandoInterruptorPrincipal] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -62,11 +65,23 @@ export function TableroPage() {
     if (!id) return;
     setError(null);
     try {
-      const actualizado = await actualizarTablero(id, nivelFallaKaEdit);
+      const actualizado = await actualizarTablero(id, { nivel_falla_ka: nivelFallaKaEdit });
       setTablero(actualizado);
       setEditandoNivelFalla(false);
     } catch {
       setError("No se pudo actualizar el nivel de falla");
+    }
+  }
+
+  async function handleSeleccionarInterruptorPrincipal(componente: ComponenteBusqueda) {
+    if (!id) return;
+    setError(null);
+    try {
+      const actualizado = await actualizarTablero(id, { interruptor_principal_id: componente.id });
+      setTablero(actualizado);
+      setEditandoInterruptorPrincipal(false);
+    } catch {
+      setError("No se pudo actualizar el interruptor principal");
     }
   }
 
@@ -101,7 +116,7 @@ export function TableroPage() {
               setEditandoNivelFalla(true);
             }}
           >
-            editar
+            editar nivel de falla
           </button>
         )}
       </p>
@@ -120,8 +135,21 @@ export function TableroPage() {
         </form>
       )}
       <p>
-        Interruptor principal: {tablero.interruptor_principal_id ? tablero.interruptor_principal_id : "sin definir"}
+        Interruptor principal: {tablero.interruptor_principal_id ? tablero.interruptor_principal_id : "sin definir"}{" "}
+        {!editandoInterruptorPrincipal && (
+          <button type="button" onClick={() => setEditandoInterruptorPrincipal(true)}>
+            editar interruptor principal
+          </button>
+        )}
       </p>
+      {editandoInterruptorPrincipal && (
+        <div>
+          <ComponentePicker onSelect={handleSeleccionarInterruptorPrincipal} />
+          <button type="button" onClick={() => setEditandoInterruptorPrincipal(false)}>
+            Cancelar
+          </button>
+        </div>
+      )}
       <EsquemaVisual tieneInterruptorPrincipal={!!tablero.interruptor_principal_id} secciones={secciones} />
       {secciones.map(({ seccion, salidas }) => (
         <SeccionBlock

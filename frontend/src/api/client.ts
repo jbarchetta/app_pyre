@@ -132,14 +132,19 @@ export async function obtenerTablero(id: string): Promise<Tablero> {
   return response.json();
 }
 
-export async function actualizarTablero(id: string, nivelFallaKa: string): Promise<Tablero> {
+export interface TableroUpdate {
+  nivel_falla_ka?: string;
+  interruptor_principal_id?: string | null;
+}
+
+export async function actualizarTablero(id: string, cambios: TableroUpdate): Promise<Tablero> {
   const response = await fetch(`${API_BASE_URL}/tableros/${id}`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
     credentials: "include",
-    body: JSON.stringify({ nivel_falla_ka: nivelFallaKa }),
+    body: JSON.stringify(cambios),
   });
-  if (!response.ok) throw new Error("No se pudo actualizar el nivel de falla");
+  if (!response.ok) throw new Error("No se pudo actualizar el tablero");
   return response.json();
 }
 
