@@ -29,7 +29,7 @@ describe("ProyectosPage", () => {
     );
   });
 
-  it("lists existing projects", async () => {
+  it("lists existing projects as cards", async () => {
     render(
       <MemoryRouter>
         <ProyectosPage />
@@ -39,7 +39,7 @@ describe("ProyectosPage", () => {
     expect(await screen.findByText(/Proyecto Existente/i)).toBeInTheDocument();
   });
 
-  it("creates a new project and adds it to the list", async () => {
+  it("does not show the creation form until the button is clicked", async () => {
     render(
       <MemoryRouter>
         <ProyectosPage />
@@ -47,8 +47,20 @@ describe("ProyectosPage", () => {
     );
     await screen.findByText(/Proyecto Existente/i);
 
-    await userEvent.type(screen.getByLabelText(/cliente/i), "Cliente Nuevo");
-    await userEvent.type(screen.getByLabelText(/nombre/i), "Proyecto Nuevo");
+    expect(screen.queryByLabelText(/^cliente$/i)).not.toBeInTheDocument();
+  });
+
+  it("opens the modal, creates a new project, and adds it to the list", async () => {
+    render(
+      <MemoryRouter>
+        <ProyectosPage />
+      </MemoryRouter>,
+    );
+    await screen.findByText(/Proyecto Existente/i);
+
+    await userEvent.click(screen.getByRole("button", { name: /nuevo proyecto/i }));
+    await userEvent.type(screen.getByLabelText(/^cliente$/i), "Cliente Nuevo");
+    await userEvent.type(screen.getByLabelText(/^nombre$/i), "Proyecto Nuevo");
     await userEvent.click(screen.getByRole("button", { name: /crear proyecto/i }));
 
     expect(await screen.findByText(/Proyecto Nuevo/i)).toBeInTheDocument();
