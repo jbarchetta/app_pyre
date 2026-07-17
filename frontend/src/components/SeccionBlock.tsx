@@ -54,9 +54,9 @@ export function SeccionBlock({ seccion, salidas, onSalidaCreada, onSalidaActuali
       <table className="w-full text-left">
         <thead>
           <tr className="border-b border-surface-stroke text-xs uppercase tracking-widest text-secondary">
-            <th className="p-3">Carga</th>
-            <th className="p-3">Formato</th>
-            <th className="p-3">Estado</th>
+            <th scope="col" className="p-3">Carga</th>
+            <th scope="col" className="p-3">Formato</th>
+            <th scope="col" className="p-3">Estado</th>
           </tr>
         </thead>
         <tbody>
@@ -72,12 +72,12 @@ export function SeccionBlock({ seccion, salidas, onSalidaCreada, onSalidaActuali
                     <span className="h-2 w-2 bg-abb-red" /> propuesto: {salida.componente_id}
                   </span>
                 ) : (
-                  <span className="inline-flex flex-col gap-2">
+                  <div className="flex flex-col gap-2">
                     <span className="inline-flex items-center gap-2">
                       <span className="h-2 w-2 border border-secondary" /> sin match
                     </span>
                     <ComponentePicker onSelect={(componente) => handleOverride(salida.id, componente)} />
-                  </span>
+                  </div>
                 )}
               </td>
             </tr>

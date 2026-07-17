@@ -64,4 +64,30 @@ describe("SeccionBlock", () => {
     expect(fila).toHaveTextContent(/sin match/i);
     expect(screen.getByLabelText(/buscar código/i)).toBeInTheDocument();
   });
+
+  it("shows a filled badge with the matched component id when a salida has a match", () => {
+    render(
+      <SeccionBlock
+        seccion={seccion}
+        salidas={[
+          {
+            id: "sal3",
+            seccion_id: "s1",
+            carga_valor: "20",
+            carga_unidad: "A",
+            formato: "unipolar",
+            tipo_proteccion: "seccional_termomagnetico",
+            componente_id: "c1",
+            origen: "manual",
+          },
+        ]}
+        onSalidaCreada={vi.fn()}
+        onSalidaActualizada={vi.fn()}
+      />,
+    );
+
+    const fila = screen.getByRole("row", { name: /20 a/i });
+    expect(fila).toHaveTextContent(/propuesto: c1/i);
+    expect(screen.queryByLabelText(/buscar código/i)).not.toBeInTheDocument();
+  });
 });
