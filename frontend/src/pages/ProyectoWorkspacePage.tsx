@@ -9,6 +9,8 @@ import {
   type Tablero,
 } from "../api/client";
 import { ComponentePicker } from "../components/ComponentePicker";
+import { DetalleTablero } from "../components/DetalleTablero";
+import type { Capas } from "../components/EsquemaVisual";
 
 // Icc estándar de arranque para no bloquear la creación del tablero — el
 // analista lo puede editar desde el detalle del tablero si el estudio
@@ -24,6 +26,8 @@ export function ProyectoWorkspacePage() {
   const [nivelFallaKa, setNivelFallaKa] = useState(NIVEL_FALLA_KA_POR_DEFECTO);
   const [interruptorPrincipal, setInterruptorPrincipal] = useState<ComponenteBusqueda | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const VISTA_POR_DEFECTO: { zoom: number; capas: Capas } = { zoom: 1, capas: { codigos: true, embarrado: true } };
+  const [vistaEstado, setVistaEstado] = useState<Record<string, { zoom: number; capas: Capas }>>({});
 
   useEffect(() => {
     if (!id) return;
@@ -63,6 +67,22 @@ export function ProyectoWorkspacePage() {
     : (tableros[0]?.id ?? null);
   const tableroActivo = tableros.find((t) => t.id === tableroActivoId) ?? null;
 
+  function obtenerVista(tableroId: string) {
+    return vistaEstado[tableroId] ?? VISTA_POR_DEFECTO;
+  }
+
+  function handleTableroActualizado(actualizado: Tablero) {
+    setTableros((actuales) => (actuales ?? []).map((t) => (t.id === actualizado.id ? actualizado : t)));
+  }
+
+  function handleZoomChange(tableroId: string, zoom: number) {
+    setVistaEstado((actual) => ({ ...actual, [tableroId]: { ...obtenerVista(tableroId), zoom } }));
+  }
+
+  function handleCapasChange(tableroId: string, capas: Capas) {
+    setVistaEstado((actual) => ({ ...actual, [tableroId]: { ...obtenerVista(tableroId), capas } }));
+  }
+
   return (
     <div>
       <h1 className="text-2xl font-bold">{proyecto.nombre}</h1>
@@ -89,8 +109,17 @@ export function ProyectoWorkspacePage() {
         </div>
       )}
 
-      {tableroActivo === null && (
+      {tableroActivo === null ? (
         <p className="mt-6 text-secondary">Creá tu primer tablero para empezar a configurarlo.</p>
+      ) : (
+        <DetalleTablero
+          key={tableroActivo.id}
+          tablero={tableroActivo}
+          onTableroActualizado={handleTableroActualizado}
+          vista={obtenerVista(tableroActivo.id)}
+          onZoomChange={(zoom) => handleZoomChange(tableroActivo.id, zoom)}
+          onCapasChange={(capas) => handleCapasChange(tableroActivo.id, capas)}
+        />
       )}
 
       <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-2">

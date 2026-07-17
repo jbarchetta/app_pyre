@@ -132,4 +132,36 @@ describe("ProyectoWorkspacePage", () => {
 
     expect(await screen.findByRole("tab", { name: "TG3" })).toHaveAttribute("aria-selected", "true");
   });
+
+  it("shows the active tablero's secciones inside the workspace", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockImplementation((url: string) => {
+        if (url.includes("/proyectos/p1/tableros")) {
+          return Promise.resolve({
+            ok: true,
+            json: async () => [
+              { id: "t1", proyecto_id: "p1", nombre: "TG1", nivel_falla_ka: "10.00", interruptor_principal_id: null },
+            ],
+          });
+        }
+        if (url.includes("/secciones/") && url.includes("/salidas")) {
+          return Promise.resolve({ ok: true, json: async () => [] });
+        }
+        if (url.includes("/tableros/t1/secciones")) {
+          return Promise.resolve({
+            ok: true,
+            json: async () => [{ id: "s1", tablero_id: "t1", nombre: "Sección 1", orden: 0 }],
+          });
+        }
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({ id: "p1", cliente: "Cliente A", nombre: "Proyecto A", analista_id: "a1", estado: "en_curso" }),
+        });
+      }),
+    );
+    renderPage();
+
+    expect(await screen.findByText("Sección 1")).toBeInTheDocument();
+  });
 });
