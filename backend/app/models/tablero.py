@@ -22,6 +22,11 @@ class OrigenSalida(str, enum.Enum):
     IA_CONFIRMADA = "ia_confirmada"
 
 
+class TipoProteccion(str, enum.Enum):
+    SECCIONAL_TERMOMAGNETICO = "seccional_termomagnetico"
+    SECCIONAL_DIFERENCIAL = "seccional_diferencial"
+
+
 class Tablero(Base):
     __tablename__ = "tablero"
 
@@ -52,6 +57,9 @@ class Salida(Base):
     carga_valor: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
     carga_unidad: Mapped[str] = mapped_column(String(10), nullable=False)
     formato: Mapped[FormatoPolos] = mapped_column(Enum(FormatoPolos, name="formato_polos"), nullable=False)
+    tipo_proteccion: Mapped[TipoProteccion] = mapped_column(
+        Enum(TipoProteccion, name="tipo_proteccion"), nullable=False
+    )
     componente_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("catalogo_componente.id"), nullable=True
     )
