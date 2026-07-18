@@ -63,6 +63,19 @@ describe("DetalleTablero", () => {
     expect(screen.getAllByRole("table")).toHaveLength(1);
   });
 
+  it("shows Principal as the first tab, always present, without its own delete icon", async () => {
+    renderDetalle();
+    await screen.findByRole("tab", { name: "Sección 1" });
+
+    const tabs = screen.getAllByRole("tab");
+    expect(tabs[0]).toHaveTextContent("Principal");
+
+    await userEvent.click(screen.getByRole("tab", { name: "Principal" }));
+
+    expect(screen.queryByRole("button", { name: /borrar fila activa/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /renombrar fila activa/i })).not.toBeInTheDocument();
+  });
+
   it("switches the visible sección when clicking another tab", async () => {
     vi.stubGlobal(
       "fetch",
@@ -128,7 +141,7 @@ describe("DetalleTablero", () => {
     expect(cargaInputSeccion2.value).toBe("");
   });
 
-  it("shows the Nueva sección form directly when there are no secciones yet, with no selector", async () => {
+  it("shows only the Principal tab when there are no filas yet, active by default", async () => {
     vi.stubGlobal(
       "fetch",
       vi.fn().mockImplementation((url: string) => {
@@ -140,18 +153,118 @@ describe("DetalleTablero", () => {
     );
     renderDetalle();
 
-    expect(await screen.findByLabelText(/nueva sección/i)).toBeInTheDocument();
-    expect(screen.queryByRole("tab")).not.toBeInTheDocument();
+    expect(await screen.findByRole("tab", { name: "Principal" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getAllByRole("tab")).toHaveLength(1);
   });
 
-  it("adds a new sección and adds a tab for it", async () => {
+  it("adds a new fila via the Nueva fila icon and modal, and activates it", async () => {
     renderDetalle();
     await screen.findByRole("tab", { name: "Sección 1" });
 
-    await userEvent.type(screen.getByLabelText(/nueva sección/i), "Sección nueva");
-    await userEvent.click(screen.getByRole("button", { name: /agregar sección/i }));
+    await userEvent.click(screen.getByRole("button", { name: /nueva fila/i }));
+    await userEvent.type(screen.getByLabelText(/^nombre$/i), "Sección nueva");
+    await userEvent.click(screen.getByRole("button", { name: /agregar fila/i }));
 
-    expect(await screen.findByRole("tab", { name: "Sección nueva" })).toBeInTheDocument();
+    expect(await screen.findByRole("tab", { name: "Sección nueva" })).toHaveAttribute("aria-selected", "true");
+  });
+
+  it("renames the active fila via the editar fila icon and modal", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockImplementation((url: string, init?: RequestInit) => {
+        if (init?.method === "PATCH" && url.includes("/secciones/")) {
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({ id: "s1", tablero_id: "t1", nombre: "Fila renombrada", orden: 0 }),
+          });
+        }
+        if (url.includes("/secciones/") && url.includes("/salidas")) {
+          return Promise.resolve({ ok: true, json: async () => [] });
+        }
+        if (url.includes("/tableros/t1/secciones")) {
+          return Promise.resolve({
+            ok: true,
+            json: async () => [{ id: "s1", tablero_id: "t1", nombre: "Sección 1", orden: 0 }],
+          });
+        }
+        return Promise.resolve({ ok: true, json: async () => tablero });
+      }),
+    );
+    renderDetalle();
+    await screen.findByRole("tab", { name: "Sección 1" });
+
+    await userEvent.click(screen.getByRole("button", { name: /renombrar fila activa/i }));
+    const input = screen.getByLabelText(/^nombre$/i) as HTMLInputElement;
+    expect(input.value).toBe("Sección 1");
+    await userEvent.clear(input);
+    await userEvent.type(input, "Fila renombrada");
+    await userEvent.click(screen.getByRole("button", { name: /^guardar$/i }));
+
+    expect(await screen.findByRole("tab", { name: "Fila renombrada" })).toBeInTheDocument();
+  });
+
+  it("deletes the active fila after confirming, and falls back to Principal", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockImplementation((url: string, init?: RequestInit) => {
+        if (init?.method === "DELETE") return Promise.resolve({ ok: true, json: async () => ({}) });
+        if (url.includes("/secciones/") && url.includes("/salidas")) {
+          return Promise.resolve({ ok: true, json: async () => [] });
+        }
+        if (url.includes("/tableros/t1/secciones")) {
+          return Promise.resolve({
+            ok: true,
+            json: async () => [{ id: "s1", tablero_id: "t1", nombre: "Sección 1", orden: 0 }],
+          });
+        }
+        return Promise.resolve({ ok: true, json: async () => tablero });
+      }),
+    );
+    renderDetalle();
+    await screen.findByRole("tab", { name: "Sección 1" });
+
+    await userEvent.click(screen.getByRole("button", { name: /borrar fila activa/i }));
+    await userEvent.click(screen.getByRole("button", { name: /^borrar$/i }));
+
+    expect(await screen.findByRole("tab", { name: "Principal" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.queryByRole("tab", { name: "Sección 1" })).not.toBeInTheDocument();
+  });
+
+  it("cancelling the borrar fila confirmation keeps the fila", async () => {
+    renderDetalle();
+    await screen.findByRole("tab", { name: "Sección 1" });
+
+    await userEvent.click(screen.getByRole("button", { name: /borrar fila activa/i }));
+    await userEvent.click(screen.getByRole("button", { name: /cancelar/i }));
+
+    expect(screen.getByRole("tab", { name: "Sección 1" })).toBeInTheDocument();
+  });
+
+  it("shows an error and keeps the confirmation open if deleting the fila fails", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockImplementation((url: string, init?: RequestInit) => {
+        if (init?.method === "DELETE") return Promise.resolve({ ok: false });
+        if (url.includes("/secciones/") && url.includes("/salidas")) {
+          return Promise.resolve({ ok: true, json: async () => [] });
+        }
+        if (url.includes("/tableros/t1/secciones")) {
+          return Promise.resolve({
+            ok: true,
+            json: async () => [{ id: "s1", tablero_id: "t1", nombre: "Sección 1", orden: 0 }],
+          });
+        }
+        return Promise.resolve({ ok: true, json: async () => tablero });
+      }),
+    );
+    renderDetalle();
+    await screen.findByRole("tab", { name: "Sección 1" });
+
+    await userEvent.click(screen.getByRole("button", { name: /borrar fila activa/i }));
+    await userEvent.click(screen.getByRole("button", { name: /^borrar$/i }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(/no se pudo borrar la fila/i);
+    expect(screen.getByRole("tab", { name: "Sección 1" })).toBeInTheDocument();
   });
 
   it("edits nivel de falla via modal and reports the change upward", async () => {
@@ -176,14 +289,14 @@ describe("DetalleTablero", () => {
     render(<Harness />);
     await screen.findByRole("tab", { name: "Sección 1" });
 
-    await userEvent.click(screen.getByRole("button", { name: /editar nivel de falla/i }));
+    await userEvent.click(screen.getByRole("button", { name: /editar intensidad de cortocircuito/i }));
     expect(screen.getByRole("dialog")).toBeInTheDocument();
     const input = screen.getByLabelText(/nuevo nivel de falla/i) as HTMLInputElement;
     await userEvent.clear(input);
     await userEvent.type(input, "16");
     await userEvent.click(screen.getByRole("button", { name: /guardar/i }));
 
-    expect(await screen.findByText(/nivel de falla.*16.00 kA/i)).toBeInTheDocument();
+    expect(await screen.findByText(/intensidad de cortocircuito.*16.00 kA/i)).toBeInTheDocument();
     expect(onTableroActualizado).toHaveBeenCalledWith(expect.objectContaining({ nivel_falla_ka: "16.00" }));
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
@@ -192,7 +305,7 @@ describe("DetalleTablero", () => {
     renderDetalle();
     await screen.findByRole("tab", { name: "Sección 1" });
 
-    await userEvent.click(screen.getByRole("button", { name: /editar nivel de falla/i }));
+    await userEvent.click(screen.getByRole("button", { name: /editar intensidad de cortocircuito/i }));
     expect(screen.getByRole("dialog")).toBeInTheDocument();
 
     await userEvent.keyboard("{Escape}");
@@ -204,17 +317,16 @@ describe("DetalleTablero", () => {
     renderDetalle();
     await screen.findByRole("tab", { name: "Sección 1" });
 
-    await userEvent.click(screen.getByRole("button", { name: /editar nivel de falla/i }));
+    await userEvent.click(screen.getByRole("button", { name: /editar intensidad de cortocircuito/i }));
     const dialog = screen.getByRole("dialog");
     expect(dialog).toBeInTheDocument();
 
-    // The backdrop is the dialog's parent; click it directly (not the dialog itself, which stops propagation).
     await userEvent.click(dialog.parentElement!);
 
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
-  it("edits interruptor principal via modal and reports the change upward", async () => {
+  it("edits interruptor principal from the Principal tab and reports the change upward", async () => {
     vi.stubGlobal(
       "fetch",
       vi.fn().mockImplementation((url: string, init?: RequestInit) => {
@@ -258,6 +370,7 @@ describe("DetalleTablero", () => {
     );
     await screen.findByRole("tab", { name: "Sección 1" });
 
+    await userEvent.click(screen.getByRole("tab", { name: "Principal" }));
     await userEvent.click(screen.getByRole("button", { name: /editar interruptor principal/i }));
     expect(screen.getByRole("dialog")).toBeInTheDocument();
     await userEvent.type(screen.getByLabelText(/buscar código/i), "XT2N250");

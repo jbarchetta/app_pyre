@@ -1,9 +1,12 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import {
+  actualizarSeccion,
   actualizarTablero,
   crearSeccion,
+  eliminarSeccion,
   listarSalidas,
   listarSecciones,
+  CATEGORIAS_INTERRUPTORES,
   type ComponenteBusqueda,
   type Salida,
   type Seccion,
@@ -13,6 +16,7 @@ import type { Capas } from "./EsquemaVisual";
 import { EsquemaVisualCanvas } from "./EsquemaVisualCanvas";
 import { ComponentePicker } from "./ComponentePicker";
 import { SeccionBlock } from "./SeccionBlock";
+import { ConfirmDialog } from "./ConfirmDialog";
 
 interface SeccionConSalidas {
   seccion: Seccion;
@@ -32,7 +36,7 @@ interface DetalleTableroProps {
   onCapasChange: (capas: Capas) => void;
 }
 
-type ModoEdicion = "nivel_falla" | "interruptor_principal" | null;
+const TAB_PRINCIPAL = "principal";
 
 export function DetalleTablero({
   tablero,
@@ -42,15 +46,20 @@ export function DetalleTablero({
   onCapasChange,
 }: DetalleTableroProps) {
   const [secciones, setSecciones] = useState<SeccionConSalidas[]>([]);
-  const [seccionSeleccionadaRaw, setSeccionSeleccionadaRaw] = useState<string | null>(null);
-  const [nombreSeccion, setNombreSeccion] = useState("");
-  const [modoEdicion, setModoEdicion] = useState<ModoEdicion>(null);
+  const [tabSeleccionadoRaw, setTabSeleccionadoRaw] = useState<string | null>(null);
+  const [modalIcc, setModalIcc] = useState(false);
+  const [modalInterruptor, setModalInterruptor] = useState(false);
+  const [modalNuevaFila, setModalNuevaFila] = useState(false);
+  const [nombreNuevaFila, setNombreNuevaFila] = useState("");
+  const [filaEnEdicion, setFilaEnEdicion] = useState<Seccion | null>(null);
+  const [nombreFilaEdit, setNombreFilaEdit] = useState("");
+  const [filaABorrar, setFilaABorrar] = useState<Seccion | null>(null);
+  const [borrandoFila, setBorrandoFila] = useState(false);
   const [nivelFallaKaEdit, setNivelFallaKaEdit] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const nivelFallaTriggerRef = useRef<HTMLButtonElement>(null);
-  const interruptorTriggerRef = useRef<HTMLButtonElement>(null);
+  const ultimoTriggerRef = useRef<HTMLElement | null>(null);
   const nivelFallaInputRef = useRef<HTMLInputElement>(null);
-  const interruptorDialogRef = useRef<HTMLDivElement>(null);
+  const nombreFilaInputRef = useRef<HTMLInputElement>(null);
 
   const cargar = useCallback(async () => {
     const seccionesCargadas = await listarSecciones(tablero.id);
@@ -64,46 +73,39 @@ export function DetalleTablero({
     cargar();
   }, [cargar]);
 
-  const seccionSeleccionadaId = secciones.some((s) => s.seccion.id === seccionSeleccionadaRaw)
-    ? seccionSeleccionadaRaw
-    : (secciones[0]?.seccion.id ?? null);
-  const seccionSeleccionada = secciones.find((s) => s.seccion.id === seccionSeleccionadaId) ?? null;
+  // Por defecto se activa la primera fila real (comportamiento preexistente);
+  // "Principal" solo es la pestaña activa por defecto cuando todavía no hay
+  // ninguna fila real. "Principal" siempre puede elegirse a mano.
+  const tabActivo =
+    tabSeleccionadoRaw &&
+    (tabSeleccionadoRaw === TAB_PRINCIPAL || secciones.some((s) => s.seccion.id === tabSeleccionadoRaw))
+      ? tabSeleccionadoRaw
+      : (secciones[0]?.seccion.id ?? TAB_PRINCIPAL);
+  const seccionSeleccionada = secciones.find((s) => s.seccion.id === tabActivo) ?? null;
 
-  const cerrarModal = useCallback(() => {
-    setModoEdicion((modoAnterior) => {
-      const triggerAnterior = modoAnterior === "nivel_falla" ? nivelFallaTriggerRef : interruptorTriggerRef;
-      triggerAnterior.current?.focus();
-      return null;
-    });
+  function cerrarModales() {
+    setModalIcc(false);
+    setModalInterruptor(false);
+    setModalNuevaFila(false);
+    setNombreNuevaFila("");
+    setFilaEnEdicion(null);
+    setFilaABorrar(null);
     setError(null);
-  }, []);
+    ultimoTriggerRef.current?.focus();
+  }
 
   useEffect(() => {
-    setError(null);
-    if (!modoEdicion) return;
-    if (modoEdicion === "nivel_falla") {
-      nivelFallaInputRef.current?.focus();
-    } else {
-      interruptorDialogRef.current?.focus();
-    }
+    const hayModalAbierto = modalIcc || modalInterruptor || modalNuevaFila || filaEnEdicion !== null;
+    if (!hayModalAbierto) return;
+    if (modalIcc) nivelFallaInputRef.current?.focus();
+    if (modalNuevaFila || filaEnEdicion) nombreFilaInputRef.current?.focus();
     function handleKeyDown(e: KeyboardEvent) {
-      if (e.key === "Escape") cerrarModal();
+      if (e.key === "Escape") cerrarModales();
     }
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [modoEdicion, cerrarModal]);
-
-  async function handleAgregarSeccion(event: FormEvent) {
-    event.preventDefault();
-    setError(null);
-    try {
-      const seccion = await crearSeccion(tablero.id, nombreSeccion, secciones.length);
-      setSecciones((actuales) => [...actuales, { seccion, salidas: [] }]);
-      setNombreSeccion("");
-    } catch {
-      setError("No se pudo crear la sección");
-    }
-  }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [modalIcc, modalInterruptor, modalNuevaFila, filaEnEdicion]);
 
   async function handleGuardarNivelFalla(event: FormEvent) {
     event.preventDefault();
@@ -111,9 +113,9 @@ export function DetalleTablero({
     try {
       const actualizado = await actualizarTablero(tablero.id, { nivel_falla_ka: nivelFallaKaEdit });
       onTableroActualizado(actualizado);
-      cerrarModal();
+      cerrarModales();
     } catch {
-      setError("No se pudo actualizar el nivel de falla");
+      setError("No se pudo actualizar la intensidad de cortocircuito");
     }
   }
 
@@ -122,9 +124,52 @@ export function DetalleTablero({
     try {
       const actualizado = await actualizarTablero(tablero.id, { interruptor_principal_id: componente.id });
       onTableroActualizado(actualizado);
-      cerrarModal();
+      cerrarModales();
     } catch {
       setError("No se pudo actualizar el interruptor principal");
+    }
+  }
+
+  async function handleCrearFila(event: FormEvent) {
+    event.preventDefault();
+    setError(null);
+    try {
+      const seccion = await crearSeccion(tablero.id, nombreNuevaFila, secciones.length);
+      setSecciones((actuales) => [...actuales, { seccion, salidas: [] }]);
+      setTabSeleccionadoRaw(seccion.id);
+      cerrarModales();
+    } catch {
+      setError("No se pudo crear la fila");
+    }
+  }
+
+  async function handleRenombrarFila(event: FormEvent) {
+    event.preventDefault();
+    if (!filaEnEdicion) return;
+    setError(null);
+    try {
+      const actualizada = await actualizarSeccion(filaEnEdicion.id, nombreFilaEdit);
+      setSecciones((actuales) =>
+        actuales.map((s) => (s.seccion.id === actualizada.id ? { ...s, seccion: actualizada } : s)),
+      );
+      cerrarModales();
+    } catch {
+      setError("No se pudo renombrar la fila");
+    }
+  }
+
+  async function handleConfirmarBorrarFila() {
+    if (!filaABorrar) return;
+    setBorrandoFila(true);
+    try {
+      await eliminarSeccion(filaABorrar.id);
+      setSecciones((actuales) => actuales.filter((s) => s.seccion.id !== filaABorrar.id));
+      if (tabActivo === filaABorrar.id) setTabSeleccionadoRaw(TAB_PRINCIPAL);
+      cerrarModales();
+    } catch {
+      setError("No se pudo borrar la fila");
+    } finally {
+      setBorrandoFila(false);
     }
   }
 
@@ -144,48 +189,48 @@ export function DetalleTablero({
     );
   }
 
+  function handleSalidaBorrada(seccionId: string, salidaId: string) {
+    setSecciones((actuales) =>
+      actuales.map((s) =>
+        s.seccion.id === seccionId ? { ...s, salidas: s.salidas.filter((sal) => sal.id !== salidaId) } : s,
+      ),
+    );
+  }
+
+  const filaABorrarCantidadElementos = filaABorrar
+    ? (secciones.find((s) => s.seccion.id === filaABorrar.id)?.salidas.length ?? 0)
+    : 0;
+
   return (
     <div className="mt-8">
-      <div className="flex flex-col gap-2">
-        <p className="flex flex-wrap items-center gap-2">
-          Nivel de falla (Icc): {tablero.nivel_falla_ka} kA
-          <button
-            ref={nivelFallaTriggerRef}
-            type="button"
-            aria-label="Editar nivel de falla"
-            onClick={() => {
-              setNivelFallaKaEdit(tablero.nivel_falla_ka);
-              setModoEdicion("nivel_falla");
-            }}
-          >
-            <span className="material-symbols-outlined text-abb-red text-sm">edit</span>
-          </button>
-        </p>
-        <p className="flex flex-wrap items-center gap-2">
-          Interruptor principal: {tablero.interruptor_principal_id ? tablero.interruptor_principal_id : "sin definir"}
-          <button
-            ref={interruptorTriggerRef}
-            type="button"
-            aria-label="Editar interruptor principal"
-            onClick={() => setModoEdicion("interruptor_principal")}
-          >
-            <span className="material-symbols-outlined text-abb-red text-sm">edit</span>
-          </button>
-        </p>
-      </div>
+      <p className="flex flex-wrap items-center gap-2">
+        Intensidad de Cortocircuito (Icc): {tablero.nivel_falla_ka} kA
+        <button
+          type="button"
+          aria-label="Editar intensidad de cortocircuito"
+          onClick={(e) => {
+            ultimoTriggerRef.current = e.currentTarget;
+            setNivelFallaKaEdit(tablero.nivel_falla_ka);
+            setModalIcc(true);
+          }}
+          className="text-on-background hover:text-abb-red"
+        >
+          <span className="material-symbols-outlined text-sm">edit</span>
+        </button>
+      </p>
 
-      {modoEdicion === "nivel_falla" && (
-        <div className="fixed inset-0 z-20 flex items-center justify-center bg-black/40" onClick={cerrarModal}>
+      {modalIcc && (
+        <div className="fixed inset-0 z-20 flex items-center justify-center bg-black/40" onClick={cerrarModales}>
           <form
             onSubmit={handleGuardarNivelFalla}
             onClick={(e) => e.stopPropagation()}
             role="dialog"
             aria-modal="true"
-            aria-labelledby="nivel-falla-modal-titulo"
+            aria-labelledby="icc-modal-titulo"
             className="flex w-96 flex-col gap-2 border border-surface-stroke bg-white p-8"
           >
-            <h2 id="nivel-falla-modal-titulo" className="text-lg font-bold">
-              Nivel de falla (Icc)
+            <h2 id="icc-modal-titulo" className="text-lg font-bold">
+              Intensidad de Cortocircuito (Icc)
             </h2>
             <label htmlFor="nivel-falla-edit">Nuevo nivel de falla (kA)</label>
             <input
@@ -205,7 +250,7 @@ export function DetalleTablero({
               </button>
               <button
                 type="button"
-                onClick={cerrarModal}
+                onClick={cerrarModales}
                 className="border border-surface-stroke px-6 py-3 text-sm uppercase tracking-widest"
               >
                 Cancelar
@@ -215,35 +260,110 @@ export function DetalleTablero({
         </div>
       )}
 
-      {modoEdicion === "interruptor_principal" && (
-        <div className="fixed inset-0 z-20 flex items-center justify-center bg-black/40" onClick={cerrarModal}>
-          <div
-            ref={interruptorDialogRef}
-            tabIndex={-1}
+      {modalInterruptor && (
+        <ComponentePicker
+          categorias={CATEGORIAS_INTERRUPTORES}
+          titulo="Interruptor principal"
+          onSelect={handleSeleccionarInterruptorPrincipal}
+          onCancel={cerrarModales}
+        />
+      )}
+
+      {modalNuevaFila && (
+        <div className="fixed inset-0 z-20 flex items-center justify-center bg-black/40" onClick={cerrarModales}>
+          <form
+            onSubmit={handleCrearFila}
             onClick={(e) => e.stopPropagation()}
             role="dialog"
             aria-modal="true"
-            aria-labelledby="interruptor-modal-titulo"
+            aria-labelledby="nueva-fila-titulo"
             className="flex w-96 flex-col gap-2 border border-surface-stroke bg-white p-8"
           >
-            <h2 id="interruptor-modal-titulo" className="text-lg font-bold">
-              Interruptor principal
+            <h2 id="nueva-fila-titulo" className="text-lg font-bold">
+              Nueva fila
             </h2>
-            <ComponentePicker onSelect={handleSeleccionarInterruptorPrincipal} />
+            <label htmlFor="nombre-nueva-fila">Nombre</label>
+            <input
+              id="nombre-nueva-fila"
+              ref={nombreFilaInputRef}
+              value={nombreNuevaFila}
+              onChange={(e) => setNombreNuevaFila(e.target.value)}
+            />
             {error && (
               <p role="alert" className="text-error">
                 {error}
               </p>
             )}
-            <button
-              type="button"
-              onClick={cerrarModal}
-              className="mt-4 self-start border border-surface-stroke px-6 py-3 text-sm uppercase tracking-widest"
-            >
-              Cancelar
-            </button>
-          </div>
+            <div className="mt-4 flex gap-2">
+              <button type="submit" className="bg-abb-red px-6 py-3 text-sm uppercase tracking-widest text-white">
+                Agregar fila
+              </button>
+              <button
+                type="button"
+                onClick={cerrarModales}
+                className="border border-surface-stroke px-6 py-3 text-sm uppercase tracking-widest"
+              >
+                Cancelar
+              </button>
+            </div>
+          </form>
         </div>
+      )}
+
+      {filaEnEdicion && (
+        <div className="fixed inset-0 z-20 flex items-center justify-center bg-black/40" onClick={cerrarModales}>
+          <form
+            onSubmit={handleRenombrarFila}
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="editar-fila-titulo"
+            className="flex w-96 flex-col gap-2 border border-surface-stroke bg-white p-8"
+          >
+            <h2 id="editar-fila-titulo" className="text-lg font-bold">
+              Renombrar fila
+            </h2>
+            <label htmlFor="nombre-fila-edit">Nombre</label>
+            <input
+              id="nombre-fila-edit"
+              ref={nombreFilaInputRef}
+              value={nombreFilaEdit}
+              onChange={(e) => setNombreFilaEdit(e.target.value)}
+            />
+            {error && (
+              <p role="alert" className="text-error">
+                {error}
+              </p>
+            )}
+            <div className="mt-4 flex gap-2">
+              <button type="submit" className="bg-abb-red px-6 py-3 text-sm uppercase tracking-widest text-white">
+                Guardar
+              </button>
+              <button
+                type="button"
+                onClick={cerrarModales}
+                className="border border-surface-stroke px-6 py-3 text-sm uppercase tracking-widest"
+              >
+                Cancelar
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {filaABorrar && (
+        <ConfirmDialog
+          titulo="Confirmar borrado"
+          mensaje={
+            filaABorrarCantidadElementos > 0
+              ? `Esto va a borrar la fila "${filaABorrar.nombre}" y sus ${filaABorrarCantidadElementos} elemento(s).`
+              : `Esto va a borrar la fila "${filaABorrar.nombre}".`
+          }
+          confirmando={borrandoFila}
+          error={error}
+          onConfirm={handleConfirmarBorrarFila}
+          onCancel={cerrarModales}
+        />
       )}
 
       <div className="mt-6 flex flex-col gap-6 lg:flex-row">
@@ -258,21 +378,30 @@ export function DetalleTablero({
           />
         </div>
         <div className="w-full lg:flex-1">
-          {secciones.length > 0 && (
-            <div
-              role="tablist"
-              aria-label="Secciones del tablero"
-              className="flex flex-wrap gap-1 border-b border-surface-stroke"
-            >
+          <div className="flex flex-wrap items-center gap-1 border-b border-surface-stroke">
+            <div role="tablist" aria-label="Filas del tablero" className="flex flex-wrap gap-1">
+              <button
+                role="tab"
+                type="button"
+                aria-selected={tabActivo === TAB_PRINCIPAL}
+                onClick={() => setTabSeleccionadoRaw(TAB_PRINCIPAL)}
+                className={`px-4 py-2 text-sm uppercase tracking-widest ${
+                  tabActivo === TAB_PRINCIPAL
+                    ? "border-b-2 border-abb-red text-abb-red"
+                    : "text-secondary hover:text-on-background"
+                }`}
+              >
+                Principal
+              </button>
               {secciones.map(({ seccion }) => (
                 <button
                   key={seccion.id}
                   role="tab"
                   type="button"
-                  aria-selected={seccion.id === seccionSeleccionadaId}
-                  onClick={() => setSeccionSeleccionadaRaw(seccion.id)}
+                  aria-selected={seccion.id === tabActivo}
+                  onClick={() => setTabSeleccionadoRaw(seccion.id)}
                   className={`px-4 py-2 text-sm uppercase tracking-widest ${
-                    seccion.id === seccionSeleccionadaId
+                    seccion.id === tabActivo
                       ? "border-b-2 border-abb-red text-abb-red"
                       : "text-secondary hover:text-on-background"
                   }`}
@@ -281,31 +410,89 @@ export function DetalleTablero({
                 </button>
               ))}
             </div>
+            <div className="ml-auto flex gap-3 px-2 text-on-background">
+              {tabActivo !== TAB_PRINCIPAL && seccionSeleccionada && (
+                <>
+                  <button
+                    type="button"
+                    aria-label="Renombrar fila activa"
+                    onClick={(e) => {
+                      ultimoTriggerRef.current = e.currentTarget;
+                      setNombreFilaEdit(seccionSeleccionada.seccion.nombre);
+                      setFilaEnEdicion(seccionSeleccionada.seccion);
+                    }}
+                    className="hover:text-abb-red"
+                  >
+                    <span className="material-symbols-outlined text-base">edit</span>
+                  </button>
+                  <button
+                    type="button"
+                    aria-label="Borrar fila activa"
+                    onClick={(e) => {
+                      ultimoTriggerRef.current = e.currentTarget;
+                      setFilaABorrar(seccionSeleccionada.seccion);
+                    }}
+                    className="hover:text-abb-red"
+                  >
+                    <span className="material-symbols-outlined text-base">delete</span>
+                  </button>
+                </>
+              )}
+              <button
+                type="button"
+                aria-label="Nueva fila"
+                onClick={(e) => {
+                  ultimoTriggerRef.current = e.currentTarget;
+                  setNombreNuevaFila("");
+                  setModalNuevaFila(true);
+                }}
+                className="hover:text-abb-red"
+              >
+                <span className="material-symbols-outlined text-base">add</span>
+              </button>
+            </div>
+          </div>
+
+          {tabActivo === TAB_PRINCIPAL ? (
+            <div className="mt-4 border border-surface-stroke bg-white">
+              <h3 className="border-b border-surface-stroke bg-industrial-gray p-4 font-bold uppercase tracking-widest">
+                Principal
+              </h3>
+              <table className="w-full text-left">
+                <tbody>
+                  <tr>
+                    <td className="p-3">
+                      {tablero.interruptor_principal_id ? tablero.interruptor_principal_id : "sin definir"}
+                    </td>
+                    <td className="p-3 text-right">
+                      <button
+                        type="button"
+                        aria-label="Editar interruptor principal"
+                        onClick={(e) => {
+                          ultimoTriggerRef.current = e.currentTarget;
+                          setModalInterruptor(true);
+                        }}
+                        className="text-on-background hover:text-abb-red"
+                      >
+                        <span className="material-symbols-outlined text-sm">edit</span>
+                      </button>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            seccionSeleccionada && (
+              <SeccionBlock
+                key={seccionSeleccionada.seccion.id}
+                seccion={seccionSeleccionada.seccion}
+                salidas={seccionSeleccionada.salidas}
+                onSalidaCreada={(salida) => handleSalidaCreada(seccionSeleccionada.seccion.id, salida)}
+                onSalidaActualizada={(salida) => handleSalidaActualizada(seccionSeleccionada.seccion.id, salida)}
+                onSalidaBorrada={(salidaId) => handleSalidaBorrada(seccionSeleccionada.seccion.id, salidaId)}
+              />
+            )
           )}
-          {seccionSeleccionada && (
-            <SeccionBlock
-              key={seccionSeleccionada.seccion.id}
-              seccion={seccionSeleccionada.seccion}
-              salidas={seccionSeleccionada.salidas}
-              onSalidaCreada={(salida) => handleSalidaCreada(seccionSeleccionada.seccion.id, salida)}
-              onSalidaActualizada={(salida) => handleSalidaActualizada(seccionSeleccionada.seccion.id, salida)}
-            />
-          )}
-          <form onSubmit={handleAgregarSeccion} className="mt-6 flex flex-col gap-2">
-            <label htmlFor="nombre-seccion">Nueva sección</label>
-            <input id="nombre-seccion" value={nombreSeccion} onChange={(e) => setNombreSeccion(e.target.value)} />
-            {error && (
-              <p role="alert" className="text-error">
-                {error}
-              </p>
-            )}
-            <button
-              type="submit"
-              className="self-start bg-abb-red px-6 py-3 text-sm uppercase tracking-widest text-white"
-            >
-              Agregar sección
-            </button>
-          </form>
         </div>
       </div>
     </div>
