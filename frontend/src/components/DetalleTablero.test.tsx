@@ -96,6 +96,38 @@ describe("DetalleTablero", () => {
     expect(screen.getByRole("tab", { name: "Sección 1" })).toHaveAttribute("aria-selected", "false");
   });
 
+  it("does not leak form values between secciones when switching tabs", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockImplementation((url: string) => {
+        if (url.includes("/secciones/s1/salidas") || url.includes("/secciones/s2/salidas")) {
+          return Promise.resolve({ ok: true, json: async () => [] });
+        }
+        if (url.includes("/tableros/t1/secciones")) {
+          return Promise.resolve({
+            ok: true,
+            json: async () => [
+              { id: "s1", tablero_id: "t1", nombre: "Sección 1", orden: 0 },
+              { id: "s2", tablero_id: "t1", nombre: "Sección 2", orden: 1 },
+            ],
+          });
+        }
+        return Promise.resolve({ ok: true, json: async () => tablero });
+      }),
+    );
+    renderDetalle();
+    await screen.findByRole("tab", { name: "Sección 1" });
+
+    const cargaInputSeccion1 = screen.getAllByLabelText(/^carga$/i)[0] as HTMLInputElement;
+    await userEvent.type(cargaInputSeccion1, "16");
+    expect(cargaInputSeccion1.value).toBe("16");
+
+    await userEvent.click(screen.getByRole("tab", { name: "Sección 2" }));
+
+    const cargaInputSeccion2 = screen.getAllByLabelText(/^carga$/i)[0] as HTMLInputElement;
+    expect(cargaInputSeccion2.value).toBe("");
+  });
+
   it("shows the Nueva sección form directly when there are no secciones yet, with no selector", async () => {
     vi.stubGlobal(
       "fetch",

@@ -219,6 +219,7 @@ export function DetalleTablero({
           )}
           {seccionSeleccionada && (
             <SeccionBlock
+              key={seccionSeleccionada.seccion.id}
               seccion={seccionSeleccionada.seccion}
               salidas={seccionSeleccionada.salidas}
               onSalidaCreada={(salida) => handleSalidaCreada(seccionSeleccionada.seccion.id, salida)}
