@@ -79,6 +79,7 @@ export function DetalleTablero({
   }, []);
 
   useEffect(() => {
+    setError(null);
     if (!modoEdicion) return;
     if (modoEdicion === "nivel_falla") {
       nivelFallaInputRef.current?.focus();

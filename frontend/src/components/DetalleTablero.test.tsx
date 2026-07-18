@@ -200,6 +200,20 @@ describe("DetalleTablero", () => {
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
+  it("closes the nivel de falla modal by clicking the backdrop without saving", async () => {
+    renderDetalle();
+    await screen.findByRole("tab", { name: "Sección 1" });
+
+    await userEvent.click(screen.getByRole("button", { name: /editar nivel de falla/i }));
+    const dialog = screen.getByRole("dialog");
+    expect(dialog).toBeInTheDocument();
+
+    // The backdrop is the dialog's parent; click it directly (not the dialog itself, which stops propagation).
+    await userEvent.click(dialog.parentElement!);
+
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
   it("edits interruptor principal via modal and reports the change upward", async () => {
     vi.stubGlobal(
       "fetch",
