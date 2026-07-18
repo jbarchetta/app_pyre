@@ -148,3 +148,54 @@ def test_buscar_incluye_id_como_desempate_final_para_paginacion_estable(client, 
     match = re.search(r"\.order_by\(([^)]*)\)", codigo_fuente)
     assert match is not None, "no se encontró ninguna llamada a .order_by(...) en buscar_componentes"
     assert "CatalogoComponente.id" in match.group(1)
+
+
+def test_buscar_filtra_por_categorias_cuando_se_especifica(client, db_session):
+    _login(client, db_session, email="buscarcat9.test@pyre.com")
+    en_categoria = _componente(db_session, "ZQXCAT-C1", "Interruptor de categoría permitida")
+    fuera_de_categoria = CatalogoComponente(
+        proveedor="ABB",
+        codigo="ZQXCAT-C2",
+        categoria_path=["Relés"],
+        categoria_raiz="Relés",
+        descripcion="Interruptor de categoría no permitida ZQXCAT",
+        unidad="Unidad",
+        precio_neto=Decimal("42.00"),
+        archivo_origen="test.xlsx",
+        fila_origen=1,
+    )
+    db_session.add(fuera_de_categoria)
+    db_session.commit()
+
+    response = client.get(
+        "/catalogo/buscar",
+        params={"q": "ZQXCAT", "categorias": ["Interruptores Termomagneticos"]},
+    )
+
+    assert response.status_code == 200
+    ids = [c["id"] for c in response.json()["resultados"]]
+    assert str(en_categoria.id) in ids
+    assert str(fuera_de_categoria.id) not in ids
+
+
+def test_buscar_sin_categorias_no_filtra(client, db_session):
+    _login(client, db_session, email="buscarcat10.test@pyre.com")
+    componente = CatalogoComponente(
+        proveedor="ABB",
+        codigo="ZQXNOCAT-C1",
+        categoria_path=["Relés"],
+        categoria_raiz="Relés",
+        descripcion="Interruptor sin filtro ZQXNOCAT",
+        unidad="Unidad",
+        precio_neto=Decimal("42.00"),
+        archivo_origen="test.xlsx",
+        fila_origen=1,
+    )
+    db_session.add(componente)
+    db_session.commit()
+
+    response = client.get("/catalogo/buscar", params={"q": "ZQXNOCAT"})
+
+    assert response.status_code == 200
+    ids = [c["id"] for c in response.json()["resultados"]]
+    assert str(componente.id) in ids

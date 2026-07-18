@@ -2,9 +2,9 @@ import io
 import zipfile
 from decimal import Decimal
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile, status
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile, status
 from pydantic import BaseModel
-from sqlalchemy import case, or_
+from sqlalchemy import and_, case, or_
 from sqlalchemy.orm import Session
 
 from app.auth.dependencies import get_current_user, require_role
@@ -66,6 +66,7 @@ _LIMIT_POR_DEFECTO = 20
 @router.get("/buscar", response_model=BusquedaCatalogoResponse)
 def buscar_componentes(
     q: str = "",
+    categorias: list[str] | None = Query(default=None),
     limit: int = _LIMIT_POR_DEFECTO,
     offset: int = 0,
     db: Session = Depends(get_db),
@@ -97,6 +98,11 @@ def buscar_componentes(
         CatalogoComponente.codigo_comercial.ilike(termino),
         CatalogoComponente.descripcion.ilike(termino),
     )
+    if categorias:
+        # Filtro maestro no editable por el analista -- acota la búsqueda a
+        # las categorías relevantes del contexto (ej. solo interruptores),
+        # en vez de barrer las ~9-10k filas de todo el catálogo real.
+        filtro = and_(filtro, CatalogoComponente.categoria_raiz.in_(categorias))
 
     # Nota: esto ejecuta una segunda query completa (además de la paginada de
     # abajo) en cada búsqueda -- a la escala actual del catálogo (~9-10k
