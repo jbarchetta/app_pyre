@@ -257,12 +257,20 @@ export async function crearSalida(seccionId: string, datos: SalidaInput): Promis
   return response.json();
 }
 
-export async function actualizarSalida(salidaId: string, componenteId: string | null): Promise<Salida> {
+export interface SalidaUpdateInput {
+  carga_valor?: string;
+  carga_unidad?: string;
+  formato?: FormatoPolos;
+  tipo_proteccion?: TipoProteccion;
+  componente_id?: string | null;
+}
+
+export async function actualizarSalida(salidaId: string, cambios: SalidaUpdateInput): Promise<Salida> {
   const response = await fetch(`${API_BASE_URL}/salidas/${salidaId}`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
     credentials: "include",
-    body: JSON.stringify({ componente_id: componenteId }),
+    body: JSON.stringify(cambios),
   });
   if (!response.ok) throw new Error("No se pudo actualizar la salida");
   return response.json();
