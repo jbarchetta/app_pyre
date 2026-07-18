@@ -103,7 +103,7 @@ def buscar_componentes(
     componentes = (
         db.query(CatalogoComponente)
         .filter(filtro)
-        .order_by(relevancia, CatalogoComponente.codigo)
+        .order_by(relevancia, CatalogoComponente.codigo, CatalogoComponente.id)
         .offset(offset)
         .limit(limit)
         .all()
