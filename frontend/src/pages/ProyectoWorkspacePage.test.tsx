@@ -162,7 +162,7 @@ describe("ProyectoWorkspacePage", () => {
     );
     renderPage();
 
-    expect(await screen.findByText("Sección 1")).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Sección 1" })).toBeInTheDocument();
   });
 
   it("keeps each tablero's zoom level when switching tabs and back", async () => {

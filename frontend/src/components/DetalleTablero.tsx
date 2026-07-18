@@ -40,6 +40,7 @@ export function DetalleTablero({
   onCapasChange,
 }: DetalleTableroProps) {
   const [secciones, setSecciones] = useState<SeccionConSalidas[]>([]);
+  const [seccionSeleccionadaRaw, setSeccionSeleccionadaRaw] = useState<string | null>(null);
   const [nombreSeccion, setNombreSeccion] = useState("");
   const [editandoNivelFalla, setEditandoNivelFalla] = useState(false);
   const [nivelFallaKaEdit, setNivelFallaKaEdit] = useState("");
@@ -57,6 +58,11 @@ export function DetalleTablero({
   useEffect(() => {
     cargar();
   }, [cargar]);
+
+  const seccionSeleccionadaId = secciones.some((s) => s.seccion.id === seccionSeleccionadaRaw)
+    ? seccionSeleccionadaRaw
+    : (secciones[0]?.seccion.id ?? null);
+  const seccionSeleccionada = secciones.find((s) => s.seccion.id === seccionSeleccionadaId) ?? null;
 
   async function handleAgregarSeccion(event: FormEvent) {
     event.preventDefault();
@@ -175,35 +181,67 @@ export function DetalleTablero({
         )}
       </div>
 
-      <EsquemaVisualCanvas
-        tieneInterruptorPrincipal={!!tablero.interruptor_principal_id}
-        secciones={secciones}
-        zoom={vista.zoom}
-        onZoomChange={onZoomChange}
-        capas={vista.capas}
-        onCapasChange={onCapasChange}
-      />
-
-      {secciones.map(({ seccion, salidas }) => (
-        <SeccionBlock
-          key={seccion.id}
-          seccion={seccion}
-          salidas={salidas}
-          onSalidaCreada={(salida) => handleSalidaCreada(seccion.id, salida)}
-          onSalidaActualizada={(salida) => handleSalidaActualizada(seccion.id, salida)}
-        />
-      ))}
-      <form onSubmit={handleAgregarSeccion} className="mt-6 flex flex-col gap-2">
-        <label htmlFor="nombre-seccion">Nueva sección</label>
-        <input id="nombre-seccion" value={nombreSeccion} onChange={(e) => setNombreSeccion(e.target.value)} />
-        {error && <p role="alert" className="text-error">{error}</p>}
-        <button
-          type="submit"
-          className="self-start bg-abb-red px-6 py-3 text-sm uppercase tracking-widest text-white"
-        >
-          Agregar sección
-        </button>
-      </form>
+      <div className="mt-6 flex flex-col gap-6 lg:flex-row">
+        <div className="w-full lg:w-1/3">
+          <EsquemaVisualCanvas
+            tieneInterruptorPrincipal={!!tablero.interruptor_principal_id}
+            secciones={secciones}
+            zoom={vista.zoom}
+            onZoomChange={onZoomChange}
+            capas={vista.capas}
+            onCapasChange={onCapasChange}
+          />
+        </div>
+        <div className="w-full lg:flex-1">
+          {secciones.length > 0 && (
+            <div
+              role="tablist"
+              aria-label="Secciones del tablero"
+              className="flex flex-wrap gap-1 border-b border-surface-stroke"
+            >
+              {secciones.map(({ seccion }) => (
+                <button
+                  key={seccion.id}
+                  role="tab"
+                  type="button"
+                  aria-selected={seccion.id === seccionSeleccionadaId}
+                  onClick={() => setSeccionSeleccionadaRaw(seccion.id)}
+                  className={`px-4 py-2 text-sm uppercase tracking-widest ${
+                    seccion.id === seccionSeleccionadaId
+                      ? "border-b-2 border-abb-red text-abb-red"
+                      : "text-secondary hover:text-on-background"
+                  }`}
+                >
+                  {seccion.nombre}
+                </button>
+              ))}
+            </div>
+          )}
+          {seccionSeleccionada && (
+            <SeccionBlock
+              seccion={seccionSeleccionada.seccion}
+              salidas={seccionSeleccionada.salidas}
+              onSalidaCreada={(salida) => handleSalidaCreada(seccionSeleccionada.seccion.id, salida)}
+              onSalidaActualizada={(salida) => handleSalidaActualizada(seccionSeleccionada.seccion.id, salida)}
+            />
+          )}
+          <form onSubmit={handleAgregarSeccion} className="mt-6 flex flex-col gap-2">
+            <label htmlFor="nombre-seccion">Nueva sección</label>
+            <input id="nombre-seccion" value={nombreSeccion} onChange={(e) => setNombreSeccion(e.target.value)} />
+            {error && (
+              <p role="alert" className="text-error">
+                {error}
+              </p>
+            )}
+            <button
+              type="submit"
+              className="self-start bg-abb-red px-6 py-3 text-sm uppercase tracking-widest text-white"
+            >
+              Agregar sección
+            </button>
+          </form>
+        </div>
+      </div>
     </div>
   );
 }

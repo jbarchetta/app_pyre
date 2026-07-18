@@ -13,6 +13,18 @@ const tablero: Tablero = {
   interruptor_principal_id: "c1",
 };
 
+function renderDetalle() {
+  render(
+    <DetalleTablero
+      tablero={tablero}
+      onTableroActualizado={vi.fn()}
+      vista={{ zoom: 1, capas: { codigos: true, embarrado: true } }}
+      onZoomChange={vi.fn()}
+      onCapasChange={vi.fn()}
+    />,
+  );
+}
+
 describe("DetalleTablero", () => {
   beforeEach(() => {
     vi.stubGlobal(
@@ -44,36 +56,70 @@ describe("DetalleTablero", () => {
     );
   });
 
-  it("shows the tablero's existing secciones", async () => {
-    render(
-      <DetalleTablero
-        tablero={tablero}
-        onTableroActualizado={vi.fn()}
-        vista={{ zoom: 1, capas: { codigos: true, embarrado: true } }}
-        onZoomChange={vi.fn()}
-        onCapasChange={vi.fn()}
-      />,
-    );
+  it("shows a selector tab for each existing sección, with the first one selected by default", async () => {
+    renderDetalle();
 
-    expect(await screen.findByText("Sección 1")).toBeInTheDocument();
+    expect(await screen.findByRole("tab", { name: "Sección 1" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getAllByRole("table")).toHaveLength(1);
   });
 
-  it("adds a new sección", async () => {
-    render(
-      <DetalleTablero
-        tablero={tablero}
-        onTableroActualizado={vi.fn()}
-        vista={{ zoom: 1, capas: { codigos: true, embarrado: true } }}
-        onZoomChange={vi.fn()}
-        onCapasChange={vi.fn()}
-      />,
+  it("switches the visible sección when clicking another tab", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockImplementation((url: string) => {
+        if (url.includes("/secciones/s1/salidas") || url.includes("/secciones/s2/salidas")) {
+          return Promise.resolve({ ok: true, json: async () => [] });
+        }
+        if (url.includes("/tableros/t1/secciones")) {
+          return Promise.resolve({
+            ok: true,
+            json: async () => [
+              { id: "s1", tablero_id: "t1", nombre: "Sección 1", orden: 0 },
+              { id: "s2", tablero_id: "t1", nombre: "Sección 2", orden: 1 },
+            ],
+          });
+        }
+        return Promise.resolve({ ok: true, json: async () => tablero });
+      }),
     );
-    await screen.findByText("Sección 1");
+    renderDetalle();
+    await screen.findByRole("tab", { name: "Sección 1" });
+
+    expect(screen.getAllByRole("table")).toHaveLength(1);
+    expect(screen.getByRole("tab", { name: "Sección 1" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("tab", { name: "Sección 2" })).toHaveAttribute("aria-selected", "false");
+
+    await userEvent.click(screen.getByRole("tab", { name: "Sección 2" }));
+
+    expect(screen.getAllByRole("table")).toHaveLength(1);
+    expect(screen.getByRole("tab", { name: "Sección 2" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("tab", { name: "Sección 1" })).toHaveAttribute("aria-selected", "false");
+  });
+
+  it("shows the Nueva sección form directly when there are no secciones yet, with no selector", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockImplementation((url: string) => {
+        if (url.includes("/tableros/t1/secciones")) {
+          return Promise.resolve({ ok: true, json: async () => [] });
+        }
+        return Promise.resolve({ ok: true, json: async () => tablero });
+      }),
+    );
+    renderDetalle();
+
+    expect(await screen.findByLabelText(/nueva sección/i)).toBeInTheDocument();
+    expect(screen.queryByRole("tab")).not.toBeInTheDocument();
+  });
+
+  it("adds a new sección and adds a tab for it", async () => {
+    renderDetalle();
+    await screen.findByRole("tab", { name: "Sección 1" });
 
     await userEvent.type(screen.getByLabelText(/nueva sección/i), "Sección nueva");
     await userEvent.click(screen.getByRole("button", { name: /agregar sección/i }));
 
-    expect(await screen.findByText("Sección nueva")).toBeInTheDocument();
+    expect(await screen.findByRole("tab", { name: "Sección nueva" })).toBeInTheDocument();
   });
 
   it("edits nivel de falla and reports the change upward", async () => {
@@ -96,7 +142,7 @@ describe("DetalleTablero", () => {
     }
 
     render(<Harness />);
-    await screen.findByText("Sección 1");
+    await screen.findByRole("tab", { name: "Sección 1" });
 
     await userEvent.click(screen.getByRole("button", { name: /editar nivel de falla/i }));
     const input = screen.getByLabelText(/nuevo nivel de falla/i) as HTMLInputElement;
@@ -104,7 +150,7 @@ describe("DetalleTablero", () => {
     await userEvent.type(input, "16");
     await userEvent.click(screen.getByRole("button", { name: /guardar/i }));
 
-    expect(await screen.findByText(/nivel de falla: 16.00 kA/i)).toBeInTheDocument();
+    expect(await screen.findByText(/nivel de falla.*16.00 kA/i)).toBeInTheDocument();
     expect(onTableroActualizado).toHaveBeenCalledWith(expect.objectContaining({ nivel_falla_ka: "16.00" }));
   });
 
