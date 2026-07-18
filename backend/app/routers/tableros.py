@@ -184,3 +184,42 @@ def listar_secciones(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tablero no encontrado")
     secciones = db.query(Seccion).filter(Seccion.tablero_id == tablero_id).order_by(Seccion.orden).all()
     return [_seccion_response(s) for s in secciones]
+
+
+class SeccionUpdate(BaseModel):
+    nombre: str | None = None
+
+
+@router.patch("/secciones/{seccion_id}", response_model=SeccionResponse)
+def actualizar_seccion(
+    seccion_id: uuid.UUID,
+    payload: SeccionUpdate,
+    db: Session = Depends(get_db),
+    usuario: Usuario = Depends(require_role(RolUsuario.ANALISTA, RolUsuario.SUPERVISOR)),
+):
+    seccion = db.get(Seccion, seccion_id)
+    if seccion is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Sección no encontrada")
+
+    cambios = payload.model_dump(exclude_unset=True)
+    if "nombre" in cambios:
+        seccion.nombre = cambios["nombre"]
+
+    db.commit()
+    db.refresh(seccion)
+    return _seccion_response(seccion)
+
+
+@router.delete("/secciones/{seccion_id}", status_code=status.HTTP_204_NO_CONTENT)
+def eliminar_seccion(
+    seccion_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    usuario: Usuario = Depends(require_role(RolUsuario.ANALISTA, RolUsuario.SUPERVISOR)),
+):
+    seccion = db.get(Seccion, seccion_id)
+    if seccion is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Sección no encontrada")
+
+    db.query(Salida).filter(Salida.seccion_id == seccion_id).delete(synchronize_session=False)
+    db.delete(seccion)
+    db.commit()

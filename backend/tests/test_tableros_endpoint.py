@@ -191,3 +191,63 @@ def test_delete_tablero_inexistente_devuelve_404(client, db_session):
     response = client.delete(f"/tableros/{uuid.uuid4()}")
 
     assert response.status_code == 404
+
+
+def test_patch_seccion_actualiza_nombre(client, db_session):
+    proyecto_id = _proyecto(client, db_session, email="patchseccion.test@pyre.com")
+    tablero_id = client.post(
+        f"/proyectos/{proyecto_id}/tableros", json={"nombre": "TG1", "nivel_falla_ka": "10.00"}
+    ).json()["id"]
+    seccion_id = client.post(f"/tableros/{tablero_id}/secciones", json={"nombre": "Sección 1"}).json()["id"]
+
+    response = client.patch(f"/secciones/{seccion_id}", json={"nombre": "Fila renombrada"})
+
+    assert response.status_code == 200
+    assert response.json()["nombre"] == "Fila renombrada"
+
+
+def test_patch_seccion_inexistente_devuelve_404(client, db_session):
+    import uuid
+
+    _proyecto(client, db_session, email="patchseccion404.test@pyre.com")
+
+    response = client.patch(f"/secciones/{uuid.uuid4()}", json={"nombre": "X"})
+
+    assert response.status_code == 404
+
+
+def test_delete_seccion_borra_sus_salidas(client, db_session):
+    import uuid
+
+    from app.models import Salida
+
+    proyecto_id = _proyecto(client, db_session, email="deleteseccion.test@pyre.com")
+    tablero_id = client.post(
+        f"/proyectos/{proyecto_id}/tableros", json={"nombre": "TG1", "nivel_falla_ka": "10.00"}
+    ).json()["id"]
+    seccion_id = client.post(f"/tableros/{tablero_id}/secciones", json={"nombre": "Sección 1"}).json()["id"]
+    salida_id = client.post(
+        f"/secciones/{seccion_id}/salidas",
+        json={
+            "carga_valor": "16",
+            "carga_unidad": "A",
+            "formato": "unipolar",
+            "tipo_proteccion": "seccional_termomagnetico",
+        },
+    ).json()["id"]
+
+    response = client.delete(f"/secciones/{seccion_id}")
+
+    assert response.status_code == 204
+    assert db_session.get(Salida, uuid.UUID(salida_id)) is None
+    assert client.get(f"/secciones/{seccion_id}/salidas").status_code == 404
+
+
+def test_delete_seccion_inexistente_devuelve_404(client, db_session):
+    import uuid
+
+    _proyecto(client, db_session, email="deleteseccion404.test@pyre.com")
+
+    response = client.delete(f"/secciones/{uuid.uuid4()}")
+
+    assert response.status_code == 404
