@@ -229,8 +229,19 @@ export interface ComponenteBusqueda {
   precio_neto: string | null;
 }
 
-export async function buscarCatalogo(q: string): Promise<ComponenteBusqueda[]> {
-  const response = await fetch(`${API_BASE_URL}/catalogo/buscar?q=${encodeURIComponent(q)}`, {
+export interface ResultadoBusquedaCatalogo {
+  resultados: ComponenteBusqueda[];
+  total: number;
+}
+
+export async function buscarCatalogo(
+  q: string,
+  opciones?: { limit?: number; offset?: number },
+): Promise<ResultadoBusquedaCatalogo> {
+  const params = new URLSearchParams({ q });
+  if (opciones?.limit !== undefined) params.set("limit", String(opciones.limit));
+  if (opciones?.offset !== undefined) params.set("offset", String(opciones.offset));
+  const response = await fetch(`${API_BASE_URL}/catalogo/buscar?${params.toString()}`, {
     credentials: "include",
   });
   if (!response.ok) throw new Error("No se pudo buscar en el catálogo");

@@ -227,7 +227,10 @@ describe("DetalleTablero", () => {
         if (url.includes("/catalogo/buscar")) {
           return Promise.resolve({
             ok: true,
-            json: async () => [{ id: "c2", codigo: "XT2N250", descripcion: "Interruptor 250A", precio_neto: "600.00" }],
+            json: async () => ({
+              resultados: [{ id: "c2", codigo: "XT2N250", descripcion: "Interruptor 250A", precio_neto: "600.00" }],
+              total: 1,
+            }),
           });
         }
         if (url.includes("/secciones/") && url.includes("/salidas")) {
