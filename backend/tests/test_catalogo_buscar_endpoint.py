@@ -133,10 +133,18 @@ def test_buscar_limita_el_limit_maximo_a_50(client, db_session):
 
 
 def test_buscar_incluye_id_como_desempate_final_para_paginacion_estable(client, db_session):
-    from app.routers.catalogo import buscar_componentes
+    # No alcanza con que "CatalogoComponente.id" aparezca en algún lado de la
+    # función (podría ser un comentario suelto sin relación) -- hay que
+    # verificar que esté específicamente dentro de la llamada a .order_by(...)
+    # que ordena esta búsqueda, que es lo que realmente garantiza que el
+    # desempate se aplique.
     import inspect
+    import re
+
+    from app.routers.catalogo import buscar_componentes
 
     codigo_fuente = inspect.getsource(buscar_componentes)
 
-    assert "CatalogoComponente.id" in codigo_fuente
-    assert ".order_by(" in codigo_fuente
+    match = re.search(r"\.order_by\(([^)]*)\)", codigo_fuente)
+    assert match is not None, "no se encontró ninguna llamada a .order_by(...) en buscar_componentes"
+    assert "CatalogoComponente.id" in match.group(1)
