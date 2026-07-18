@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.auth.dependencies import get_current_user, require_role
 from app.database import get_db
-from app.models import Proyecto, RolUsuario, Usuario
+from app.models import Proyecto, RolUsuario, Salida, Seccion, Tablero, Usuario
 
 router = APIRouter(prefix="/proyectos", tags=["proyectos"])
 
@@ -63,3 +63,54 @@ def obtener_proyecto(
     if proyecto is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Proyecto no encontrado")
     return _to_response(proyecto)
+
+
+class ProyectoUpdate(BaseModel):
+    nombre: str | None = None
+    cliente: str | None = None
+
+
+@router.patch("/{proyecto_id}", response_model=ProyectoResponse)
+def actualizar_proyecto(
+    proyecto_id: uuid.UUID,
+    payload: ProyectoUpdate,
+    db: Session = Depends(get_db),
+    usuario: Usuario = Depends(require_role(RolUsuario.ANALISTA, RolUsuario.SUPERVISOR)),
+):
+    proyecto = db.get(Proyecto, proyecto_id)
+    if proyecto is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Proyecto no encontrado")
+
+    cambios = payload.model_dump(exclude_unset=True)
+    if "nombre" in cambios:
+        proyecto.nombre = cambios["nombre"]
+    if "cliente" in cambios:
+        proyecto.cliente = cambios["cliente"]
+
+    db.commit()
+    db.refresh(proyecto)
+    return _to_response(proyecto)
+
+
+@router.delete("/{proyecto_id}", status_code=status.HTTP_204_NO_CONTENT)
+def eliminar_proyecto(
+    proyecto_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    usuario: Usuario = Depends(require_role(RolUsuario.ANALISTA, RolUsuario.SUPERVISOR)),
+):
+    proyecto = db.get(Proyecto, proyecto_id)
+    if proyecto is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Proyecto no encontrado")
+
+    # No hay ondelete="CASCADE" en el esquema -- el borrado en cascada se hace
+    # a mano acá, en orden hijo-a-padre, dentro de la misma transacción.
+    tablero_ids = [t.id for t in db.query(Tablero.id).filter(Tablero.proyecto_id == proyecto_id)]
+    if tablero_ids:
+        seccion_ids = [s.id for s in db.query(Seccion.id).filter(Seccion.tablero_id.in_(tablero_ids))]
+        if seccion_ids:
+            db.query(Salida).filter(Salida.seccion_id.in_(seccion_ids)).delete(synchronize_session=False)
+            db.query(Seccion).filter(Seccion.id.in_(seccion_ids)).delete(synchronize_session=False)
+        db.query(Tablero).filter(Tablero.id.in_(tablero_ids)).delete(synchronize_session=False)
+
+    db.delete(proyecto)
+    db.commit()
