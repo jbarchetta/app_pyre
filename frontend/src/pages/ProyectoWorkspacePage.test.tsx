@@ -90,7 +90,7 @@ describe("ProyectoWorkspacePage", () => {
     expect(screen.queryByText(/creá tu primer tablero/i)).not.toBeInTheDocument();
   });
 
-  it("creates a new tablero, adds a tab for it, and activates it", async () => {
+  it("creates a new tablero via the Nuevo tablero icon, adds a tab for it, and activates it", async () => {
     mockFetchConDosTableros();
     vi.stubGlobal(
       "fetch",
@@ -127,6 +127,7 @@ describe("ProyectoWorkspacePage", () => {
     renderPage();
     await screen.findByRole("tab", { name: "TG1" });
 
+    await userEvent.click(screen.getByRole("button", { name: /^nuevo tablero$/i }));
     await userEvent.type(screen.getByLabelText(/^nombre$/i), "TG3");
     await userEvent.click(screen.getByRole("button", { name: /crear tablero/i }));
 
@@ -186,5 +187,101 @@ describe("ProyectoWorkspacePage", () => {
     await screen.findByRole("tab", { name: "TG1" });
 
     expect(screen.getByRole("link", { name: /proyectos/i })).toHaveAttribute("href", "/proyectos");
+  });
+
+  it("shows the tablero management icons to the right of the tabs", async () => {
+    mockFetchConDosTableros();
+    renderPage();
+    await screen.findByRole("tab", { name: "TG1" });
+
+    expect(screen.getByRole("button", { name: /renombrar tablero activo/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /borrar tablero activo/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^nuevo tablero$/i })).toBeInTheDocument();
+  });
+
+  it("renames the active tablero via the icon and modal", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockImplementation((url: string, init?: RequestInit) => {
+        if (init?.method === "PATCH") {
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({
+              id: "t1",
+              proyecto_id: "p1",
+              nombre: "TG1 renombrado",
+              nivel_falla_ka: "10.00",
+              interruptor_principal_id: null,
+            }),
+          });
+        }
+        if (url.includes("/proyectos/p1/tableros")) {
+          return Promise.resolve({
+            ok: true,
+            json: async () => [
+              { id: "t1", proyecto_id: "p1", nombre: "TG1", nivel_falla_ka: "10.00", interruptor_principal_id: null },
+            ],
+          });
+        }
+        if (url.includes("/secciones")) return Promise.resolve({ ok: true, json: async () => [] });
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({ id: "p1", cliente: "Cliente A", nombre: "Proyecto A", analista_id: "a1", estado: "en_curso" }),
+        });
+      }),
+    );
+    renderPage();
+    await screen.findByRole("tab", { name: "TG1" });
+
+    await userEvent.click(screen.getByRole("button", { name: /renombrar tablero activo/i }));
+    const input = screen.getByLabelText(/^nombre$/i) as HTMLInputElement;
+    expect(input.value).toBe("TG1");
+    await userEvent.clear(input);
+    await userEvent.type(input, "TG1 renombrado");
+    await userEvent.click(screen.getByRole("button", { name: /^guardar$/i }));
+
+    expect(await screen.findByRole("tab", { name: "TG1 renombrado" })).toBeInTheDocument();
+  });
+
+  it("deletes the active tablero after confirming and falls back to another tab", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockImplementation((url: string, init?: RequestInit) => {
+        if (init?.method === "DELETE") return Promise.resolve({ ok: true, json: async () => ({}) });
+        if (url.includes("/proyectos/p1/tableros")) {
+          return Promise.resolve({
+            ok: true,
+            json: async () => [
+              { id: "t1", proyecto_id: "p1", nombre: "TG1", nivel_falla_ka: "10.00", interruptor_principal_id: null },
+              { id: "t2", proyecto_id: "p1", nombre: "TG2", nivel_falla_ka: "16.00", interruptor_principal_id: null },
+            ],
+          });
+        }
+        if (url.includes("/secciones")) return Promise.resolve({ ok: true, json: async () => [] });
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({ id: "p1", cliente: "Cliente A", nombre: "Proyecto A", analista_id: "a1", estado: "en_curso" }),
+        });
+      }),
+    );
+    renderPage();
+    await screen.findByRole("tab", { name: "TG1" });
+
+    await userEvent.click(screen.getByRole("button", { name: /borrar tablero activo/i }));
+    await userEvent.click(screen.getByRole("button", { name: /^borrar$/i }));
+
+    expect(await screen.findByRole("tab", { name: "TG2" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.queryByRole("tab", { name: "TG1" })).not.toBeInTheDocument();
+  });
+
+  it("cancelling the tablero delete confirmation keeps the tablero", async () => {
+    mockFetchConDosTableros();
+    renderPage();
+    await screen.findByRole("tab", { name: "TG1" });
+
+    await userEvent.click(screen.getByRole("button", { name: /borrar tablero activo/i }));
+    await userEvent.click(screen.getByRole("button", { name: /cancelar/i }));
+
+    expect(screen.getByRole("tab", { name: "TG1" })).toBeInTheDocument();
   });
 });
