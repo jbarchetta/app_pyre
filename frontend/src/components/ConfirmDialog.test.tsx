@@ -42,6 +42,20 @@ describe("ConfirmDialog", () => {
     expect(onCancel).toHaveBeenCalled();
   });
 
+  it("calls onCancel when clicking the backdrop", async () => {
+    const onConfirm = vi.fn();
+    const onCancel = vi.fn();
+    render(
+      <ConfirmDialog titulo="Confirmar borrado" mensaje="¿Borrar?" onConfirm={onConfirm} onCancel={onCancel} />,
+    );
+
+    const dialog = screen.getByRole("dialog");
+    await userEvent.click(dialog.parentElement!);
+
+    expect(onCancel).toHaveBeenCalled();
+    expect(onConfirm).not.toHaveBeenCalled();
+  });
+
   it("shows the message so the user knows what's being deleted", () => {
     render(
       <ConfirmDialog
