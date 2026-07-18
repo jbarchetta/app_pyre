@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.auth.dependencies import get_current_user, require_role
 from app.database import get_db
-from app.models import Proyecto, RolUsuario, Seccion, Tablero, Usuario
+from app.models import Proyecto, RolUsuario, Salida, Seccion, Tablero, Usuario
 
 router = APIRouter(tags=["tableros"])
 
@@ -87,6 +87,7 @@ def obtener_tablero(
 
 
 class TableroUpdate(BaseModel):
+    nombre: str | None = None
     nivel_falla_ka: Decimal | None = None
     interruptor_principal_id: uuid.UUID | None = None
 
@@ -105,6 +106,8 @@ def actualizar_tablero(
     # exclude_unset: un PATCH solo toca los campos que el cliente mandó — mandar
     # nivel_falla_ka sin interruptor_principal_id no debe borrar este último.
     cambios = payload.model_dump(exclude_unset=True)
+    if "nombre" in cambios:
+        tablero.nombre = cambios["nombre"]
     if "nivel_falla_ka" in cambios:
         tablero.nivel_falla_ka = cambios["nivel_falla_ka"]
     if "interruptor_principal_id" in cambios:
@@ -113,6 +116,25 @@ def actualizar_tablero(
     db.commit()
     db.refresh(tablero)
     return _tablero_response(tablero)
+
+
+@router.delete("/tableros/{tablero_id}", status_code=status.HTTP_204_NO_CONTENT)
+def eliminar_tablero(
+    tablero_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    usuario: Usuario = Depends(require_role(RolUsuario.ANALISTA, RolUsuario.SUPERVISOR)),
+):
+    tablero = db.get(Tablero, tablero_id)
+    if tablero is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tablero no encontrado")
+
+    seccion_ids = [s.id for s in db.query(Seccion.id).filter(Seccion.tablero_id == tablero_id)]
+    if seccion_ids:
+        db.query(Salida).filter(Salida.seccion_id.in_(seccion_ids)).delete(synchronize_session=False)
+        db.query(Seccion).filter(Seccion.id.in_(seccion_ids)).delete(synchronize_session=False)
+
+    db.delete(tablero)
+    db.commit()
 
 
 class SeccionCreate(BaseModel):

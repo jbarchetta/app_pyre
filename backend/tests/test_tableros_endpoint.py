@@ -141,3 +141,53 @@ def test_listar_secciones_devuelve_las_creadas(client, db_session):
     assert response.status_code == 200
     nombres = [s["nombre"] for s in response.json()]
     assert nombres == ["Sección A", "Sección B"]
+
+
+def test_patch_tablero_actualiza_nombre(client, db_session):
+    proyecto_id = _proyecto(client, db_session, email="patchnombretablero.test@pyre.com")
+    tablero_id = client.post(
+        f"/proyectos/{proyecto_id}/tableros", json={"nombre": "TG1", "nivel_falla_ka": "10.00"}
+    ).json()["id"]
+
+    response = client.patch(f"/tableros/{tablero_id}", json={"nombre": "TG1 renombrado"})
+
+    assert response.status_code == 200
+    assert response.json()["nombre"] == "TG1 renombrado"
+
+
+def test_delete_tablero_borra_secciones_y_salidas_en_cascada(client, db_session):
+    import uuid
+
+    from app.models import Salida, Seccion
+
+    proyecto_id = _proyecto(client, db_session, email="deletetablero.test@pyre.com")
+    tablero_id = client.post(
+        f"/proyectos/{proyecto_id}/tableros", json={"nombre": "TG1", "nivel_falla_ka": "10.00"}
+    ).json()["id"]
+    seccion_id = client.post(f"/tableros/{tablero_id}/secciones", json={"nombre": "Sección 1"}).json()["id"]
+    salida_id = client.post(
+        f"/secciones/{seccion_id}/salidas",
+        json={
+            "carga_valor": "16",
+            "carga_unidad": "A",
+            "formato": "unipolar",
+            "tipo_proteccion": "seccional_termomagnetico",
+        },
+    ).json()["id"]
+
+    response = client.delete(f"/tableros/{tablero_id}")
+
+    assert response.status_code == 204
+    assert client.get(f"/tableros/{tablero_id}").status_code == 404
+    assert db_session.get(Seccion, uuid.UUID(seccion_id)) is None
+    assert db_session.get(Salida, uuid.UUID(salida_id)) is None
+
+
+def test_delete_tablero_inexistente_devuelve_404(client, db_session):
+    import uuid
+
+    _proyecto(client, db_session, email="deletetablero404.test@pyre.com")
+
+    response = client.delete(f"/tableros/{uuid.uuid4()}")
+
+    assert response.status_code == 404
