@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import {
   actualizarTablero,
   crearSeccion,
@@ -32,6 +32,8 @@ interface DetalleTableroProps {
   onCapasChange: (capas: Capas) => void;
 }
 
+type ModoEdicion = "nivel_falla" | "interruptor_principal" | null;
+
 export function DetalleTablero({
   tablero,
   onTableroActualizado,
@@ -42,10 +44,13 @@ export function DetalleTablero({
   const [secciones, setSecciones] = useState<SeccionConSalidas[]>([]);
   const [seccionSeleccionadaRaw, setSeccionSeleccionadaRaw] = useState<string | null>(null);
   const [nombreSeccion, setNombreSeccion] = useState("");
-  const [editandoNivelFalla, setEditandoNivelFalla] = useState(false);
+  const [modoEdicion, setModoEdicion] = useState<ModoEdicion>(null);
   const [nivelFallaKaEdit, setNivelFallaKaEdit] = useState("");
-  const [editandoInterruptorPrincipal, setEditandoInterruptorPrincipal] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const nivelFallaTriggerRef = useRef<HTMLButtonElement>(null);
+  const interruptorTriggerRef = useRef<HTMLButtonElement>(null);
+  const nivelFallaInputRef = useRef<HTMLInputElement>(null);
+  const interruptorDialogRef = useRef<HTMLDivElement>(null);
 
   const cargar = useCallback(async () => {
     const seccionesCargadas = await listarSecciones(tablero.id);
@@ -63,6 +68,29 @@ export function DetalleTablero({
     ? seccionSeleccionadaRaw
     : (secciones[0]?.seccion.id ?? null);
   const seccionSeleccionada = secciones.find((s) => s.seccion.id === seccionSeleccionadaId) ?? null;
+
+  const cerrarModal = useCallback(() => {
+    setModoEdicion((modoAnterior) => {
+      const triggerAnterior = modoAnterior === "nivel_falla" ? nivelFallaTriggerRef : interruptorTriggerRef;
+      triggerAnterior.current?.focus();
+      return null;
+    });
+    setError(null);
+  }, []);
+
+  useEffect(() => {
+    if (!modoEdicion) return;
+    if (modoEdicion === "nivel_falla") {
+      nivelFallaInputRef.current?.focus();
+    } else {
+      interruptorDialogRef.current?.focus();
+    }
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") cerrarModal();
+    }
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [modoEdicion, cerrarModal]);
 
   async function handleAgregarSeccion(event: FormEvent) {
     event.preventDefault();
@@ -82,7 +110,7 @@ export function DetalleTablero({
     try {
       const actualizado = await actualizarTablero(tablero.id, { nivel_falla_ka: nivelFallaKaEdit });
       onTableroActualizado(actualizado);
-      setEditandoNivelFalla(false);
+      cerrarModal();
     } catch {
       setError("No se pudo actualizar el nivel de falla");
     }
@@ -93,7 +121,7 @@ export function DetalleTablero({
     try {
       const actualizado = await actualizarTablero(tablero.id, { interruptor_principal_id: componente.id });
       onTableroActualizado(actualizado);
-      setEditandoInterruptorPrincipal(false);
+      cerrarModal();
     } catch {
       setError("No se pudo actualizar el interruptor principal");
     }
@@ -119,67 +147,103 @@ export function DetalleTablero({
     <div className="mt-8">
       <div className="flex flex-col gap-2">
         <p className="flex flex-wrap items-center gap-2">
-          Nivel de falla: {tablero.nivel_falla_ka} kA{" "}
-          {!editandoNivelFalla && (
-            <button
-              type="button"
-              className="text-abb-red underline text-sm"
-              onClick={() => {
-                setNivelFallaKaEdit(tablero.nivel_falla_ka);
-                setEditandoNivelFalla(true);
-              }}
-            >
-              editar nivel de falla
-            </button>
-          )}
+          Nivel de falla (Icc): {tablero.nivel_falla_ka} kA
+          <button
+            ref={nivelFallaTriggerRef}
+            type="button"
+            aria-label="Editar nivel de falla"
+            onClick={() => {
+              setNivelFallaKaEdit(tablero.nivel_falla_ka);
+              setModoEdicion("nivel_falla");
+            }}
+          >
+            <span className="material-symbols-outlined text-abb-red text-sm">edit</span>
+          </button>
         </p>
-        {editandoNivelFalla && (
-          <form onSubmit={handleGuardarNivelFalla} className="mt-2 flex flex-col gap-2">
+        <p className="flex flex-wrap items-center gap-2">
+          Interruptor principal: {tablero.interruptor_principal_id ? tablero.interruptor_principal_id : "sin definir"}
+          <button
+            ref={interruptorTriggerRef}
+            type="button"
+            aria-label="Editar interruptor principal"
+            onClick={() => setModoEdicion("interruptor_principal")}
+          >
+            <span className="material-symbols-outlined text-abb-red text-sm">edit</span>
+          </button>
+        </p>
+      </div>
+
+      {modoEdicion === "nivel_falla" && (
+        <div className="fixed inset-0 z-20 flex items-center justify-center bg-black/40" onClick={cerrarModal}>
+          <form
+            onSubmit={handleGuardarNivelFalla}
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="nivel-falla-modal-titulo"
+            className="flex w-96 flex-col gap-2 border border-surface-stroke bg-white p-8"
+          >
+            <h2 id="nivel-falla-modal-titulo" className="text-lg font-bold">
+              Nivel de falla (Icc)
+            </h2>
             <label htmlFor="nivel-falla-edit">Nuevo nivel de falla (kA)</label>
             <input
               id="nivel-falla-edit"
+              ref={nivelFallaInputRef}
               value={nivelFallaKaEdit}
               onChange={(e) => setNivelFallaKaEdit(e.target.value)}
             />
-            <div className="flex gap-2">
+            {error && (
+              <p role="alert" className="text-error">
+                {error}
+              </p>
+            )}
+            <div className="mt-4 flex gap-2">
               <button type="submit" className="bg-abb-red px-6 py-3 text-sm uppercase tracking-widest text-white">
                 Guardar
               </button>
               <button
                 type="button"
+                onClick={cerrarModal}
                 className="border border-surface-stroke px-6 py-3 text-sm uppercase tracking-widest"
-                onClick={() => setEditandoNivelFalla(false)}
               >
                 Cancelar
               </button>
             </div>
           </form>
-        )}
-        <p className="flex flex-wrap items-center gap-2">
-          Interruptor principal: {tablero.interruptor_principal_id ? tablero.interruptor_principal_id : "sin definir"}{" "}
-          {!editandoInterruptorPrincipal && (
-            <button
-              type="button"
-              className="text-abb-red underline text-sm"
-              onClick={() => setEditandoInterruptorPrincipal(true)}
-            >
-              editar interruptor principal
-            </button>
-          )}
-        </p>
-        {editandoInterruptorPrincipal && (
-          <div className="mt-2 flex flex-col gap-2">
+        </div>
+      )}
+
+      {modoEdicion === "interruptor_principal" && (
+        <div className="fixed inset-0 z-20 flex items-center justify-center bg-black/40" onClick={cerrarModal}>
+          <div
+            ref={interruptorDialogRef}
+            tabIndex={-1}
+            onClick={(e) => e.stopPropagation()}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="interruptor-modal-titulo"
+            className="flex w-96 flex-col gap-2 border border-surface-stroke bg-white p-8"
+          >
+            <h2 id="interruptor-modal-titulo" className="text-lg font-bold">
+              Interruptor principal
+            </h2>
             <ComponentePicker onSelect={handleSeleccionarInterruptorPrincipal} />
+            {error && (
+              <p role="alert" className="text-error">
+                {error}
+              </p>
+            )}
             <button
               type="button"
-              className="self-start border border-surface-stroke px-6 py-3 text-sm uppercase tracking-widest"
-              onClick={() => setEditandoInterruptorPrincipal(false)}
+              onClick={cerrarModal}
+              className="mt-4 self-start border border-surface-stroke px-6 py-3 text-sm uppercase tracking-widest"
             >
               Cancelar
             </button>
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
       <div className="mt-6 flex flex-col gap-6 lg:flex-row">
         <div className="w-full lg:w-1/3">

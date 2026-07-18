@@ -154,7 +154,7 @@ describe("DetalleTablero", () => {
     expect(await screen.findByRole("tab", { name: "Sección nueva" })).toBeInTheDocument();
   });
 
-  it("edits nivel de falla and reports the change upward", async () => {
+  it("edits nivel de falla via modal and reports the change upward", async () => {
     const onTableroActualizado = vi.fn();
 
     function Harness() {
@@ -177,6 +177,7 @@ describe("DetalleTablero", () => {
     await screen.findByRole("tab", { name: "Sección 1" });
 
     await userEvent.click(screen.getByRole("button", { name: /editar nivel de falla/i }));
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
     const input = screen.getByLabelText(/nuevo nivel de falla/i) as HTMLInputElement;
     await userEvent.clear(input);
     await userEvent.type(input, "16");
@@ -184,6 +185,69 @@ describe("DetalleTablero", () => {
 
     expect(await screen.findByText(/nivel de falla.*16.00 kA/i)).toBeInTheDocument();
     expect(onTableroActualizado).toHaveBeenCalledWith(expect.objectContaining({ nivel_falla_ka: "16.00" }));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("closes the nivel de falla modal with Escape without saving", async () => {
+    renderDetalle();
+    await screen.findByRole("tab", { name: "Sección 1" });
+
+    await userEvent.click(screen.getByRole("button", { name: /editar nivel de falla/i }));
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+
+    await userEvent.keyboard("{Escape}");
+
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("edits interruptor principal via modal and reports the change upward", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockImplementation((url: string, init?: RequestInit) => {
+        if (init?.method === "PATCH") {
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({ ...tablero, interruptor_principal_id: "c2" }),
+          });
+        }
+        if (url.includes("/catalogo/buscar")) {
+          return Promise.resolve({
+            ok: true,
+            json: async () => [{ id: "c2", codigo: "XT2N250", descripcion: "Interruptor 250A", precio_neto: "600.00" }],
+          });
+        }
+        if (url.includes("/secciones/") && url.includes("/salidas")) {
+          return Promise.resolve({ ok: true, json: async () => [] });
+        }
+        if (url.includes("/tableros/t1/secciones")) {
+          return Promise.resolve({
+            ok: true,
+            json: async () => [{ id: "s1", tablero_id: "t1", nombre: "Sección 1", orden: 0 }],
+          });
+        }
+        return Promise.resolve({ ok: true, json: async () => tablero });
+      }),
+    );
+
+    const onTableroActualizado = vi.fn();
+    render(
+      <DetalleTablero
+        tablero={tablero}
+        onTableroActualizado={onTableroActualizado}
+        vista={{ zoom: 1, capas: { codigos: true, embarrado: true } }}
+        onZoomChange={vi.fn()}
+        onCapasChange={vi.fn()}
+      />,
+    );
+    await screen.findByRole("tab", { name: "Sección 1" });
+
+    await userEvent.click(screen.getByRole("button", { name: /editar interruptor principal/i }));
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+    await userEvent.type(screen.getByLabelText(/buscar código/i), "XT2N250");
+    await userEvent.click(await screen.findByRole("button", { name: /XT2N250/i }));
+
+    expect(onTableroActualizado).toHaveBeenCalledWith(expect.objectContaining({ interruptor_principal_id: "c2" }));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
   it("renders the EsquemaVisualCanvas with the given zoom", async () => {
