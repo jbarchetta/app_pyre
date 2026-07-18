@@ -92,6 +92,27 @@ export async function obtenerProyecto(id: string): Promise<Proyecto> {
   return response.json();
 }
 
+export interface ProyectoUpdate {
+  nombre?: string;
+  cliente?: string;
+}
+
+export async function actualizarProyecto(id: string, cambios: ProyectoUpdate): Promise<Proyecto> {
+  const response = await fetch(`${API_BASE_URL}/proyectos/${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(cambios),
+  });
+  if (!response.ok) throw new Error("No se pudo actualizar el proyecto");
+  return response.json();
+}
+
+export async function eliminarProyecto(id: string): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/proyectos/${id}`, { method: "DELETE", credentials: "include" });
+  if (!response.ok) throw new Error("No se pudo borrar el proyecto");
+}
+
 export interface Tablero {
   id: string;
   proyecto_id: string;
@@ -133,6 +154,7 @@ export async function obtenerTablero(id: string): Promise<Tablero> {
 }
 
 export interface TableroUpdate {
+  nombre?: string;
   nivel_falla_ka?: string;
   interruptor_principal_id?: string | null;
 }
@@ -146,6 +168,11 @@ export async function actualizarTablero(id: string, cambios: TableroUpdate): Pro
   });
   if (!response.ok) throw new Error("No se pudo actualizar el tablero");
   return response.json();
+}
+
+export async function eliminarTablero(id: string): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/tableros/${id}`, { method: "DELETE", credentials: "include" });
+  if (!response.ok) throw new Error("No se pudo borrar el tablero");
 }
 
 export interface Seccion {
@@ -170,6 +197,26 @@ export async function crearSeccion(tableroId: string, nombre: string, orden: num
   });
   if (!response.ok) throw new Error("No se pudo crear la sección");
   return response.json();
+}
+
+export interface SeccionUpdate {
+  nombre?: string;
+}
+
+export async function actualizarSeccion(id: string, nombre: string): Promise<Seccion> {
+  const response = await fetch(`${API_BASE_URL}/secciones/${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({ nombre }),
+  });
+  if (!response.ok) throw new Error("No se pudo actualizar la sección");
+  return response.json();
+}
+
+export async function eliminarSeccion(id: string): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/secciones/${id}`, { method: "DELETE", credentials: "include" });
+  if (!response.ok) throw new Error("No se pudo borrar la sección");
 }
 
 export type FormatoPolos = "unipolar" | "bipolar" | "tripolar" | "tetrapolar";
@@ -221,6 +268,11 @@ export async function actualizarSalida(salidaId: string, componenteId: string | 
   return response.json();
 }
 
+export async function eliminarSalida(id: string): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/salidas/${id}`, { method: "DELETE", credentials: "include" });
+  if (!response.ok) throw new Error("No se pudo borrar la salida");
+}
+
 export interface ComponenteBusqueda {
   id: string;
   codigo: string;
@@ -236,17 +288,32 @@ export interface ResultadoBusquedaCatalogo {
 
 export async function buscarCatalogo(
   q: string,
-  opciones?: { limit?: number; offset?: number },
+  opciones?: { limit?: number; offset?: number; categorias?: string[] },
 ): Promise<ResultadoBusquedaCatalogo> {
   const params = new URLSearchParams({ q });
   if (opciones?.limit !== undefined) params.set("limit", String(opciones.limit));
   if (opciones?.offset !== undefined) params.set("offset", String(opciones.offset));
+  for (const categoria of opciones?.categorias ?? []) params.append("categorias", categoria);
   const response = await fetch(`${API_BASE_URL}/catalogo/buscar?${params.toString()}`, {
     credentials: "include",
   });
   if (!response.ok) throw new Error("No se pudo buscar en el catálogo");
   return response.json();
 }
+
+// Filtro maestro (no editable por el analista) para acotar el picker a
+// interruptores -- mismas familias que usa el motor de propuesta en
+// backend/app/catalogo/parser_abb.py (FAMILIAS_TERMOMAGNETICO ∪
+// FAMILIA_DIFERENCIAL_COMBO). Cuando se agreguen búsquedas para otros tipos
+// de material (cables, terminales, riel DIN...) cada una define su propia
+// constante de categorías en vez de reusar esta.
+export const CATEGORIAS_INTERRUPTORES = [
+  "Interruptores Termomagnéticos",
+  "Interruptores Termomagnéticos - Con posibilidad de utilizar accesorios",
+  "Interruptores Termomagnéticos - Sin posibilidad de utilizar accesorios",
+  "Interruptores automáticos en caja moldeada",
+  "Interruptores termomagnéticos con protección diferencial",
+];
 
 export interface ParametroCalculo {
   tension_mono_v: string;
