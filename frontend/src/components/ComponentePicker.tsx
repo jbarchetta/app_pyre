@@ -22,7 +22,6 @@ export function ComponentePicker({
   const [cargandoMas, setCargandoMas] = useState(false);
   const solicitudActualRef = useRef(0);
   const inputRef = useRef<HTMLInputElement>(null);
-  const dialogRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     inputRef.current?.focus();
@@ -67,7 +66,6 @@ export function ComponentePicker({
   return (
     <div className="fixed inset-0 z-20 flex items-center justify-center bg-black/40" onClick={onCancel}>
       <div
-        ref={dialogRef}
         tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
         role="dialog"

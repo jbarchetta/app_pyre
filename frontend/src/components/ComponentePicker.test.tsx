@@ -51,6 +51,21 @@ describe("ComponentePicker", () => {
     );
   });
 
+  it("with an empty categorias array, does not add a categorias filter to the request (documents current contract)", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({ ok: true, json: async () => ({ resultados: [], total: 0 }) }),
+    );
+    render(<ComponentePicker categorias={[]} onSelect={vi.fn()} onCancel={vi.fn()} />);
+
+    await userEvent.type(screen.getByLabelText(/buscar código/i), "SH201");
+
+    expect(fetch).toHaveBeenCalledWith(
+      expect.not.stringContaining("categorias="),
+      expect.anything(),
+    );
+  });
+
   it("shows results and calls onSelect when clicked", async () => {
     vi.stubGlobal(
       "fetch",
