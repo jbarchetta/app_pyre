@@ -6,9 +6,17 @@ interface ConfirmDialogProps {
   onConfirm: () => void;
   onCancel: () => void;
   confirmando?: boolean;
+  error?: string | null;
 }
 
-export function ConfirmDialog({ titulo, mensaje, onConfirm, onCancel, confirmando = false }: ConfirmDialogProps) {
+export function ConfirmDialog({
+  titulo,
+  mensaje,
+  onConfirm,
+  onCancel,
+  confirmando = false,
+  error = null,
+}: ConfirmDialogProps) {
   const dialogRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -35,6 +43,11 @@ export function ConfirmDialog({ titulo, mensaje, onConfirm, onCancel, confirmand
           {titulo}
         </h2>
         <p>{mensaje}</p>
+        {error && (
+          <p role="alert" className="text-error">
+            {error}
+          </p>
+        )}
         <div className="mt-4 flex gap-2">
           <button
             type="button"

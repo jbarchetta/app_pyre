@@ -18,7 +18,11 @@ export function ProyectosPage() {
   const [cliente, setCliente] = useState("");
   const [nombre, setNombre] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [aBorrar, setABorrar] = useState<{ proyecto: Proyecto; cantidadTableros: number } | null>(null);
+  const [aBorrar, setABorrar] = useState<{
+    proyecto: Proyecto;
+    cantidadTableros: number;
+    cantidadDesconocida: boolean;
+  } | null>(null);
   const [borrando, setBorrando] = useState(false);
   const clienteInputRef = useRef<HTMLInputElement>(null);
   const triggerRef = useRef<HTMLElement | null>(null);
@@ -66,9 +70,7 @@ export function ProyectosPage() {
         const proyecto = await crearProyecto(cliente, nombre);
         setProyectos((actuales) => [...actuales, proyecto]);
       }
-      setModal(null);
-      setCliente("");
-      setNombre("");
+      cerrarModal();
     } catch {
       setError(modal?.tipo === "editar" ? "No se pudo actualizar el proyecto" : "No se pudo crear el proyecto");
     }
@@ -76,8 +78,12 @@ export function ProyectosPage() {
 
   async function handlePedirBorrado(proyecto: Proyecto, trigger: HTMLElement) {
     triggerRef.current = trigger;
-    const tableros = await listarTableros(proyecto.id).catch(() => []);
-    setABorrar({ proyecto, cantidadTableros: tableros.length });
+    try {
+      const tableros = await listarTableros(proyecto.id);
+      setABorrar({ proyecto, cantidadTableros: tableros.length, cantidadDesconocida: false });
+    } catch {
+      setABorrar({ proyecto, cantidadTableros: 0, cantidadDesconocida: true });
+    }
   }
 
   async function handleConfirmarBorrado() {
@@ -86,7 +92,7 @@ export function ProyectosPage() {
     try {
       await eliminarProyecto(aBorrar.proyecto.id);
       setProyectos((actuales) => actuales.filter((p) => p.id !== aBorrar.proyecto.id));
-      setABorrar(null);
+      cerrarModal();
     } catch {
       setError("No se pudo borrar el proyecto");
     } finally {
@@ -183,11 +189,14 @@ export function ProyectosPage() {
         <ConfirmDialog
           titulo="Confirmar borrado"
           mensaje={
-            aBorrar.cantidadTableros > 0
-              ? `Esto va a borrar el proyecto "${aBorrar.proyecto.nombre}" y sus ${aBorrar.cantidadTableros} tablero(s).`
-              : `Esto va a borrar el proyecto "${aBorrar.proyecto.nombre}".`
+            aBorrar.cantidadDesconocida
+              ? `No pudimos confirmar cuántos tableros tiene el proyecto "${aBorrar.proyecto.nombre}". Se va a borrar igual si confirmás.`
+              : aBorrar.cantidadTableros > 0
+                ? `Esto va a borrar el proyecto "${aBorrar.proyecto.nombre}" y sus ${aBorrar.cantidadTableros} tablero(s).`
+                : `Esto va a borrar el proyecto "${aBorrar.proyecto.nombre}".`
           }
           confirmando={borrando}
+          error={error}
           onConfirm={handleConfirmarBorrado}
           onCancel={cerrarModal}
         />

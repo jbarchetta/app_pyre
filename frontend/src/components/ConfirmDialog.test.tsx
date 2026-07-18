@@ -82,4 +82,18 @@ describe("ConfirmDialog", () => {
 
     expect(screen.getByRole("button", { name: /^borrar$/i })).toBeDisabled();
   });
+
+  it("shows an error message when the error prop is set", () => {
+    render(
+      <ConfirmDialog
+        titulo="Confirmar borrado"
+        mensaje="¿Borrar?"
+        onConfirm={vi.fn()}
+        onCancel={vi.fn()}
+        error="No se pudo borrar el proyecto"
+      />,
+    );
+
+    expect(screen.getByRole("alert")).toHaveTextContent(/no se pudo borrar el proyecto/i);
+  });
 });
