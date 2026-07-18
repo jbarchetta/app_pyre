@@ -284,4 +284,34 @@ describe("ProyectoWorkspacePage", () => {
 
     expect(screen.getByRole("tab", { name: "TG1" })).toBeInTheDocument();
   });
+
+  it("shows an error and keeps the dialog open if deleting the tablero fails", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockImplementation((url: string, init?: RequestInit) => {
+        if (init?.method === "DELETE") return Promise.resolve({ ok: false });
+        if (url.includes("/proyectos/p1/tableros")) {
+          return Promise.resolve({
+            ok: true,
+            json: async () => [
+              { id: "t1", proyecto_id: "p1", nombre: "TG1", nivel_falla_ka: "10.00", interruptor_principal_id: null },
+            ],
+          });
+        }
+        if (url.includes("/secciones")) return Promise.resolve({ ok: true, json: async () => [] });
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({ id: "p1", cliente: "Cliente A", nombre: "Proyecto A", analista_id: "a1", estado: "en_curso" }),
+        });
+      }),
+    );
+    renderPage();
+    await screen.findByRole("tab", { name: "TG1" });
+
+    await userEvent.click(screen.getByRole("button", { name: /borrar tablero activo/i }));
+    await userEvent.click(screen.getByRole("button", { name: /^borrar$/i }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(/no se pudo borrar el tablero/i);
+    expect(screen.getByRole("tab", { name: "TG1" })).toBeInTheDocument();
+  });
 });

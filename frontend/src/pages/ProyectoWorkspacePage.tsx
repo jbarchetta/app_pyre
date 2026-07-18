@@ -50,6 +50,15 @@ export function ProyectoWorkspacePage() {
       .catch(() => setError("No se pudieron cargar los tableros"));
   }, [id]);
 
+  useEffect(() => {
+    if (!modalNuevoTablero && !tableroEnEdicion) return;
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape") cerrarModales();
+    }
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [modalNuevoTablero, tableroEnEdicion]);
+
   function handleSeleccionarTablero(tableroId: string) {
     setSearchParams({ tablero: tableroId });
   }
@@ -72,10 +81,12 @@ export function ProyectoWorkspacePage() {
     setError(null);
     try {
       const tablero = await crearTablero(id, nombre, nivelFallaKa, interruptorPrincipal?.id ?? null);
+      if (!modalNuevoTablero) return; // cancelado mientras el pedido estaba en curso
       setTableros((actuales) => [...(actuales ?? []), tablero]);
       cerrarModales();
       setSearchParams({ tablero: tablero.id });
     } catch {
+      if (!modalNuevoTablero) return;
       setError("No se pudo crear el tablero");
     }
   }
@@ -83,12 +94,15 @@ export function ProyectoWorkspacePage() {
   async function handleRenombrarTablero(event: FormEvent) {
     event.preventDefault();
     if (!tableroEnEdicion) return;
+    const idEditado = tableroEnEdicion.id;
     setError(null);
     try {
-      const actualizado = await actualizarTablero(tableroEnEdicion.id, { nombre: nombreTableroEdit });
+      const actualizado = await actualizarTablero(idEditado, { nombre: nombreTableroEdit });
+      if (tableroEnEdicion?.id !== idEditado) return; // cancelado o se inició otra edición
       setTableros((actuales) => (actuales ?? []).map((t) => (t.id === actualizado.id ? actualizado : t)));
       cerrarModales();
     } catch {
+      if (tableroEnEdicion?.id !== idEditado) return;
       setError("No se pudo renombrar el tablero");
     }
   }
@@ -231,7 +245,7 @@ export function ProyectoWorkspacePage() {
           >
             <h2 id="nuevo-tablero-titulo" className="text-lg font-bold">Nuevo tablero</h2>
             <label htmlFor="nombre-tablero">Nombre</label>
-            <input id="nombre-tablero" value={nombre} onChange={(e) => setNombre(e.target.value)} />
+            <input id="nombre-tablero" autoFocus value={nombre} onChange={(e) => setNombre(e.target.value)} />
             <label htmlFor="nivel-falla">Nivel de falla (kA)</label>
             <input id="nivel-falla" value={nivelFallaKa} onChange={(e) => setNivelFallaKa(e.target.value)} />
             <p>Interruptor principal{interruptorPrincipal ? `: ${interruptorPrincipal.codigo}` : " (opcional)"}</p>
@@ -281,6 +295,7 @@ export function ProyectoWorkspacePage() {
             <label htmlFor="nombre-tablero-edit">Nombre</label>
             <input
               id="nombre-tablero-edit"
+              autoFocus
               value={nombreTableroEdit}
               onChange={(e) => setNombreTableroEdit(e.target.value)}
             />
