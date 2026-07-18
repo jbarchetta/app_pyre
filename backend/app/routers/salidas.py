@@ -58,6 +58,40 @@ def _salida_response(salida: Salida) -> SalidaResponse:
     )
 
 
+def _proponer_componente_para_salida(
+    db: Session,
+    tablero: Tablero,
+    tipo_proteccion: TipoProteccion,
+    formato: FormatoPolos,
+    carga_valor: Decimal,
+    carga_unidad: str,
+    parametros,
+) -> uuid.UUID | None:
+    # Puede levantar ValueError (ej. unidad de carga inválida) -- el caller la
+    # traduce a un 400. Compartida por crear_salida y actualizar_salida para
+    # no duplicar la lógica de propuesta cuando cambia la carga/formato.
+    corriente_nominal = calcular_corriente_nominal(carga_valor, carga_unidad, formato, parametros)
+
+    if tablero.interruptor_principal_id is None:
+        return None
+    interruptor_principal = db.get(CatalogoComponente, tablero.interruptor_principal_id)
+    atributos_principal = (interruptor_principal.atributos or {}) if interruptor_principal else {}
+    nominal_aguas_arriba = atributos_principal.get("corriente_nominal_a")
+    if nominal_aguas_arriba is None:
+        return None
+
+    propuesto = proponer_componente(
+        db,
+        tipo_proteccion,
+        formato,
+        corriente_nominal,
+        tablero.nivel_falla_ka,
+        Decimal(str(nominal_aguas_arriba)),
+        parametros,
+    )
+    return propuesto.id if propuesto else None
+
+
 @router.post("/secciones/{seccion_id}/salidas", response_model=SalidaResponse, status_code=status.HTTP_201_CREATED)
 def crear_salida(
     seccion_id: uuid.UUID,
@@ -72,28 +106,11 @@ def crear_salida(
 
     parametros = obtener_parametros(db)
     try:
-        corriente_nominal = calcular_corriente_nominal(
-            payload.carga_valor, payload.carga_unidad, payload.formato, parametros
+        componente_id = _proponer_componente_para_salida(
+            db, tablero, payload.tipo_proteccion, payload.formato, payload.carga_valor, payload.carga_unidad, parametros
         )
     except ValueError as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
-
-    componente_id = None
-    if tablero.interruptor_principal_id is not None:
-        interruptor_principal = db.get(CatalogoComponente, tablero.interruptor_principal_id)
-        atributos_principal = (interruptor_principal.atributos or {}) if interruptor_principal else {}
-        nominal_aguas_arriba = atributos_principal.get("corriente_nominal_a")
-        if nominal_aguas_arriba is not None:
-            propuesto = proponer_componente(
-                db,
-                payload.tipo_proteccion,
-                payload.formato,
-                corriente_nominal,
-                tablero.nivel_falla_ka,
-                Decimal(str(nominal_aguas_arriba)),
-                parametros,
-            )
-            componente_id = propuesto.id if propuesto else None
 
     salida = Salida(
         seccion_id=seccion_id,
@@ -111,6 +128,10 @@ def crear_salida(
 
 
 class SalidaUpdate(BaseModel):
+    carga_valor: Decimal | None = None
+    carga_unidad: str | None = None
+    formato: FormatoPolos | None = None
+    tipo_proteccion: TipoProteccion | None = None
     componente_id: uuid.UUID | None = None
 
 
@@ -125,10 +146,53 @@ def actualizar_salida(
     if salida is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Salida no encontrada")
 
-    salida.componente_id = payload.componente_id
+    # exclude_unset: igual que TableroUpdate/ProyectoUpdate -- un PATCH parcial
+    # no debe pisar campos que el cliente no mandó.
+    cambios = payload.model_dump(exclude_unset=True)
+    campos_recalculo = ("carga_valor", "carga_unidad", "formato", "tipo_proteccion")
+    debe_recalcular = any(campo in cambios for campo in campos_recalculo)
+    componente_fijado_explicitamente = "componente_id" in cambios
+
+    if "carga_valor" in cambios:
+        salida.carga_valor = cambios["carga_valor"]
+    if "carga_unidad" in cambios:
+        salida.carga_unidad = cambios["carga_unidad"]
+    if "formato" in cambios:
+        salida.formato = cambios["formato"]
+    if "tipo_proteccion" in cambios:
+        salida.tipo_proteccion = cambios["tipo_proteccion"]
+
+    if componente_fijado_explicitamente:
+        # Un componente_id explícito en el mismo pedido gana por sobre el
+        # recálculo automático, incluso si también cambió la carga/formato.
+        salida.componente_id = cambios["componente_id"]
+    elif debe_recalcular:
+        seccion = db.get(Seccion, salida.seccion_id)
+        tablero = db.get(Tablero, seccion.tablero_id)
+        parametros = obtener_parametros(db)
+        try:
+            salida.componente_id = _proponer_componente_para_salida(
+                db, tablero, salida.tipo_proteccion, salida.formato, salida.carga_valor, salida.carga_unidad, parametros
+            )
+        except ValueError as exc:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(exc))
+
     db.commit()
     db.refresh(salida)
     return _salida_response(salida)
+
+
+@router.delete("/salidas/{salida_id}", status_code=status.HTTP_204_NO_CONTENT)
+def eliminar_salida(
+    salida_id: uuid.UUID,
+    db: Session = Depends(get_db),
+    usuario: Usuario = Depends(require_role(RolUsuario.ANALISTA, RolUsuario.SUPERVISOR)),
+):
+    salida = db.get(Salida, salida_id)
+    if salida is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Salida no encontrada")
+    db.delete(salida)
+    db.commit()
 
 
 @router.get("/secciones/{seccion_id}/salidas", response_model=list[SalidaResponse])

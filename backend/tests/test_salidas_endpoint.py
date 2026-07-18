@@ -151,3 +151,92 @@ def test_listar_salidas_devuelve_las_creadas(client, db_session):
     assert response.status_code == 200
     ids = [s["id"] for s in response.json()]
     assert ids == [primera["id"]]
+
+
+def test_patch_salida_recalcula_cuando_cambia_la_carga(client, db_session):
+    principal = _componente(db_session, "SAL-PRINC-7", tipo="interruptor_principal", corriente=100, ka=15)
+    seccion_id = _setup_tablero(
+        client, db_session, "salidas7.test@pyre.com", interruptor_principal_id=str(principal.id)
+    )
+    salida_id = client.post(
+        f"/secciones/{seccion_id}/salidas",
+        json={
+            "carga_valor": "10",
+            "carga_unidad": "A",
+            "formato": "unipolar",
+            "tipo_proteccion": "seccional_termomagnetico",
+        },
+    ).json()["id"]
+
+    response = client.patch(f"/salidas/{salida_id}", json={"carga_valor": "30"})
+
+    assert response.status_code == 200
+    assert response.json()["carga_valor"] == "30.00"
+
+
+def test_patch_salida_con_componente_id_explicito_no_recalcula(client, db_session):
+    seccion_id = _setup_tablero(client, db_session, "salidas8.test@pyre.com")
+    manual = _componente(db_session, "SAL-C8", corriente=20, ka=10)
+    salida_id = client.post(
+        f"/secciones/{seccion_id}/salidas",
+        json={
+            "carga_valor": "16",
+            "carga_unidad": "A",
+            "formato": "unipolar",
+            "tipo_proteccion": "seccional_termomagnetico",
+        },
+    ).json()["id"]
+
+    response = client.patch(
+        f"/salidas/{salida_id}", json={"carga_valor": "30", "componente_id": str(manual.id)}
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["componente_id"] == str(manual.id)
+    assert body["carga_valor"] == "30.00"
+
+
+def test_patch_salida_con_unidad_invalida_devuelve_400(client, db_session):
+    seccion_id = _setup_tablero(client, db_session, "salidas11.test@pyre.com")
+    salida_id = client.post(
+        f"/secciones/{seccion_id}/salidas",
+        json={
+            "carga_valor": "16",
+            "carga_unidad": "A",
+            "formato": "unipolar",
+            "tipo_proteccion": "seccional_termomagnetico",
+        },
+    ).json()["id"]
+
+    response = client.patch(f"/salidas/{salida_id}", json={"carga_unidad": "V"})
+
+    assert response.status_code == 400
+
+
+def test_delete_salida(client, db_session):
+    seccion_id = _setup_tablero(client, db_session, "salidas9.test@pyre.com")
+    salida_id = client.post(
+        f"/secciones/{seccion_id}/salidas",
+        json={
+            "carga_valor": "16",
+            "carga_unidad": "A",
+            "formato": "unipolar",
+            "tipo_proteccion": "seccional_termomagnetico",
+        },
+    ).json()["id"]
+
+    response = client.delete(f"/salidas/{salida_id}")
+
+    assert response.status_code == 204
+    assert client.get(f"/secciones/{seccion_id}/salidas").json() == []
+
+
+def test_delete_salida_inexistente_devuelve_404(client, db_session):
+    import uuid
+
+    _setup_tablero(client, db_session, "salidas10.test@pyre.com")
+
+    response = client.delete(f"/salidas/{uuid.uuid4()}")
+
+    assert response.status_code == 404
