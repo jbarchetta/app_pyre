@@ -1,5 +1,5 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { useParams, useSearchParams } from "react-router-dom";
+import { Link, useParams, useSearchParams } from "react-router-dom";
 import {
   crearTablero,
   listarTableros,
@@ -85,7 +85,10 @@ export function ProyectoWorkspacePage() {
 
   return (
     <div>
-      <h1 className="text-2xl font-bold">{proyecto.nombre}</h1>
+      <Link to="/proyectos" className="text-sm text-secondary hover:text-on-background">
+        ← Proyectos
+      </Link>
+      <h1 className="mt-2 text-2xl font-bold">{proyecto.nombre}</h1>
       <p className="text-secondary">{proyecto.cliente}</p>
 
       {tableros.length > 0 && (

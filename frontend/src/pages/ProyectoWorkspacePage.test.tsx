@@ -179,4 +179,12 @@ describe("ProyectoWorkspacePage", () => {
     await userEvent.click(screen.getByRole("tab", { name: "TG1" }));
     expect(await screen.findByRole("button", { name: /ajustar zoom/i })).toHaveTextContent("125%");
   });
+
+  it("shows a link back to Proyectos", async () => {
+    mockFetchConDosTableros();
+    renderPage();
+    await screen.findByRole("tab", { name: "TG1" });
+
+    expect(screen.getByRole("link", { name: /proyectos/i })).toHaveAttribute("href", "/proyectos");
+  });
 });
