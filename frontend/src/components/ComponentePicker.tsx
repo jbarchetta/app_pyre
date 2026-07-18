@@ -37,7 +37,7 @@ export function ComponentePicker({ onSelect }: ComponentePickerProps) {
       if (idSolicitud !== solicitudActualRef.current) return;
       setResultados((actuales) => [...(actuales ?? []), ...respuesta.resultados]);
     } finally {
-      if (idSolicitud === solicitudActualRef.current) setCargandoMas(false);
+      setCargandoMas(false);
     }
   }
 

@@ -194,4 +194,56 @@ describe("ComponentePicker", () => {
     const filas = screen.getAllByRole("button", { name: /SH201-C20/i });
     expect(filas).toHaveLength(1);
   });
+
+  it("does not get stuck disabled after a query change interrupts a pending Cargar más", async () => {
+    let resolverSegundaPaginaVieja: (value: unknown) => void = () => {};
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockImplementation((url: string) => {
+        if (url.includes("SH201") && url.includes("offset=0")) {
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({
+              resultados: [{ id: "c1", codigo: "SH201-C16", descripcion: "Interruptor 16A", precio_neto: "50.00" }],
+              total: 2,
+            }),
+          });
+        }
+        if (url.includes("SH201") && url.includes("offset=1")) {
+          return new Promise((resolve) => {
+            resolverSegundaPaginaVieja = resolve;
+          });
+        }
+        // La búsqueda nueva ("XT2N100") también tiene más resultados de los que muestra,
+        // para que "Cargar más" deba aparecer habilitado otra vez.
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({
+            resultados: [{ id: "x1", codigo: "XT2N100", descripcion: "Otro interruptor", precio_neto: "10.00" }],
+            total: 2,
+          }),
+        });
+      }),
+    );
+    render(<ComponentePicker onSelect={vi.fn()} />);
+
+    await userEvent.type(screen.getByLabelText(/buscar código/i), "SH201");
+    await screen.findByRole("button", { name: /SH201-C16/i });
+    await userEvent.click(screen.getByRole("button", { name: /cargar más/i }));
+
+    await userEvent.clear(screen.getByLabelText(/buscar código/i));
+    await userEvent.type(screen.getByLabelText(/buscar código/i), "XT2N100");
+    await screen.findByRole("button", { name: /XT2N100/i });
+
+    resolverSegundaPaginaVieja({
+      ok: true,
+      json: async () => ({
+        resultados: [{ id: "c2", codigo: "SH201-C20", descripcion: "Interruptor 20A", precio_neto: "55.00" }],
+        total: 2,
+      }),
+    });
+    await new Promise((r) => setTimeout(r, 0));
+
+    expect(screen.getByRole("button", { name: /cargar más/i })).not.toBeDisabled();
+  });
 });
