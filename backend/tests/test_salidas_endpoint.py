@@ -240,3 +240,26 @@ def test_delete_salida_inexistente_devuelve_404(client, db_session):
     response = client.delete(f"/salidas/{uuid.uuid4()}")
 
     assert response.status_code == 404
+
+
+def test_patch_salida_con_componente_id_null_explicito_lo_limpia_sin_recalcular(client, db_session):
+    principal = _componente(db_session, "SAL-PRINC-12", tipo="interruptor_principal", corriente=100, ka=15)
+    seccion_id = _setup_tablero(
+        client, db_session, "salidas12.test@pyre.com", interruptor_principal_id=str(principal.id)
+    )
+    salida_id = client.post(
+        f"/secciones/{seccion_id}/salidas",
+        json={
+            "carga_valor": "16",
+            "carga_unidad": "A",
+            "formato": "unipolar",
+            "tipo_proteccion": "seccional_termomagnetico",
+        },
+    ).json()["id"]
+
+    response = client.patch(f"/salidas/{salida_id}", json={"carga_valor": "30", "componente_id": None})
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["componente_id"] is None
+    assert body["carga_valor"] == "30.00"

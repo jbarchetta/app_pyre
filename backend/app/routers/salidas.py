@@ -11,6 +11,7 @@ from app.models import (
     CatalogoComponente,
     FormatoPolos,
     OrigenSalida,
+    ParametroCalculo,
     RolUsuario,
     Salida,
     Seccion,
@@ -65,7 +66,7 @@ def _proponer_componente_para_salida(
     formato: FormatoPolos,
     carga_valor: Decimal,
     carga_unidad: str,
-    parametros,
+    parametros: ParametroCalculo,
 ) -> uuid.UUID | None:
     # Puede levantar ValueError (ej. unidad de carga inválida) -- el caller la
     # traduce a un 400. Compartida por crear_salida y actualizar_salida para
@@ -151,6 +152,9 @@ def actualizar_salida(
     cambios = payload.model_dump(exclude_unset=True)
     campos_recalculo = ("carga_valor", "carga_unidad", "formato", "tipo_proteccion")
     debe_recalcular = any(campo in cambios for campo in campos_recalculo)
+    # "componente_id" in cambios es true incluso si el valor es null -- un
+    # componente_id explícito (incluida una limpieza explícita a null) siempre
+    # gana sobre el recálculo automático.
     componente_fijado_explicitamente = "componente_id" in cambios
 
     if "carga_valor" in cambios:
