@@ -43,6 +43,7 @@ export function SeccionBlock({
   const [borrando, setBorrando] = useState(false);
   const ultimoTriggerRef = useRef<HTMLElement | null>(null);
   const editCargaInputRef = useRef<HTMLInputElement>(null);
+  const idSalidaEnEdicionRef = useRef<string | null>(null);
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
@@ -63,6 +64,7 @@ export function SeccionBlock({
 
   function abrirEdicion(salida: Salida, trigger: HTMLElement) {
     ultimoTriggerRef.current = trigger;
+    idSalidaEnEdicionRef.current = salida.id;
     setSalidaEnEdicion(salida);
     setEditCargaValor(salida.carga_valor);
     setEditCargaUnidad(salida.carga_unidad);
@@ -72,6 +74,7 @@ export function SeccionBlock({
   }
 
   function cerrarEdicion() {
+    idSalidaEnEdicionRef.current = null;
     setSalidaEnEdicion(null);
     setPickerAbierto(false);
     setError(null);
@@ -101,11 +104,11 @@ export function SeccionBlock({
         formato: editFormato,
         tipo_proteccion: editTipoProteccion,
       });
-      if (salidaEnEdicion?.id !== idEditada) return;
+      if (idSalidaEnEdicionRef.current !== idEditada) return; // ref reflects live state, unlike the closed-over salidaEnEdicion
       onSalidaActualizada(actualizada);
       cerrarEdicion();
     } catch {
-      if (salidaEnEdicion?.id !== idEditada) return;
+      if (idSalidaEnEdicionRef.current !== idEditada) return;
       setError("No se pudo actualizar la salida");
     }
   }
@@ -115,12 +118,12 @@ export function SeccionBlock({
     const idEditada = salidaEnEdicion.id;
     try {
       const actualizada = await actualizarSalida(idEditada, { componente_id: componente.id });
-      if (salidaEnEdicion?.id !== idEditada) return;
+      if (idSalidaEnEdicionRef.current !== idEditada) return;
       onSalidaActualizada(actualizada);
       setSalidaEnEdicion(actualizada);
       setPickerAbierto(false);
     } catch {
-      if (salidaEnEdicion?.id !== idEditada) return;
+      if (idSalidaEnEdicionRef.current !== idEditada) return;
       setError("No se pudo reasignar el componente");
     }
   }

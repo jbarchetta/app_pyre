@@ -151,6 +151,33 @@ describe("SeccionBlock", () => {
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
+  it("ignores a PATCH response that resolves after the edit modal was closed via Escape", async () => {
+    let resolvePatch!: (value: { ok: boolean; json: () => Promise<unknown> }) => void;
+    const patchPromise = new Promise<{ ok: boolean; json: () => Promise<unknown> }>((resolve) => {
+      resolvePatch = resolve;
+    });
+    vi.stubGlobal("fetch", vi.fn().mockReturnValue(patchPromise));
+    const onSalidaActualizada = vi.fn();
+    render(
+      <SeccionBlock
+        seccion={seccion}
+        salidas={[salidaConMatch]}
+        onSalidaCreada={vi.fn()}
+        onSalidaActualizada={onSalidaActualizada}
+        onSalidaBorrada={vi.fn()}
+      />,
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: /editar salida 20 a/i }));
+    await userEvent.click(screen.getByRole("button", { name: /^guardar$/i }));
+    await userEvent.keyboard("{Escape}");
+
+    resolvePatch({ ok: true, json: async () => ({ ...salidaConMatch, carga_valor: "99.00" }) });
+    await patchPromise;
+
+    expect(onSalidaActualizada).not.toHaveBeenCalled();
+  });
+
   it("reassigns the component of an already-matched salida from the edit modal", async () => {
     vi.stubGlobal(
       "fetch",
