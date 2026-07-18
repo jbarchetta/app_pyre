@@ -70,7 +70,7 @@ def test_patch_proyecto_inexistente_devuelve_404(client, db_session):
 def test_delete_proyecto_borra_tableros_secciones_y_salidas_en_cascada(client, db_session):
     import uuid
 
-    from app.models import Salida
+    from app.models import Salida, Seccion
 
     _login(client, db_session, email="deleteproyecto.test@pyre.com")
     proyecto_id = client.post("/proyectos", json={"cliente": "Cliente A", "nombre": "A borrar"}).json()["id"]
@@ -94,6 +94,7 @@ def test_delete_proyecto_borra_tableros_secciones_y_salidas_en_cascada(client, d
     assert client.get(f"/proyectos/{proyecto_id}").status_code == 404
     assert client.get(f"/tableros/{tablero_id}").status_code == 404
     assert client.get(f"/tableros/{tablero_id}/secciones").status_code == 404
+    assert db_session.get(Seccion, uuid.UUID(seccion_id)) is None
     assert db_session.get(Salida, uuid.UUID(salida_id)) is None
 
 
