@@ -41,9 +41,10 @@ def test_buscar_encuentra_por_codigo(client, db_session):
 
     assert response.status_code == 200
     body = response.json()
-    assert len(body) == 1
-    assert body[0]["id"] == str(componente.id)
-    assert body[0]["codigo"] == "ZQXBUSCAR-C1"
+    assert body["total"] == 1
+    assert len(body["resultados"]) == 1
+    assert body["resultados"][0]["id"] == str(componente.id)
+    assert body["resultados"][0]["codigo"] == "ZQXBUSCAR-C1"
 
 
 def test_buscar_encuentra_por_descripcion(client, db_session):
@@ -54,8 +55,8 @@ def test_buscar_encuentra_por_descripcion(client, db_session):
 
     assert response.status_code == 200
     body = response.json()
-    assert len(body) == 1
-    assert body[0]["id"] == str(componente.id)
+    assert len(body["resultados"]) == 1
+    assert body["resultados"][0]["id"] == str(componente.id)
 
 
 def test_buscar_con_termino_corto_devuelve_vacio(client, db_session):
@@ -64,7 +65,7 @@ def test_buscar_con_termino_corto_devuelve_vacio(client, db_session):
     response = client.get("/catalogo/buscar", params={"q": "z"})
 
     assert response.status_code == 200
-    assert response.json() == []
+    assert response.json() == {"resultados": [], "total": 0}
 
 
 def test_buscar_encuentra_por_codigo_comercial(client, db_session):
@@ -75,22 +76,57 @@ def test_buscar_encuentra_por_codigo_comercial(client, db_session):
 
     assert response.status_code == 200
     body = response.json()
-    assert len(body) == 1
-    assert body[0]["id"] == str(componente.id)
-    assert body[0]["codigo_comercial"] == "ZQXBUSCAR-SH201"
+    assert len(body["resultados"]) == 1
+    assert body["resultados"][0]["id"] == str(componente.id)
+    assert body["resultados"][0]["codigo_comercial"] == "ZQXBUSCAR-SH201"
 
 
 def test_buscar_prioriza_coincidencia_de_prefijo_en_codigo(client, db_session):
     _login(client, db_session, email="buscarcat5.test@pyre.com")
-    # El código de "en_descripcion" empieza con "AAA" (antes alfabéticamente que
-    # "ZQXPRI-C1") para que este test solo pase si de verdad hay lógica de
-    # relevancia -- con el orden alfabético viejo, "en_descripcion" ganaría por
-    # casualidad de letras, no porque sea la mejor coincidencia.
     en_descripcion = _componente(db_session, "AAA-OTRO-COD", "Interruptor con ZQXPRI200 en el medio del texto")
     prefijo_codigo = _componente(db_session, "ZQXPRI-C1", "Interruptor cualquiera")
 
     response = client.get("/catalogo/buscar", params={"q": "ZQXPRI"})
 
     body = response.json()
-    ids = [c["id"] for c in body]
+    ids = [c["id"] for c in body["resultados"]]
     assert ids.index(str(prefijo_codigo.id)) < ids.index(str(en_descripcion.id))
+
+
+def test_buscar_devuelve_total_de_coincidencias_mayor_a_los_resultados_devueltos(client, db_session):
+    _login(client, db_session, email="buscarcat6.test@pyre.com")
+    for i in range(25):
+        _componente(db_session, f"ZQXPAG-{i:03d}", f"Interruptor de paginación {i}")
+
+    response = client.get("/catalogo/buscar", params={"q": "ZQXPAG"})
+
+    body = response.json()
+    assert body["total"] == 25
+    assert len(body["resultados"]) == 20
+
+
+def test_buscar_respeta_offset_y_limit_sin_duplicar_resultados(client, db_session):
+    _login(client, db_session, email="buscarcat7.test@pyre.com")
+    for i in range(25):
+        _componente(db_session, f"ZQXOFF-{i:03d}", f"Interruptor de offset {i}")
+
+    primera_pagina = client.get("/catalogo/buscar", params={"q": "ZQXOFF", "limit": 20, "offset": 0}).json()
+    segunda_pagina = client.get("/catalogo/buscar", params={"q": "ZQXOFF", "limit": 20, "offset": 20}).json()
+
+    assert len(primera_pagina["resultados"]) == 20
+    assert len(segunda_pagina["resultados"]) == 5
+    ids_primera = {c["id"] for c in primera_pagina["resultados"]}
+    ids_segunda = {c["id"] for c in segunda_pagina["resultados"]}
+    assert ids_primera.isdisjoint(ids_segunda)
+
+
+def test_buscar_limita_el_limit_maximo_a_50(client, db_session):
+    _login(client, db_session, email="buscarcat8.test@pyre.com")
+    for i in range(60):
+        _componente(db_session, f"ZQXMAX-{i:03d}", f"Interruptor de tope {i}")
+
+    response = client.get("/catalogo/buscar", params={"q": "ZQXMAX", "limit": 1000})
+
+    body = response.json()
+    assert body["total"] == 60
+    assert len(body["resultados"]) == 50

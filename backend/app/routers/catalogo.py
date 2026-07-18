@@ -54,14 +54,28 @@ class ComponenteBusquedaResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
-@router.get("/buscar", response_model=list[ComponenteBusquedaResponse])
+class BusquedaCatalogoResponse(BaseModel):
+    resultados: list[ComponenteBusquedaResponse]
+    total: int
+
+
+_LIMIT_MAXIMO = 50
+_LIMIT_POR_DEFECTO = 20
+
+
+@router.get("/buscar", response_model=BusquedaCatalogoResponse)
 def buscar_componentes(
     q: str = "",
+    limit: int = _LIMIT_POR_DEFECTO,
+    offset: int = 0,
     db: Session = Depends(get_db),
     usuario: Usuario = Depends(get_current_user),
 ):
+    limit = min(max(limit, 1), _LIMIT_MAXIMO)
+    offset = max(offset, 0)
+
     if len(q.strip()) < 2:
-        return []
+        return BusquedaCatalogoResponse(resultados=[], total=0)
 
     termino_limpio = q.strip()
     termino = f"%{termino_limpio}%"
@@ -78,26 +92,33 @@ def buscar_componentes(
         else_=2,
     )
 
+    filtro = or_(
+        CatalogoComponente.codigo.ilike(termino),
+        CatalogoComponente.codigo_comercial.ilike(termino),
+        CatalogoComponente.descripcion.ilike(termino),
+    )
+
+    total = db.query(CatalogoComponente).filter(filtro).count()
+
     componentes = (
         db.query(CatalogoComponente)
-        .filter(
-            or_(
-                CatalogoComponente.codigo.ilike(termino),
-                CatalogoComponente.codigo_comercial.ilike(termino),
-                CatalogoComponente.descripcion.ilike(termino),
-            )
-        )
+        .filter(filtro)
         .order_by(relevancia, CatalogoComponente.codigo)
-        .limit(20)
+        .offset(offset)
+        .limit(limit)
         .all()
     )
-    return [
-        ComponenteBusquedaResponse(
-            id=str(c.id),
-            codigo=c.codigo,
-            codigo_comercial=c.codigo_comercial,
-            descripcion=c.descripcion,
-            precio_neto=c.precio_neto,
-        )
-        for c in componentes
-    ]
+
+    return BusquedaCatalogoResponse(
+        resultados=[
+            ComponenteBusquedaResponse(
+                id=str(c.id),
+                codigo=c.codigo,
+                codigo_comercial=c.codigo_comercial,
+                descripcion=c.descripcion,
+                precio_neto=c.precio_neto,
+            )
+            for c in componentes
+        ],
+        total=total,
+    )
