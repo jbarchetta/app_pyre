@@ -98,6 +98,11 @@ def buscar_componentes(
         CatalogoComponente.descripcion.ilike(termino),
     )
 
+    # Nota: esto ejecuta una segunda query completa (además de la paginada de
+    # abajo) en cada búsqueda -- a la escala actual del catálogo (~9-10k
+    # filas) es aceptable, pero si ComponentePicker suma debounce (ver plan de
+    # UX) o el catálogo crece mucho más, vale la pena revisar si hace falta
+    # (ej. limit+1 con un booleano has_more en vez de un total exacto).
     total = db.query(CatalogoComponente).filter(filtro).count()
 
     componentes = (

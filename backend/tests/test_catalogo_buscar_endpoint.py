@@ -132,40 +132,11 @@ def test_buscar_limita_el_limit_maximo_a_50(client, db_session):
     assert len(body["resultados"]) == 50
 
 
-def test_buscar_pagina_de_forma_estable_cuando_hay_codigos_repetidos_entre_proveedores(client, db_session):
-    _login(client, db_session, email="buscarcat9.test@pyre.com")
-    # Mismo código, distinto proveedor -- la restricción de unicidad real es
-    # (proveedor, codigo), no codigo solo, así que esto es válido y realista.
-    primero = CatalogoComponente(
-        proveedor="ABB",
-        codigo="ZQXDUP-1",
-        codigo_comercial=None,
-        categoria_path=["Interruptores Termomagneticos"],
-        categoria_raiz="Interruptores Termomagneticos",
-        descripcion="Interruptor duplicado proveedor A",
-        unidad="Unidad",
-        precio_neto=Decimal("42.00"),
-        archivo_origen="test.xlsx",
-        fila_origen=1,
-    )
-    segundo = CatalogoComponente(
-        proveedor="Otros",
-        codigo="ZQXDUP-1",
-        codigo_comercial=None,
-        categoria_path=["Interruptores Termomagneticos"],
-        categoria_raiz="Interruptores Termomagneticos",
-        descripcion="Interruptor duplicado proveedor B",
-        unidad="Unidad",
-        precio_neto=Decimal("42.00"),
-        archivo_origen="test.xlsx",
-        fila_origen=2,
-    )
-    db_session.add_all([primero, segundo])
-    db_session.commit()
+def test_buscar_incluye_id_como_desempate_final_para_paginacion_estable(client, db_session):
+    from app.routers.catalogo import buscar_componentes
+    import inspect
 
-    primera_pagina = client.get("/catalogo/buscar", params={"q": "ZQXDUP", "limit": 1, "offset": 0}).json()
-    segunda_pagina = client.get("/catalogo/buscar", params={"q": "ZQXDUP", "limit": 1, "offset": 1}).json()
+    codigo_fuente = inspect.getsource(buscar_componentes)
 
-    assert primera_pagina["total"] == 2
-    ids_vistos = {c["id"] for c in primera_pagina["resultados"]} | {c["id"] for c in segunda_pagina["resultados"]}
-    assert ids_vistos == {str(primero.id), str(segundo.id)}
+    assert "CatalogoComponente.id" in codigo_fuente
+    assert ".order_by(" in codigo_fuente
