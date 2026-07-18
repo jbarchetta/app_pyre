@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { buscarCatalogo, type ComponenteBusqueda } from "../api/client";
 
 const RESULTADOS_POR_PAGINA = 20;
@@ -11,23 +11,34 @@ export function ComponentePicker({ onSelect }: ComponentePickerProps) {
   const [query, setQuery] = useState("");
   const [resultados, setResultados] = useState<ComponenteBusqueda[] | null>(null);
   const [total, setTotal] = useState(0);
+  const [cargandoMas, setCargandoMas] = useState(false);
+  const solicitudActualRef = useRef(0);
 
   async function handleChange(value: string) {
     setQuery(value);
+    const idSolicitud = ++solicitudActualRef.current;
     if (value.trim().length < 2) {
       setResultados(null);
       setTotal(0);
       return;
     }
     const respuesta = await buscarCatalogo(value, { limit: RESULTADOS_POR_PAGINA, offset: 0 });
+    if (idSolicitud !== solicitudActualRef.current) return;
     setResultados(respuesta.resultados);
     setTotal(respuesta.total);
   }
 
   async function handleCargarMas() {
-    if (resultados === null) return;
-    const respuesta = await buscarCatalogo(query, { limit: RESULTADOS_POR_PAGINA, offset: resultados.length });
-    setResultados((actuales) => [...(actuales ?? []), ...respuesta.resultados]);
+    if (resultados === null || cargandoMas) return;
+    const idSolicitud = ++solicitudActualRef.current;
+    setCargandoMas(true);
+    try {
+      const respuesta = await buscarCatalogo(query, { limit: RESULTADOS_POR_PAGINA, offset: resultados.length });
+      if (idSolicitud !== solicitudActualRef.current) return;
+      setResultados((actuales) => [...(actuales ?? []), ...respuesta.resultados]);
+    } finally {
+      if (idSolicitud === solicitudActualRef.current) setCargandoMas(false);
+    }
   }
 
   return (
@@ -62,9 +73,10 @@ export function ComponentePicker({ onSelect }: ComponentePickerProps) {
             <button
               type="button"
               onClick={handleCargarMas}
-              className="w-full border-t border-surface-stroke p-2 text-sm uppercase tracking-widest text-abb-red hover:bg-industrial-gray"
+              disabled={cargandoMas}
+              className="w-full border-t border-surface-stroke p-2 text-sm uppercase tracking-widest text-abb-red hover:bg-industrial-gray disabled:opacity-50"
             >
-              Cargar más
+              {cargandoMas ? "Cargando..." : "Cargar más"}
             </button>
           )}
         </div>

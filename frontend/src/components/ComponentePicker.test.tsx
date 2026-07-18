@@ -95,4 +95,103 @@ describe("ComponentePicker", () => {
     expect(screen.getByRole("button", { name: /SH201-C16/i })).toBeInTheDocument();
     expect(screen.getByText(/mostrando 2 de 2 resultados/i)).toBeInTheDocument();
   });
+
+  it("ignores a stale Cargar más response if the query changed before it resolved", async () => {
+    let resolverPrimeraPagina: (value: unknown) => void = () => {};
+    let resolverSegundaPagina: (value: unknown) => void = () => {};
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockImplementation((url: string) => {
+        if (url.includes("SH201") && url.includes("offset=0")) {
+          return new Promise((resolve) => {
+            resolverPrimeraPagina = resolve;
+          });
+        }
+        if (url.includes("SH201") && url.includes("offset=1")) {
+          return new Promise((resolve) => {
+            resolverSegundaPagina = resolve;
+          });
+        }
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({
+            resultados: [{ id: "x1", codigo: "XT2N100", descripcion: "Otro interruptor", precio_neto: "10.00" }],
+            total: 1,
+          }),
+        });
+      }),
+    );
+    render(<ComponentePicker onSelect={vi.fn()} />);
+
+    await userEvent.type(screen.getByLabelText(/buscar código/i), "SH201");
+    resolverPrimeraPagina({
+      ok: true,
+      json: async () => ({
+        resultados: [{ id: "c1", codigo: "SH201-C16", descripcion: "Interruptor 16A", precio_neto: "50.00" }],
+        total: 2,
+      }),
+    });
+    await screen.findByRole("button", { name: /SH201-C16/i });
+
+    await userEvent.click(screen.getByRole("button", { name: /cargar más/i }));
+    await userEvent.clear(screen.getByLabelText(/buscar código/i));
+    await userEvent.type(screen.getByLabelText(/buscar código/i), "XT2N100");
+    await screen.findByRole("button", { name: /XT2N100/i });
+
+    resolverSegundaPagina({
+      ok: true,
+      json: async () => ({
+        resultados: [{ id: "c2", codigo: "SH201-C20", descripcion: "Interruptor 20A", precio_neto: "55.00" }],
+        total: 2,
+      }),
+    });
+
+    // Give the stale promise's .then a tick to (not) apply its update.
+    await new Promise((r) => setTimeout(r, 0));
+
+    expect(screen.queryByRole("button", { name: /SH201-C20/i })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /XT2N100/i })).toBeInTheDocument();
+  });
+
+  it("disables Cargar más while a request is in flight, preventing duplicate loads", async () => {
+    let resolverSegundaPagina: (value: unknown) => void = () => {};
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockImplementation((url: string) => {
+        if (url.includes("offset=0")) {
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({
+              resultados: [{ id: "c1", codigo: "SH201-C16", descripcion: "Interruptor 16A", precio_neto: "50.00" }],
+              total: 2,
+            }),
+          });
+        }
+        return new Promise((resolve) => {
+          resolverSegundaPagina = resolve;
+        });
+      }),
+    );
+    render(<ComponentePicker onSelect={vi.fn()} />);
+
+    await userEvent.type(screen.getByLabelText(/buscar código/i), "SH201");
+    await screen.findByRole("button", { name: /SH201-C16/i });
+
+    const botonCargarMas = screen.getByRole("button", { name: /cargar más/i });
+    await userEvent.click(botonCargarMas);
+
+    expect(screen.getByRole("button", { name: /cargando/i })).toBeDisabled();
+
+    resolverSegundaPagina({
+      ok: true,
+      json: async () => ({
+        resultados: [{ id: "c2", codigo: "SH201-C20", descripcion: "Interruptor 20A", precio_neto: "55.00" }],
+        total: 2,
+      }),
+    });
+
+    expect(await screen.findByRole("button", { name: /SH201-C20/i })).toBeInTheDocument();
+    const filas = screen.getAllByRole("button", { name: /SH201-C20/i });
+    expect(filas).toHaveLength(1);
+  });
 });
