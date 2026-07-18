@@ -107,6 +107,13 @@ export function DetalleTablero({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [modalIcc, modalInterruptor, modalNuevaFila, filaEnEdicion]);
 
+  // TODO: the "cancelled while the request was in flight" guards below
+  // (handleGuardarNivelFalla, handleSeleccionarInterruptorPrincipal,
+  // handleCrearFila, handleRenombrarFila) compare closure-captured state,
+  // which is frozen at this render and never sees later updates -- they're
+  // inert (never trigger). The real fix is a useRef updated live on
+  // open/close, as done in SeccionBlock.tsx (idSalidaEnEdicionRef) after the
+  // same bug was found there.
   async function handleGuardarNivelFalla(event: FormEvent) {
     event.preventDefault();
     setError(null);

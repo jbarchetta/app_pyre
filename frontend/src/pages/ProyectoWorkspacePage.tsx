@@ -75,6 +75,12 @@ export function ProyectoWorkspacePage() {
     triggerRef.current?.focus();
   }
 
+  // TODO: los guards de "cancelado mientras el pedido estaba en curso" de
+  // handleSubmit/handleRenombrarTablero comparan estado leído por closure, que
+  // queda congelado en el valor de este render y nunca ve cambios posteriores
+  // -- son inertes (nunca disparan). El fix real es un useRef actualizado en
+  // vivo al abrir/cerrar el modal, como se hizo en SeccionBlock.tsx
+  // (idSalidaEnEdicionRef) tras encontrarse el mismo bug ahí.
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
     if (!id) return;
