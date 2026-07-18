@@ -20,6 +20,18 @@ Tienen polos, corriente nominal y capacidad de corte (los tres datos que necesit
 
 **Mientras tanto:** el parser (`parser_abb.py`) no extrae `atributos` para estas filas — quedan sin match, el analista las puede seguir buscando y cargando a mano vía `ComponentePicker`.
 
+### 2. Filtro de "regulación" (rango de regulación térmica/magnética ajustable) — no hay dato extraíble en el catálogo actual
+
+**Encontrado:** 2026-07-18, durante el brainstorming del ciclo de UX de CRUD/Filas/buscador (`docs/superpowers/specs/2026-07-18-workspace-crud-filas-design.md`).
+
+**Contexto:** El usuario pidió poder filtrar la búsqueda de interruptores por "regulación" además de polos/In, junto a SAP/código comercial/descripción. Se corrió una extracción real contra el catálogo completo de ABB (9.062 filas) usando el parser existente (`parser_abb.py`) para confirmar si ese dato existe como texto en las descripciones: no aparece en ninguna de las 3.837 filas de interruptores en alcance. El único lugar donde aparece la palabra "regulación" es en accesorios no relacionados (ej. bloqueo de regulación, tiempo de un relé diferencial), no como un rango numérico asociado al interruptor mismo.
+
+**Por qué importa:** Sin un dato extraíble, cualquier filtro de "regulación" tendría que basarse en otra fuente (una tabla técnica de ABB distinta a la lista de precios actual, o carga manual por el analista) — no se puede resolver ampliando la regex del parser como se hizo con polos/In/capacidad de corte.
+
+**Qué se necesita:** Confirmación de un ingeniero de PYRE: ¿existe una fuente de datos de ABB (tabla técnica, ficha de producto, u otro documento) que liste el rango de regulación ajustable por modelo de interruptor? Si existe, ¿en qué formato, y se puede importar/cruzar por código de producto?
+
+**Mientras tanto:** el buscador de catálogo (`ComponentePicker` + `GET /catalogo/buscar`) solo filtra por texto libre (código/código comercial/descripción) y por categoría (`categorias`) — no hay filtro estructurado por polos/In/regulación en este ciclo.
+
 ## Resueltas
 
 _(ninguna todavía)_
