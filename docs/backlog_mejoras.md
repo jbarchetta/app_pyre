@@ -1,6 +1,6 @@
 # Backlog de mejoras — tracker de la auditoría técnica 2026-07-19
 
-Origen: auditoría completa del proyecto (seguridad, estabilidad, mantenibilidad, UI/UX) realizada el 2026-07-19 sobre `master` post-ciclo-7. Cada hallazgo tiene estado y destino planeado. **Este documento se actualiza al cerrar cada ciclo** (convención pedida por el usuario al cerrar ciclo 8): marcar lo hecho, replanificar lo diferido, agregar lo nuevo que se descubra.
+Origen: auditoría completa del proyecto (seguridad, estabilidad, mantenibilidad, UI/UX) realizada el 2026-07-19 sobre `master` post-ciclo-7. Una copia snapshot de esa auditoría quedó guardada en `project/KIMI visión completa del código.md` (gitignored) — **este backlog es el tracker canónico y versionado**; el snapshot no se actualiza. Cada hallazgo tiene estado y destino planeado. **Este documento se actualiza al cerrar cada ciclo** (convención pedida por el usuario al cerrar ciclo 8): marcar lo hecho, replanificar lo diferido, agregar lo nuevo que se descubra.
 
 Leyenda: ✅ hecho (con ciclo/commit) · 🟦 planeado (ciclo asignado) · ⬜ sin asignar · 🟡 bloqueado por decisión externa.
 
@@ -18,6 +18,7 @@ Leyenda: ✅ hecho (con ciclo/commit) · 🟦 planeado (ciclo asignado) · ⬜ s
 | 🟦 | CORS con `allow_methods=["*"]`/`allow_headers=["*"]` + credentials | Ciclo 9 — lista explícita |
 | 🟦 | Sin rate limiting en login (brute-force ilimitado) | Ciclo 9 o Fase E — re-evaluar si el sistema se expone fuera de la red interna |
 | 🟦 | Sin headers de seguridad HTTP (`X-Frame-Options`, `CSP`, etc.) | Ciclo 9 |
+| 🟦 | Sin logging de eventos de seguridad (logins fallidos, 403 por propiedad) — hay `audit_log` de negocio pero no de acceso | Ciclo 9 — mismo mecanismo `audit_log` o logging estándar |
 | ⬜ | JWT sin refresh ni revocación (8h de validez, logout solo borra cookie del cliente) | Evaluar en Fase E si hay exposición externa |
 | ⬜ | Sin política de contraseñas (`create_user` acepta `"a"`) | Ciclo 9 o junto a gestión de usuarios |
 | ⬜ | Upgrade `bcrypt>=4.1` (desbloqueado tras eliminar passlib) | Próximo mantenimiento de dependencias |
@@ -31,7 +32,11 @@ Leyenda: ✅ hecho (con ciclo/commit) · 🟦 planeado (ciclo asignado) · ⬜ s
 | 🟦 | Listados sin paginación defensiva (`GET /proyectos`, tableros, secciones, salidas) | Ciclo 9 |
 | 🟦 | Frontend Dockerfile corre dev server (sin build optimizado) | Ciclo 9 — multi-stage build + nginx |
 | 🟦 | Sin CI — las 2 suites dependen de disciplina manual | Ciclo 9 — GitHub Actions mínimo |
+| ⬜ | Sin tests de carga/estrés (motor de propuesta y búsqueda de catálogo a escala real) | Ciclo 9 o cuando el catálogo crezca 3-5x |
 | 🟦 | Sin capa de servicios: lógica de negocio en routers (va a crecer con BOM) | Evaluar al diseñar ciclo 11 (BOM) |
+| ⬜ | `client.ts` monolítico (400+ líneas, todos los dominios) — separar por dominio cuando crezca | Evaluar en ciclo 11 o antes del cotizador |
+| ⬜ | Estado del workspace por prop drilling (15+ `useState` en `DetalleTablero`) — evaluar React Query/Zustand | Evaluar antes del cotizador/BOM UI |
+| ⬜ | Responses construidas a mano (`_salida_response`/`_tablero_response`): cada campo nuevo toca 5 archivos | Con el N+1 del ciclo 9, evaluar helper/serializer |
 
 ## Deuda técnica conocida
 
@@ -39,6 +44,7 @@ Leyenda: ✅ hecho (con ciclo/commit) · 🟦 planeado (ciclo asignado) · ⬜ s
 |---|---|---|
 | 🟦 | TODO `bcd6068`: guards de respuestas stale en `ProyectoWorkspacePage` son inertes (closures congelados — ya resuelto en `SeccionBlock` con refs, falta replicar) | Ciclo 9 o 10 |
 | 🟦 | Errores del backend se descartan en el frontend (`catch` genérico — el usuario no ve "La carga en amperios debe ser un número entero") | Ciclo 10 |
+| ✅ | 3 ramas obsoletas mergeadas + CLAUDE.md desactualizado (ciclo 7) | Housekeeping 2026-07-19 (`a1bd59d`) |
 | 🟦 | Migración `7c4084aba894` (enum TRIPOLAR) sin downgrade posible (limitación de Postgres) | Aceptado — documentado, no requiere acción |
 | 🟡 | Asignación manual inconsistente con carga no se valida ni advierte | 🟡 `docs/consultas_ingenieria.md` #3 — pendiente decisión del usuario |
 
