@@ -16,6 +16,10 @@ from app.models import CatalogoComponente, RolUsuario, Usuario
 
 router = APIRouter(prefix="/catalogo", tags=["catalogo"])
 
+# El catálogo real de ABB pesa ~2 MB; 20 MB es margen más que suficiente para
+# cualquier lista de precios razonable y protege al worker de uploads abusivos.
+_TAMANO_MAXIMO_UPLOAD_BYTES = 20 * 1024 * 1024
+
 PARSERS = {
     "abb": parse_abb_workbook,
     "otros": parse_otros_workbook,
@@ -35,7 +39,22 @@ async def importar_catalogo(
             status_code=status.HTTP_400_BAD_REQUEST, detail=f"Proveedor desconocido: {proveedor}"
         )
 
-    contenido = await archivo.read()
+    # Validaciones previas al parseo (ciclo 8): el archivo se lee completo a
+    # memoria, así que hay que acotar tamaño antes de hacerlo; y todo .xlsx es
+    # un ZIP con firma PK\x03\x04 — rechaza temprano archivos renombrados, .xls
+    # viejo (OLE2) y basura binaria, con un mensaje claro en vez del error de
+    # zipfile/openpyxl.
+    contenido = await archivo.read(_TAMANO_MAXIMO_UPLOAD_BYTES + 1)
+    if len(contenido) > _TAMANO_MAXIMO_UPLOAD_BYTES:
+        raise HTTPException(
+            status_code=status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+            detail="El archivo supera el máximo permitido de 20 MB",
+        )
+    if not contenido.startswith(b"PK\x03\x04"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="El archivo no es un Excel .xlsx válido",
+        )
     try:
         items = parser(io.BytesIO(contenido), archivo_origen=archivo.filename)
     except (ValueError, KeyError, zipfile.BadZipFile) as exc:

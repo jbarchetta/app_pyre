@@ -131,6 +131,47 @@ def test_import_rejects_corrupted_file(client, db_session):
     assert response.status_code == 400
 
 
+def test_import_rechaza_contenido_que_no_es_xlsx(client, db_session):
+    create_user("import.notzip.test@pyre.com", "Importador", "clave-segura-123", "analista", db=db_session)
+    client.post("/auth/login", json={"email": "import.notzip.test@pyre.com", "password": "clave-segura-123"})
+
+    response = client.post(
+        "/catalogo/importar",
+        data={"proveedor": "abb"},
+        files={
+            "archivo": (
+                "lista.xlsx",
+                b"PK parcial pero no llega a ser zip"[:4] + b"nada",
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            )
+        },
+    )
+
+    # "PK n" no es PK\x03\x04 — todo xlsx real es un ZIP con esa firma exacta.
+    assert response.status_code == 400
+    assert "xlsx" in response.json()["detail"].lower()
+
+
+def test_import_rechaza_archivo_mayor_a_20mb(client, db_session):
+    create_user("import.big.test@pyre.com", "Importador", "clave-segura-123", "analista", db=db_session)
+    client.post("/auth/login", json={"email": "import.big.test@pyre.com", "password": "clave-segura-123"})
+
+    contenido_grande = b"PK\x03\x04" + b"0" * (20 * 1024 * 1024)
+    response = client.post(
+        "/catalogo/importar",
+        data={"proveedor": "abb"},
+        files={
+            "archivo": (
+                "gigante.xlsx",
+                contenido_grande,
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            )
+        },
+    )
+
+    assert response.status_code == 413
+
+
 def test_import_otros_catalog_end_to_end(client, db_session):
     create_user("import.otros.test@pyre.com", "Importador", "clave-segura-123", "analista", db=db_session)
     client.post("/auth/login", json={"email": "import.otros.test@pyre.com", "password": "clave-segura-123"})
