@@ -119,6 +119,8 @@ export interface Tablero {
   nombre: string;
   nivel_falla_ka: string;
   interruptor_principal_id: string | null;
+  interruptor_principal_codigo?: string | null;
+  interruptor_principal_codigo_comercial?: string | null;
 }
 
 export async function listarTableros(proyectoId: string): Promise<Tablero[]> {
@@ -230,6 +232,8 @@ export interface Salida {
   formato: FormatoPolos;
   tipo_proteccion: TipoProteccion;
   componente_id: string | null;
+  componente_codigo?: string | null;
+  componente_codigo_comercial?: string | null;
   origen: string;
 }
 
@@ -296,16 +300,44 @@ export interface ResultadoBusquedaCatalogo {
 
 export async function buscarCatalogo(
   q: string,
-  opciones?: { limit?: number; offset?: number; categorias?: string[] },
+  opciones?: {
+    limit?: number;
+    offset?: number;
+    categorias?: string[];
+    solo_con_atributos?: boolean;
+    polos?: number;
+    corriente_nominal_a?: string;
+    capacidad_corte_ka?: string;
+  },
 ): Promise<ResultadoBusquedaCatalogo> {
   const params = new URLSearchParams({ q });
   if (opciones?.limit !== undefined) params.set("limit", String(opciones.limit));
   if (opciones?.offset !== undefined) params.set("offset", String(opciones.offset));
   for (const categoria of opciones?.categorias ?? []) params.append("categorias", categoria);
+  if (opciones?.solo_con_atributos) params.set("solo_con_atributos", "true");
+  if (opciones?.polos !== undefined) params.set("polos", String(opciones.polos));
+  if (opciones?.corriente_nominal_a !== undefined) params.set("corriente_nominal_a", opciones.corriente_nominal_a);
+  if (opciones?.capacidad_corte_ka !== undefined) params.set("capacidad_corte_ka", opciones.capacidad_corte_ka);
   const response = await fetch(`${API_BASE_URL}/catalogo/buscar?${params.toString()}`, {
     credentials: "include",
   });
   if (!response.ok) throw new Error("No se pudo buscar en el catálogo");
+  return response.json();
+}
+
+export interface OpcionesFiltro {
+  polos: number[];
+  corrientes_nominales_a: string[];
+  capacidades_corte_ka: string[];
+}
+
+export async function obtenerOpcionesFiltro(categorias: string[]): Promise<OpcionesFiltro> {
+  const params = new URLSearchParams();
+  for (const categoria of categorias) params.append("categorias", categoria);
+  const response = await fetch(`${API_BASE_URL}/catalogo/opciones-filtro?${params.toString()}`, {
+    credentials: "include",
+  });
+  if (!response.ok) throw new Error("No se pudieron obtener las opciones de filtro");
   return response.json();
 }
 
