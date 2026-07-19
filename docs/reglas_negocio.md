@@ -40,6 +40,14 @@ El "esquema visual" del roadmap (`configurador-tableros-design.md`) es deliberad
 - Toda subida de catálogo queda auditada (`catalogo_precio_historial`, `audit_log`) y es visible para todos los analistas.
 - Los proyectos son reasignables entre analistas sin bloqueo.
 
+### Autorización por propiedad (enforced desde ciclo 8)
+
+La regla "el analista opera **sus propios** proyectos" está enforceada en el backend (`backend/app/auth/ownership.py`):
+
+- `GET /proyectos` devuelve solo los proyectos del analista autenticado; el supervisor recibe la lista completa.
+- Cualquier `GET`/`PATCH`/`POST`/`DELETE` sobre un proyecto ajeno — o sobre un recurso anidado de un proyecto ajeno (tablero → sección → salida, resuelto por cadena de padres) — devuelve **403** al analista; el supervisor accede sin restricción.
+- La **reasignación** se hace con `PATCH /proyectos/{id}` + `analista_id` y es **exclusiva del supervisor** (un analista no puede ceder su proyecto ni tomar uno ajeno). El `analista_id` destino debe ser un usuario existente con rol `analista` (400 si no).
+
 ## Importación de catálogo
 
 - Cualquiera de los dos roles (analista o supervisor) puede subir un archivo de catálogo.

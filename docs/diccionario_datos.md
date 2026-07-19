@@ -3,7 +3,7 @@
 Ver el modelo completo en `backend/app/models/`. Resumen de cada tabla y su propósito:
 
 - **usuario** — cuentas del sistema. `rol` es `analista` o `supervisor`. Ambos roles pueden subir catálogo.
-- **proyecto** — un proyecto de cliente. `analista_id` es el propietario actual (reasignable). El supervisor ve todos.
+- **proyecto** — un proyecto de cliente. `analista_id` es el propietario actual (reasignable solo por un supervisor vía `PATCH /proyectos/{id}`). La propiedad se enforcea en todos los endpoints (ver `reglas_negocio.md` → Autorización por propiedad): el analista solo ve/opera los suyos, el supervisor ve todos.
 - **tablero** — un tablero dentro de un proyecto. `nivel_falla_ka` es el Icc del punto de instalación, usado por el motor de configuración para calcular capacidad de corte mínima de cada salida.
 - **seccion** — módulo/columna física de un tablero.
 - **salida** — una "necesidad" cargada por el analista o propuesta por el agente de IA (`origen`). Nunca se considera confirmada hasta que `origen` es `manual` o `ia_confirmada`. `tipo_proteccion` (`seccional_termomagnetico`/`seccional_diferencial`) lo elige el analista al cargarla — termomagnético y diferencial son equipos distintos, no alternativas de un mismo slot.
