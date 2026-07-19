@@ -42,6 +42,7 @@ export function SeccionBlock({
   const [pickerAbierto, setPickerAbierto] = useState(false);
   const [salidaABorrar, setSalidaABorrar] = useState<Salida | null>(null);
   const [borrando, setBorrando] = useState(false);
+  const [mostrarFormulario, setMostrarFormulario] = useState(false);
   const ultimoTriggerRef = useRef<HTMLElement | null>(null);
   const editCargaInputRef = useRef<HTMLInputElement>(null);
   const idSalidaEnEdicionRef = useRef<string | null>(null);
@@ -58,6 +59,7 @@ export function SeccionBlock({
       });
       onSalidaCreada(salida);
       setCargaValor("");
+      setMostrarFormulario(false);
     } catch {
       setError("No se pudo crear la salida");
     }
@@ -170,19 +172,24 @@ export function SeccionBlock({
           {salidas.map((salida) => (
             <tr key={salida.id} className="border-b border-surface-stroke">
               <td className="p-3 font-mono">
-                {salida.carga_valor} {salida.carga_unidad}
+                {salida.carga_unidad === "A" ? Math.round(Number(salida.carga_valor)) : salida.carga_valor} {salida.carga_unidad}
               </td>
               <td className="p-3">{salida.formato}</td>
               <td className="p-3">
                 {salida.componente_id ? (
                   <span className="inline-flex items-center gap-2">
-                    <span className="h-2 w-2 bg-abb-red" /> propuesto: {salida.componente_codigo ?? salida.componente_id}
+                    {salida.asignado_manualmente ? (
+                      <span className="material-symbols-outlined text-secondary text-base" title="Asignado manualmente">edit_note</span>
+                    ) : (
+                      <span className="material-symbols-outlined text-abb-red text-base" title="Propuesta automática">settings_suggest</span>
+                    )}
+                    <span className="font-mono text-xs">{salida.componente_codigo ?? salida.componente_id}</span>
                     {salida.componente_codigo_comercial && (
-                      <span className="text-secondary"> — {salida.componente_codigo_comercial}</span>
+                      <span className="text-secondary text-xs"> — {salida.componente_codigo_comercial}</span>
                     )}
                   </span>
                 ) : (
-                  <span className="inline-flex items-center gap-2">
+                  <span className="inline-flex items-center gap-2 text-xs">
                     <span className="h-2 w-2 border border-secondary" /> sin match
                   </span>
                 )}
@@ -214,47 +221,69 @@ export function SeccionBlock({
           ))}
         </tbody>
       </table>
-      <form onSubmit={handleSubmit} className="flex flex-wrap items-end gap-2 p-4">
-        <div>
-          <label htmlFor={`carga-${seccion.id}`}>Carga</label>
-          <input id={`carga-${seccion.id}`} value={cargaValor} onChange={(e) => setCargaValor(e.target.value)} />
-        </div>
-        <div>
-          <label htmlFor={`unidad-${seccion.id}`}>Unidad</label>
-          <select id={`unidad-${seccion.id}`} value={cargaUnidad} onChange={(e) => setCargaUnidad(e.target.value)}>
-            <option value="A">A</option>
-            <option value="kW">kW</option>
-          </select>
-        </div>
-        <div>
-          <label htmlFor={`formato-${seccion.id}`}>Formato</label>
-          <select
-            id={`formato-${seccion.id}`}
-            value={formato}
-            onChange={(e) => setFormato(e.target.value as FormatoPolos)}
+      {mostrarFormulario ? (
+        <form onSubmit={handleSubmit} className="flex flex-wrap items-end gap-2 p-4 border-t border-surface-stroke">
+          <div>
+            <label htmlFor={`carga-${seccion.id}`}>Carga</label>
+            <input id={`carga-${seccion.id}`} value={cargaValor} onChange={(e) => setCargaValor(e.target.value)} />
+          </div>
+          <div>
+            <label htmlFor={`unidad-${seccion.id}`}>Unidad</label>
+            <select id={`unidad-${seccion.id}`} value={cargaUnidad} onChange={(e) => setCargaUnidad(e.target.value)}>
+              <option value="A">A</option>
+              <option value="kW">kW</option>
+            </select>
+          </div>
+          <div>
+            <label htmlFor={`formato-${seccion.id}`}>Formato</label>
+            <select
+              id={`formato-${seccion.id}`}
+              value={formato}
+              onChange={(e) => setFormato(e.target.value as FormatoPolos)}
+            >
+              <option value="unipolar">Unipolar</option>
+              <option value="bipolar">Bipolar</option>
+              <option value="tripolar">Tripolar</option>
+              <option value="tetrapolar">Tetrapolar</option>
+            </select>
+          </div>
+          <div>
+            <label htmlFor={`proteccion-${seccion.id}`}>Protección</label>
+            <select
+              id={`proteccion-${seccion.id}`}
+              value={tipoProteccion}
+              onChange={(e) => setTipoProteccion(e.target.value as TipoProteccion)}
+            >
+              <option value="seccional_termomagnetico">Termomagnético</option>
+              <option value="seccional_diferencial">Diferencial</option>
+            </select>
+          </div>
+          {error && !salidaEnEdicion && !salidaABorrar && <p role="alert" className="text-error">{error}</p>}
+          <div className="flex gap-2">
+            <button type="submit" className="bg-abb-red px-6 py-3 text-sm uppercase tracking-widest text-white">
+              Agregar salida
+            </button>
+            <button
+              type="button"
+              onClick={() => setMostrarFormulario(false)}
+              className="border border-surface-stroke px-6 py-3 text-sm uppercase tracking-widest hover:bg-industrial-gray"
+            >
+              Cancelar
+            </button>
+          </div>
+        </form>
+      ) : (
+        <div className="p-4 border-t border-surface-stroke bg-industrial-gray/30">
+          <button
+            type="button"
+            onClick={() => setMostrarFormulario(true)}
+            className="flex items-center gap-2 text-sm font-bold uppercase tracking-widest text-secondary hover:text-abb-red"
           >
-            <option value="unipolar">Unipolar</option>
-            <option value="bipolar">Bipolar</option>
-            <option value="tripolar">Tripolar</option>
-            <option value="tetrapolar">Tetrapolar</option>
-          </select>
+            <span className="material-symbols-outlined text-lg">add_circle</span>
+            Nueva salida
+          </button>
         </div>
-        <div>
-          <label htmlFor={`proteccion-${seccion.id}`}>Protección</label>
-          <select
-            id={`proteccion-${seccion.id}`}
-            value={tipoProteccion}
-            onChange={(e) => setTipoProteccion(e.target.value as TipoProteccion)}
-          >
-            <option value="seccional_termomagnetico">Termomagnético</option>
-            <option value="seccional_diferencial">Diferencial</option>
-          </select>
-        </div>
-        {error && !salidaEnEdicion && !salidaABorrar && <p role="alert" className="text-error">{error}</p>}
-        <button type="submit" className="bg-abb-red px-6 py-3 text-sm uppercase tracking-widest text-white">
-          Agregar salida
-        </button>
-      </form>
+      )}
 
       {salidaEnEdicion && !pickerAbierto && (
         <div

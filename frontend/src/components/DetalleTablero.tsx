@@ -61,6 +61,26 @@ export function DetalleTablero({
   const ultimoTriggerRef = useRef<HTMLElement | null>(null);
   const nivelFallaInputRef = useRef<HTMLInputElement>(null);
   const nombreFilaInputRef = useRef<HTMLInputElement>(null);
+  const modalIccRef = useRef(false);
+  const modalInterruptorRef = useRef(false);
+  const modalNuevaFilaRef = useRef(false);
+  const filaEnEdicionIdRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    modalIccRef.current = modalIcc;
+  }, [modalIcc]);
+
+  useEffect(() => {
+    modalInterruptorRef.current = modalInterruptor;
+  }, [modalInterruptor]);
+
+  useEffect(() => {
+    modalNuevaFilaRef.current = modalNuevaFila;
+  }, [modalNuevaFila]);
+
+  useEffect(() => {
+    filaEnEdicionIdRef.current = filaEnEdicion ? filaEnEdicion.id : null;
+  }, [filaEnEdicion]);
 
   const cargar = useCallback(async () => {
     const seccionesCargadas = await listarSecciones(tablero.id);
@@ -86,10 +106,14 @@ export function DetalleTablero({
 
   function cerrarModales() {
     setModalIcc(false);
+    modalIccRef.current = false;
     setModalInterruptor(false);
+    modalInterruptorRef.current = false;
     setModalNuevaFila(false);
+    modalNuevaFilaRef.current = false;
     setNombreNuevaFila("");
     setFilaEnEdicion(null);
+    filaEnEdicionIdRef.current = null;
     setFilaABorrar(null);
     setError(null);
     ultimoTriggerRef.current?.focus();
@@ -110,23 +134,16 @@ export function DetalleTablero({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [modalIcc, modalInterruptor, modalNuevaFila, filaEnEdicion]);
 
-  // TODO: the "cancelled while the request was in flight" guards below
-  // (handleGuardarNivelFalla, handleSeleccionarInterruptorPrincipal,
-  // handleCrearFila, handleRenombrarFila) compare closure-captured state,
-  // which is frozen at this render and never sees later updates -- they're
-  // inert (never trigger). The real fix is a useRef updated live on
-  // open/close, as done in SeccionBlock.tsx (idSalidaEnEdicionRef) after the
-  // same bug was found there.
   async function handleGuardarNivelFalla(event: FormEvent) {
     event.preventDefault();
     setError(null);
     try {
       const actualizado = await actualizarTablero(tablero.id, { nivel_falla_ka: nivelFallaKaEdit });
-      if (!modalIcc) return; // cancelled while the request was in flight
+      if (!modalIccRef.current) return; // cancelled while the request was in flight
       onTableroActualizado(actualizado);
       cerrarModales();
     } catch {
-      if (!modalIcc) return;
+      if (!modalIccRef.current) return;
       setError("No se pudo actualizar la intensidad de cortocircuito");
     }
   }
@@ -135,11 +152,11 @@ export function DetalleTablero({
     setError(null);
     try {
       const actualizado = await actualizarTablero(tablero.id, { interruptor_principal_id: componente.id });
-      if (!modalInterruptor) return;
+      if (!modalInterruptorRef.current) return;
       onTableroActualizado(actualizado);
       cerrarModales();
     } catch {
-      if (!modalInterruptor) return;
+      if (!modalInterruptorRef.current) return;
       setError("No se pudo actualizar el interruptor principal");
     }
   }
@@ -149,12 +166,12 @@ export function DetalleTablero({
     setError(null);
     try {
       const seccion = await crearSeccion(tablero.id, nombreNuevaFila, secciones.length);
-      if (!modalNuevaFila) return;
+      if (!modalNuevaFilaRef.current) return;
       setSecciones((actuales) => [...actuales, { seccion, salidas: [] }]);
       setTabSeleccionadoRaw(seccion.id);
       cerrarModales();
     } catch {
-      if (!modalNuevaFila) return;
+      if (!modalNuevaFilaRef.current) return;
       setError("No se pudo crear la fila");
     }
   }
@@ -166,13 +183,13 @@ export function DetalleTablero({
     setError(null);
     try {
       const actualizada = await actualizarSeccion(idEditada, nombreFilaEdit);
-      if (filaEnEdicion?.id !== idEditada) return; // cancelled or a different rename started
+      if (filaEnEdicionIdRef.current !== idEditada) return; // cancelled or a different rename started
       setSecciones((actuales) =>
         actuales.map((s) => (s.seccion.id === actualizada.id ? { ...s, seccion: actualizada } : s)),
       );
       cerrarModales();
     } catch {
-      if (filaEnEdicion?.id !== idEditada) return;
+      if (filaEnEdicionIdRef.current !== idEditada) return;
       setError("No se pudo renombrar la fila");
     }
   }

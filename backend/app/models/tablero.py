@@ -3,7 +3,7 @@ import uuid
 from datetime import datetime
 from decimal import Decimal
 
-from sqlalchemy import DateTime, Enum, ForeignKey, Integer, Numeric, String
+from sqlalchemy import Boolean, DateTime, Enum, ForeignKey, Integer, Numeric, String
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -67,6 +67,12 @@ class Salida(Base):
     origen: Mapped[OrigenSalida] = mapped_column(
         Enum(OrigenSalida, name="origen_salida"), default=OrigenSalida.MANUAL, nullable=False
     )
+    # Distingue si componente_id fue elegido a mano por el analista (via
+    # "Cambiar componente") o por la última propuesta automática del motor de
+    # cálculo. No confundir con `origen`, reservado para el flujo futuro de
+    # extracción por IA (Pista B) -- esto es específico a la asignación de
+    # componente de ESTA salida.
+    asignado_manualmente: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     posicion_orden: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     creado_en: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
 

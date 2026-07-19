@@ -111,7 +111,7 @@ export function EsquemaVisual({
                       fontSize={8}
                       textAnchor="middle"
                     >
-                      {salida.carga_valor}
+                      {salida.carga_unidad === "A" ? Math.round(Number(salida.carga_valor)) : salida.carga_valor}
                       {salida.carga_unidad}
                     </text>
                   )}

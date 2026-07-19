@@ -59,6 +59,7 @@ describe("SeccionBlock", () => {
       />,
     );
 
+    await userEvent.click(screen.getByRole("button", { name: /nueva salida/i }));
     await userEvent.type(screen.getByLabelText(/carga/i), "16");
     await userEvent.click(screen.getByRole("button", { name: /agregar salida/i }));
 
@@ -97,7 +98,8 @@ describe("SeccionBlock", () => {
     );
 
     const fila = screen.getByRole("row", { name: /20 a/i });
-    expect(fila).toHaveTextContent(/propuesto: 1SDA067004R1/i);
+    expect(fila).toHaveTextContent(/1SDA067004R1/i);
+    expect(within(fila).getByTitle(/propuesta automática/i)).toBeInTheDocument();
     expect(screen.queryByText(/\bc1\b/)).not.toBeInTheDocument();
   });
 

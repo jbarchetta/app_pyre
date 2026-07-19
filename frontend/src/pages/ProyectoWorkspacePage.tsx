@@ -38,6 +38,17 @@ export function ProyectoWorkspacePage() {
   const [borrandoTablero, setBorrandoTablero] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const triggerRef = useRef<HTMLElement | null>(null);
+  const modalNuevoTableroRef = useRef(false);
+  const tableroEnEdicionIdRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    modalNuevoTableroRef.current = modalNuevoTablero;
+  }, [modalNuevoTablero]);
+
+  useEffect(() => {
+    tableroEnEdicionIdRef.current = tableroEnEdicion ? tableroEnEdicion.id : null;
+  }, [tableroEnEdicion]);
+
   const VISTA_POR_DEFECTO: { zoom: number; capas: Capas } = { zoom: 1, capas: { codigos: true, embarrado: true } };
   const [vistaEstado, setVistaEstado] = useState<Record<string, { zoom: number; capas: Capas }>>({});
 
@@ -66,8 +77,10 @@ export function ProyectoWorkspacePage() {
 
   function cerrarModales() {
     setModalNuevoTablero(false);
+    modalNuevoTableroRef.current = false;
     setPickerAbierto(false);
     setTableroEnEdicion(null);
+    tableroEnEdicionIdRef.current = null;
     setTableroABorrar(null);
     setNombre("");
     setNivelFallaKa(NIVEL_FALLA_KA_POR_DEFECTO);
@@ -78,24 +91,18 @@ export function ProyectoWorkspacePage() {
 
   const { onMouseDown: onMouseDownModal, onClick: onClickModal } = useCerrarAlClickFuera(cerrarModales);
 
-  // TODO: los guards de "cancelado mientras el pedido estaba en curso" de
-  // handleSubmit/handleRenombrarTablero comparan estado leído por closure, que
-  // queda congelado en el valor de este render y nunca ve cambios posteriores
-  // -- son inertes (nunca disparan). El fix real es un useRef actualizado en
-  // vivo al abrir/cerrar el modal, como se hizo en SeccionBlock.tsx
-  // (idSalidaEnEdicionRef) tras encontrarse el mismo bug ahí.
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
     if (!id) return;
     setError(null);
     try {
       const tablero = await crearTablero(id, nombre, nivelFallaKa, interruptorPrincipal?.id ?? null);
-      if (!modalNuevoTablero) return; // cancelado mientras el pedido estaba en curso
+      if (!modalNuevoTableroRef.current) return; // cancelado mientras el pedido estaba en curso
       setTableros((actuales) => [...(actuales ?? []), tablero]);
       cerrarModales();
       setSearchParams({ tablero: tablero.id });
     } catch {
-      if (!modalNuevoTablero) return;
+      if (!modalNuevoTableroRef.current) return;
       setError("No se pudo crear el tablero");
     }
   }
@@ -107,11 +114,11 @@ export function ProyectoWorkspacePage() {
     setError(null);
     try {
       const actualizado = await actualizarTablero(idEditado, { nombre: nombreTableroEdit });
-      if (tableroEnEdicion?.id !== idEditado) return; // cancelado o se inició otra edición
+      if (tableroEnEdicionIdRef.current !== idEditado) return; // cancelado o se inició otra edición
       setTableros((actuales) => (actuales ?? []).map((t) => (t.id === actualizado.id ? actualizado : t)));
       cerrarModales();
     } catch {
-      if (tableroEnEdicion?.id !== idEditado) return;
+      if (tableroEnEdicionIdRef.current !== idEditado) return;
       setError("No se pudo renombrar el tablero");
     }
   }

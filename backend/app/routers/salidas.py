@@ -44,6 +44,7 @@ class SalidaResponse(BaseModel):
     componente_codigo: str | None
     componente_codigo_comercial: str | None
     origen: str
+    asignado_manualmente: bool
 
     model_config = {"from_attributes": True}
 
@@ -61,6 +62,7 @@ def _salida_response(db: Session, salida: Salida) -> SalidaResponse:
         componente_codigo=componente.codigo if componente else None,
         componente_codigo_comercial=componente.codigo_comercial if componente else None,
         origen=salida.origen.value,
+        asignado_manualmente=salida.asignado_manualmente,
     )
 
 
@@ -139,6 +141,7 @@ class SalidaUpdate(BaseModel):
     formato: FormatoPolos | None = None
     tipo_proteccion: TipoProteccion | None = None
     componente_id: uuid.UUID | None = None
+    asignado_manualmente: bool | None = None
 
 
 @router.patch("/salidas/{salida_id}", response_model=SalidaResponse)
@@ -171,11 +174,21 @@ def actualizar_salida(
     if "tipo_proteccion" in cambios:
         salida.tipo_proteccion = cambios["tipo_proteccion"]
 
+    if "asignado_manualmente" in cambios:
+        salida.asignado_manualmente = cambios["asignado_manualmente"]
+        if not salida.asignado_manualmente:
+            debe_recalcular = True
+
     if componente_fijado_explicitamente:
         # Un componente_id explícito en el mismo pedido gana por sobre el
         # recálculo automático, incluso si también cambió la carga/formato.
         salida.componente_id = cambios["componente_id"]
-    elif debe_recalcular:
+        if cambios["componente_id"] is not None:
+            salida.asignado_manualmente = True
+        else:
+            salida.asignado_manualmente = False
+            debe_recalcular = True
+    elif debe_recalcular and not salida.asignado_manualmente:
         seccion = db.get(Seccion, salida.seccion_id)
         tablero = db.get(Tablero, seccion.tablero_id)
         parametros = obtener_parametros(db)
