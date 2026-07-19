@@ -384,3 +384,13 @@ export async function actualizarParametrosCalculo(parametros: ParametroCalculo):
   if (!response.ok) throw new Error("No se pudieron actualizar los parámetros de cálculo");
   return response.json();
 }
+
+export function formatearCorriente(valor: string | number | null | undefined): string {
+  if (!valor) return "—";
+  const num = Number(valor);
+  if (isNaN(num)) return String(valor);
+  if (num % 1 === 0) {
+    return Math.round(num).toString();
+  }
+  return num.toString();
+}

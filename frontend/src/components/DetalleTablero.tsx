@@ -11,6 +11,7 @@ import {
   type Salida,
   type Seccion,
   type Tablero,
+  formatearCorriente,
 } from "../api/client";
 import type { Capas } from "./EsquemaVisual";
 import { EsquemaVisualCanvas } from "./EsquemaVisualCanvas";
@@ -510,34 +511,40 @@ export function DetalleTablero({
                 <table className="w-full text-left">
                   <thead>
                     <tr className="border-b border-surface-stroke text-xs uppercase tracking-widest text-secondary">
+                      <th scope="col" className="p-3">Carga</th>
+                      <th scope="col" className="p-3">Formato</th>
+                      <th scope="col" className="p-3">Estado</th>
                       <th scope="col" className="p-3">Código SAP</th>
                       <th scope="col" className="p-3">Código Comercial</th>
-                      <th scope="col" className="p-3">Corriente (In)</th>
-                      <th scope="col" className="p-3">Polos</th>
-                      <th scope="col" className="p-3">Capacidad (Icu)</th>
-                      <th scope="col" className="p-3">Descripción</th>
                       <th scope="col" className="p-3 text-right">Acciones</th>
                     </tr>
                   </thead>
                   <tbody>
                     <tr className="border-b border-surface-stroke">
-                      <td className="p-3 font-mono text-xs">
+                      <td className="p-3 font-mono">
+                        {tablero.interruptor_principal_corriente_nominal_a
+                          ? `${formatearCorriente(tablero.interruptor_principal_corriente_nominal_a)} A`
+                          : "—"}
+                      </td>
+                      <td className="p-3">
+                        {tablero.interruptor_principal_polos === 3
+                          ? "tripolar"
+                          : tablero.interruptor_principal_polos === 4
+                          ? "tetrapolar"
+                          : tablero.interruptor_principal_polos === 2
+                          ? "bipolar"
+                          : tablero.interruptor_principal_polos === 1
+                          ? "unipolar"
+                          : "—"}
+                      </td>
+                      <td className="p-3">
+                        <span className="material-symbols-outlined text-abb-red text-base" title="Asignado manualmente">edit_note</span>
+                      </td>
+                      <td className="p-3 font-mono text-xs" title={tablero.interruptor_principal_descripcion ?? undefined}>
                         {tablero.interruptor_principal_codigo ?? tablero.interruptor_principal_id}
                       </td>
-                      <td className="p-3 text-sm text-secondary">
+                      <td className="p-3 text-secondary text-xs" title={tablero.interruptor_principal_descripcion ?? undefined}>
                         {tablero.interruptor_principal_codigo_comercial ?? "—"}
-                      </td>
-                      <td className="p-3 font-mono text-sm">
-                        {tablero.interruptor_principal_corriente_nominal_a ? `${tablero.interruptor_principal_corriente_nominal_a} A` : "—"}
-                      </td>
-                      <td className="p-3 text-sm">
-                        {tablero.interruptor_principal_polos ? `${tablero.interruptor_principal_polos} polos` : "—"}
-                      </td>
-                      <td className="p-3 font-mono text-sm">
-                        {tablero.interruptor_principal_capacidad_corte_ka ? `${tablero.interruptor_principal_capacidad_corte_ka} kA` : "—"}
-                      </td>
-                      <td className="p-3 text-xs text-secondary max-w-xs truncate" title={tablero.interruptor_principal_descripcion ?? undefined}>
-                        {tablero.interruptor_principal_descripcion ?? "—"}
                       </td>
                       <td className="p-3 text-right">
                         <button
@@ -557,11 +564,25 @@ export function DetalleTablero({
                 </table>
               ) : (
                 <table className="w-full text-left">
+                  <thead>
+                    <tr className="border-b border-surface-stroke text-xs uppercase tracking-widest text-secondary">
+                      <th scope="col" className="p-3">Carga</th>
+                      <th scope="col" className="p-3">Formato</th>
+                      <th scope="col" className="p-3">Estado</th>
+                      <th scope="col" className="p-3">Código SAP</th>
+                      <th scope="col" className="p-3">Código Comercial</th>
+                      <th scope="col" className="p-3 text-right">Acciones</th>
+                    </tr>
+                  </thead>
                   <tbody>
                     <tr>
+                      <td className="p-3 font-mono">—</td>
+                      <td className="p-3">—</td>
+                      <td className="p-3">—</td>
                       <td className="p-3 text-secondary italic">
                         Interruptor principal sin definir
                       </td>
+                      <td className="p-3 text-secondary">—</td>
                       <td className="p-3 text-right">
                         <button
                           type="button"

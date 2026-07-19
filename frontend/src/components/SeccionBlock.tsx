@@ -9,6 +9,7 @@ import {
   type Salida,
   type Seccion,
   type TipoProteccion,
+  formatearCorriente,
 } from "../api/client";
 import { ComponentePicker } from "./ComponentePicker";
 import { ConfirmDialog } from "./ConfirmDialog";
@@ -44,30 +45,27 @@ function FilaSalida({ salida, onAbrirEdicion, onConfirmarBorrado }: FilaSalidaPr
   return (
     <tr className="border-b border-surface-stroke odd:bg-industrial-gray/40">
       <td className="p-3 font-mono">
-        {salida.carga_unidad === "A" ? Math.round(Number(salida.carga_valor)) : salida.carga_valor} {salida.carga_unidad}
+        {salida.carga_unidad === "A" ? `${formatearCorriente(salida.carga_valor)} A` : `${salida.carga_valor} ${salida.carga_unidad}`}
       </td>
       <td className="p-3">{salida.formato}</td>
       <td className={`p-3 transition-colors ${animar ? "animate-flash" : ""}`}>
         {salida.componente_id ? (
-          <span
-            className="inline-flex items-center gap-2"
-            title={salida.componente_descripcion ?? undefined}
-          >
-            {salida.asignado_manualmente ? (
-              <span className="material-symbols-outlined text-abb-red text-base" title="Asignado manualmente">edit_note</span>
-            ) : (
-              <span className="material-symbols-outlined text-tech-blue text-base" title="Propuesta automática">settings_suggest</span>
-            )}
-            <span className="font-mono text-xs">{salida.componente_codigo ?? salida.componente_id}</span>
-            {salida.componente_codigo_comercial && (
-              <span className="text-secondary text-xs"> — {salida.componente_codigo_comercial}</span>
-            )}
-          </span>
+          salida.asignado_manualmente ? (
+            <span className="material-symbols-outlined text-abb-red text-base" title="Asignado manualmente">edit_note</span>
+          ) : (
+            <span className="material-symbols-outlined text-tech-blue text-base" title="Propuesta automática">settings_suggest</span>
+          )
         ) : (
           <span className="inline-flex items-center gap-2 text-xs">
             <span className="h-2 w-2 border border-secondary" /> sin match
           </span>
         )}
+      </td>
+      <td className={`p-3 font-mono text-xs ${animar ? "animate-flash" : ""}`} title={salida.componente_descripcion ?? undefined}>
+        {salida.componente_id ? (salida.componente_codigo ?? salida.componente_id) : "—"}
+      </td>
+      <td className={`p-3 text-secondary text-xs ${animar ? "animate-flash" : ""}`} title={salida.componente_descripcion ?? undefined}>
+        {salida.componente_id ? (salida.componente_codigo_comercial ?? "—") : "—"}
       </td>
       <td className="p-3">
         <div className="flex gap-3 text-on-background">
@@ -236,6 +234,8 @@ export function SeccionBlock({
             <th scope="col" className="p-3">Carga</th>
             <th scope="col" className="p-3">Formato</th>
             <th scope="col" className="p-3">Estado</th>
+            <th scope="col" className="p-3">Código SAP</th>
+            <th scope="col" className="p-3">Código Comercial</th>
             <th scope="col" className="p-3">Acciones</th>
           </tr>
         </thead>
