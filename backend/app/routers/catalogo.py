@@ -79,69 +79,80 @@ def buscar_componentes(
     limit = min(max(limit, 1), _LIMIT_MAXIMO)
     offset = max(offset, 0)
 
-    if len(q.strip()) < 2:
+    termino_limpio = q.strip()
+
+    # Si la query es menor a 2 caracteres y no hay ningún filtro ni categoría, devolvemos vacío
+    if (
+        len(termino_limpio) < 2
+        and not categorias
+        and polos is None
+        and corriente_nominal_a is None
+        and capacidad_corte_ka is None
+    ):
         return BusquedaCatalogoResponse(resultados=[], total=0)
 
-    termino_limpio = q.strip()
-    termino = f"%{termino_limpio}%"
-    prefijo = f"{termino_limpio}%"
+    condiciones = []
+
+    if len(termino_limpio) >= 2:
+        termino = f"%{termino_limpio}%"
+        condiciones.append(
+            or_(
+                CatalogoComponente.codigo.ilike(termino),
+                CatalogoComponente.codigo_comercial.ilike(termino),
+                CatalogoComponente.descripcion.ilike(termino),
+            )
+        )
+
+    if categorias:
+        condiciones.append(CatalogoComponente.categoria_raiz.in_(categorias))
+
+    if solo_con_atributos:
+        condiciones.append(CatalogoComponente.atributos.isnot(None))
+
+    if polos is not None:
+        condiciones.append(CatalogoComponente.atributos["polos"].as_integer() == polos)
+
+    if corriente_nominal_a is not None:
+        condiciones.append(
+            CatalogoComponente.atributos["corriente_nominal_a"].as_float() == float(corriente_nominal_a)
+        )
+
+    if capacidad_corte_ka is not None:
+        condiciones.append(
+            CatalogoComponente.atributos["capacidad_corte_ka"].as_float() == float(capacidad_corte_ka)
+        )
+
+    filtro = and_(*condiciones) if condiciones else True
 
     # Relevancia: coincidencia de prefijo en el código interno primero, después
     # en el código comercial, cualquier otra coincidencia (ej. en la
-    # descripción) al final. Los índices GIN de trigramas (migración
-    # <rev>_pg_trgm_catalogo_busqueda) aceleran tanto el filtro ILIKE '%...%'
-    # como este ranking sobre las ~10k filas del catálogo real.
-    relevancia = case(
-        (CatalogoComponente.codigo.ilike(prefijo), 0),
-        (CatalogoComponente.codigo_comercial.ilike(prefijo), 1),
-        else_=2,
-    )
-
-    filtro = or_(
-        CatalogoComponente.codigo.ilike(termino),
-        CatalogoComponente.codigo_comercial.ilike(termino),
-        CatalogoComponente.descripcion.ilike(termino),
-    )
-    if categorias:
-        # Filtro maestro no editable por el analista -- acota la búsqueda a
-        # las categorías relevantes del contexto (ej. solo interruptores),
-        # en vez de barrer las ~9-10k filas de todo el catálogo real.
-        filtro = and_(filtro, CatalogoComponente.categoria_raiz.in_(categorias))
-    if solo_con_atributos:
-        # Saca del medio filas sin polos/In/capacidad de corte extraídos --
-        # en la práctica esto son accesorios (terminales, mandos, bloqueos)
-        # que comparten categoria_raiz con interruptores reales, más el
-        # pequeño % de interruptores reales sin atributos extraídos (ver
-        # docs/consultas_ingenieria.md #1). Opt-in: no cambia el
-        # comportamiento por defecto para futuros contextos de búsqueda que
-        # sí quieran ver filas sin atributos.
-        filtro = and_(filtro, CatalogoComponente.atributos.isnot(None))
-    if polos is not None:
-        filtro = and_(filtro, CatalogoComponente.atributos["polos"].as_integer() == polos)
-    if corriente_nominal_a is not None:
-        filtro = and_(
-            filtro, CatalogoComponente.atributos["corriente_nominal_a"].as_float() == float(corriente_nominal_a)
-        )
-    if capacidad_corte_ka is not None:
-        filtro = and_(
-            filtro, CatalogoComponente.atributos["capacidad_corte_ka"].as_float() == float(capacidad_corte_ka)
-        )
-
-    # Nota: esto ejecuta una segunda query completa (además de la paginada de
-    # abajo) en cada búsqueda -- a la escala actual del catálogo (~9-10k
-    # filas) es aceptable, pero si ComponentePicker suma debounce (ver plan de
-    # UX) o el catálogo crece mucho más, vale la pena revisar si hace falta
-    # (ej. limit+1 con un booleano has_more en vez de un total exacto).
+    # descripción) al final. Si la query es corta/vacía, ordenamos simplemente por código.
     total = db.query(CatalogoComponente).filter(filtro).count()
 
-    componentes = (
-        db.query(CatalogoComponente)
-        .filter(filtro)
-        .order_by(relevancia, CatalogoComponente.codigo, CatalogoComponente.id)
-        .offset(offset)
-        .limit(limit)
-        .all()
-    )
+    if len(termino_limpio) >= 2:
+        prefijo = f"{termino_limpio}%"
+        relevancia = case(
+            (CatalogoComponente.codigo.ilike(prefijo), 0),
+            (CatalogoComponente.codigo_comercial.ilike(prefijo), 1),
+            else_=2,
+        )
+        componentes = (
+            db.query(CatalogoComponente)
+            .filter(filtro)
+            .order_by(relevancia, CatalogoComponente.codigo, CatalogoComponente.id)
+            .offset(offset)
+            .limit(limit)
+            .all()
+        )
+    else:
+        componentes = (
+            db.query(CatalogoComponente)
+            .filter(filtro)
+            .order_by(CatalogoComponente.codigo, CatalogoComponente.id)
+            .offset(offset)
+            .limit(limit)
+            .all()
+        )
 
     return BusquedaCatalogoResponse(
         resultados=[

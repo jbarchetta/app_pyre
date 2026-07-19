@@ -234,7 +234,9 @@ export interface Salida {
   componente_id: string | null;
   componente_codigo?: string | null;
   componente_codigo_comercial?: string | null;
+  componente_descripcion?: string | null;
   origen: string;
+  asignado_manualmente: boolean;
 }
 
 export interface SalidaInput {

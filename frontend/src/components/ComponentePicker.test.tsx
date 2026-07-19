@@ -42,6 +42,8 @@ describe("ComponentePicker", () => {
     );
     render(<ComponentePicker categorias={CATEGORIAS} onSelect={vi.fn()} onCancel={vi.fn()} />);
 
+    vi.mocked(fetch).mockClear();
+
     await userEvent.type(screen.getByLabelText(/buscar código/i), "a");
 
     expect(fetch).not.toHaveBeenCalledWith(expect.stringContaining("/catalogo/buscar"), expect.anything());

@@ -175,13 +175,19 @@ export function SeccionBlock({
                 {salida.carga_unidad === "A" ? Math.round(Number(salida.carga_valor)) : salida.carga_valor} {salida.carga_unidad}
               </td>
               <td className="p-3">{salida.formato}</td>
-              <td className="p-3">
+              <td
+                key={salida.componente_id || "sin-match"}
+                className={`p-3 transition-colors ${salida.componente_id ? "animate-flash" : ""}`}
+              >
                 {salida.componente_id ? (
-                  <span className="inline-flex items-center gap-2">
+                  <span
+                    className="inline-flex items-center gap-2"
+                    title={salida.componente_descripcion ?? undefined}
+                  >
                     {salida.asignado_manualmente ? (
-                      <span className="material-symbols-outlined text-secondary text-base" title="Asignado manualmente">edit_note</span>
+                      <span className="material-symbols-outlined text-abb-red text-base" title="Asignado manualmente">edit_note</span>
                     ) : (
-                      <span className="material-symbols-outlined text-abb-red text-base" title="Propuesta automática">settings_suggest</span>
+                      <span className="material-symbols-outlined text-secondary text-base" title="Propuesta automática">settings_suggest</span>
                     )}
                     <span className="font-mono text-xs">{salida.componente_codigo ?? salida.componente_id}</span>
                     {salida.componente_codigo_comercial && (

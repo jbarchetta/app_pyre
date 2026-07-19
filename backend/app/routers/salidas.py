@@ -43,6 +43,7 @@ class SalidaResponse(BaseModel):
     componente_id: str | None
     componente_codigo: str | None
     componente_codigo_comercial: str | None
+    componente_descripcion: str | None
     origen: str
     asignado_manualmente: bool
 
@@ -61,6 +62,7 @@ def _salida_response(db: Session, salida: Salida) -> SalidaResponse:
         componente_id=str(salida.componente_id) if salida.componente_id else None,
         componente_codigo=componente.codigo if componente else None,
         componente_codigo_comercial=componente.codigo_comercial if componente else None,
+        componente_descripcion=componente.descripcion if componente else None,
         origen=salida.origen.value,
         asignado_manualmente=salida.asignado_manualmente,
     )

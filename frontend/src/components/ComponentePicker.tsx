@@ -91,6 +91,7 @@ export function ComponentePicker({
 
   useEffect(() => {
     obtenerOpcionesFiltro(categorias).then(setOpciones).catch(() => {});
+    buscar("", 0);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -114,24 +115,42 @@ export function ComponentePicker({
 
   async function buscar(valor: string, desde: number, overrides?: FiltrosOverride) {
     const idSolicitud = ++solicitudActualRef.current;
-    if (valor.trim().length < 2) {
+    const queryLimpia = valor.trim();
+
+    if (queryLimpia.length === 1) {
+      return;
+    }
+
+    const filtros = filtrosActivos(overrides);
+    const hayCriterios =
+      categorias.length > 0 ||
+      filtros.polos !== undefined ||
+      filtros.corriente_nominal_a !== undefined ||
+      filtros.capacidad_corte_ka !== undefined;
+
+    if (queryLimpia.length < 2 && !hayCriterios) {
       setResultados(null);
       setTotal(0);
       return;
     }
+
     const respuesta = await buscarCatalogo(valor, {
       limit: RESULTADOS_POR_PAGINA,
       offset: desde,
       categorias,
-      ...filtrosActivos(overrides),
+      ...filtros,
     });
     if (idSolicitud !== solicitudActualRef.current) return;
+
+    const resultadosNuevos = respuesta?.resultados ?? [];
+    const totalNuevo = respuesta?.total ?? 0;
+
     if (desde === 0) {
-      setResultados(respuesta.resultados);
+      setResultados(resultadosNuevos);
     } else {
-      setResultados((actuales) => [...(actuales ?? []), ...respuesta.resultados]);
+      setResultados((actuales) => [...(actuales ?? []), ...resultadosNuevos]);
     }
-    setTotal(respuesta.total);
+    setTotal(totalNuevo);
   }
 
   async function handleChange(value: string) {
@@ -155,7 +174,7 @@ export function ComponentePicker({
   // nuevo también se pasa explícito como override para la búsqueda inmediata.
   function handleFiltroChange(actualizar: () => void, overrides: FiltrosOverride) {
     actualizar();
-    if (query.trim().length >= 2) buscar(query, 0, overrides);
+    buscar(query, 0, overrides);
   }
 
   const hayFiltrosActivos = filtroPolos !== null || filtroCorriente !== null || filtroCapacidad !== null;
