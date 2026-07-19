@@ -11,6 +11,56 @@ interface ComponentePickerProps {
   titulo?: string;
 }
 
+interface FiltroSelectProps {
+  id: string;
+  label: string;
+  value: number | string;
+  options: (number | string)[];
+  unidad?: string;
+  onChange: (value: string) => void;
+}
+
+function FiltroSelect({ id, label, value, options, unidad, onChange }: FiltroSelectProps) {
+  return (
+    <div className="min-w-[110px] flex-1">
+      <label htmlFor={id} className="mb-1 block text-[10px] uppercase tracking-widest text-secondary">
+        {label}
+      </label>
+      <select
+        id={id}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full border border-surface-stroke bg-white p-2 text-sm"
+      >
+        <option value="">Todos</option>
+        {options.map((opcion) => (
+          <option key={opcion} value={opcion}>
+            {opcion}
+            {unidad ?? ""}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+}
+
+interface FiltroChipProps {
+  label: string;
+  onRemove: () => void;
+}
+
+function FiltroChip({ label, onRemove }: FiltroChipProps) {
+  return (
+    <button
+      type="button"
+      onClick={onRemove}
+      className="border border-abb-red px-2 py-1 text-xs uppercase tracking-widest text-abb-red"
+    >
+      {label} ✕
+    </button>
+  );
+}
+
 export function ComponentePicker({
   categorias,
   onSelect,
@@ -40,7 +90,7 @@ export function ComponentePicker({
   }, [onCancel]);
 
   useEffect(() => {
-    obtenerOpcionesFiltro(categorias).then(setOpciones);
+    obtenerOpcionesFiltro(categorias).then(setOpciones).catch(() => {});
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -148,75 +198,38 @@ export function ComponentePicker({
 
         {filtrosAbiertos && (
           <div className="flex flex-wrap gap-5 border border-surface-stroke bg-industrial-gray p-4">
-            <div className="min-w-[110px] flex-1">
-              <label htmlFor="filtro-polos" className="mb-1 block text-[10px] uppercase tracking-widest text-secondary">
-                Polos
-              </label>
-              <select
-                id="filtro-polos"
-                value={filtroPolos ?? ""}
-                onChange={(e) => {
-                  const valor = e.target.value ? Number(e.target.value) : null;
-                  handleFiltroChange(() => setFiltroPolos(valor), { polos: valor });
-                }}
-                className="w-full border border-surface-stroke bg-white p-2 text-sm"
-              >
-                <option value="">Todos</option>
-                {(opciones?.polos ?? []).map((p) => (
-                  <option key={p} value={p}>
-                    {p}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="min-w-[110px] flex-1">
-              <label
-                htmlFor="filtro-corriente"
-                className="mb-1 block text-[10px] uppercase tracking-widest text-secondary"
-              >
-                Corriente (In)
-              </label>
-              <select
-                id="filtro-corriente"
-                value={filtroCorriente ?? ""}
-                onChange={(e) => {
-                  const valor = e.target.value || null;
-                  handleFiltroChange(() => setFiltroCorriente(valor), { corriente: valor });
-                }}
-                className="w-full border border-surface-stroke bg-white p-2 text-sm"
-              >
-                <option value="">Todos</option>
-                {(opciones?.corrientes_nominales_a ?? []).map((c) => (
-                  <option key={c} value={c}>
-                    {c}A
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="min-w-[110px] flex-1">
-              <label
-                htmlFor="filtro-capacidad"
-                className="mb-1 block text-[10px] uppercase tracking-widest text-secondary"
-              >
-                Capacidad de corte
-              </label>
-              <select
-                id="filtro-capacidad"
-                value={filtroCapacidad ?? ""}
-                onChange={(e) => {
-                  const valor = e.target.value || null;
-                  handleFiltroChange(() => setFiltroCapacidad(valor), { capacidad: valor });
-                }}
-                className="w-full border border-surface-stroke bg-white p-2 text-sm"
-              >
-                <option value="">Todos</option>
-                {(opciones?.capacidades_corte_ka ?? []).map((k) => (
-                  <option key={k} value={k}>
-                    {k}kA
-                  </option>
-                ))}
-              </select>
-            </div>
+            <FiltroSelect
+              id="filtro-polos"
+              label="Polos"
+              value={filtroPolos ?? ""}
+              options={opciones?.polos ?? []}
+              onChange={(value) => {
+                const valor = value ? Number(value) : null;
+                handleFiltroChange(() => setFiltroPolos(valor), { polos: valor });
+              }}
+            />
+            <FiltroSelect
+              id="filtro-corriente"
+              label="Corriente (In)"
+              value={filtroCorriente ?? ""}
+              options={opciones?.corrientes_nominales_a ?? []}
+              unidad="A"
+              onChange={(value) => {
+                const valor = value || null;
+                handleFiltroChange(() => setFiltroCorriente(valor), { corriente: valor });
+              }}
+            />
+            <FiltroSelect
+              id="filtro-capacidad"
+              label="Capacidad de corte"
+              value={filtroCapacidad ?? ""}
+              options={opciones?.capacidades_corte_ka ?? []}
+              unidad="kA"
+              onChange={(value) => {
+                const valor = value || null;
+                handleFiltroChange(() => setFiltroCapacidad(valor), { capacidad: valor });
+              }}
+            />
           </div>
         )}
 
@@ -224,31 +237,22 @@ export function ComponentePicker({
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-[10px] uppercase tracking-widest text-secondary">Activos:</span>
             {filtroPolos !== null && (
-              <button
-                type="button"
-                onClick={() => handleFiltroChange(() => setFiltroPolos(null), { polos: null })}
-                className="border border-abb-red px-2 py-1 text-xs uppercase tracking-widest text-abb-red"
-              >
-                {filtroPolos} polos ✕
-              </button>
+              <FiltroChip
+                label={`${filtroPolos} polos`}
+                onRemove={() => handleFiltroChange(() => setFiltroPolos(null), { polos: null })}
+              />
             )}
             {filtroCorriente !== null && (
-              <button
-                type="button"
-                onClick={() => handleFiltroChange(() => setFiltroCorriente(null), { corriente: null })}
-                className="border border-abb-red px-2 py-1 text-xs uppercase tracking-widest text-abb-red"
-              >
-                {filtroCorriente}A ✕
-              </button>
+              <FiltroChip
+                label={`${filtroCorriente}A`}
+                onRemove={() => handleFiltroChange(() => setFiltroCorriente(null), { corriente: null })}
+              />
             )}
             {filtroCapacidad !== null && (
-              <button
-                type="button"
-                onClick={() => handleFiltroChange(() => setFiltroCapacidad(null), { capacidad: null })}
-                className="border border-abb-red px-2 py-1 text-xs uppercase tracking-widest text-abb-red"
-              >
-                {filtroCapacidad}kA ✕
-              </button>
+              <FiltroChip
+                label={`${filtroCapacidad}kA`}
+                onRemove={() => handleFiltroChange(() => setFiltroCapacidad(null), { capacidad: null })}
+              />
             )}
           </div>
         )}
