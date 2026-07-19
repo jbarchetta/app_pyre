@@ -263,3 +263,50 @@ def test_patch_salida_con_componente_id_null_explicito_lo_limpia_sin_recalcular(
     body = response.json()
     assert body["componente_id"] is None
     assert body["carga_valor"] == "30.00"
+
+
+def test_listar_salidas_incluye_codigo_legible_del_componente(client, db_session):
+    principal = _componente(db_session, "SAL-PRINC-13", tipo="interruptor_principal", corriente=100, ka=15)
+    # precio por debajo de 15.00 (ya usado por SAL-C1 en otro test de este archivo)
+    # para evitar un empate de precio que el desempate por código resolvería a favor
+    # de SAL-C1 en vez de este componente.
+    barato = _componente(db_session, "SAL-C13", corriente=20, ka=10, precio="14.00")
+    seccion_id = _setup_tablero(
+        client, db_session, "salidas13.test@pyre.com", interruptor_principal_id=str(principal.id)
+    )
+
+    response = client.post(
+        f"/secciones/{seccion_id}/salidas",
+        json={
+            "carga_valor": "16",
+            "carga_unidad": "A",
+            "formato": "unipolar",
+            "tipo_proteccion": "seccional_termomagnetico",
+        },
+    )
+
+    assert response.status_code == 201
+    body = response.json()
+    assert body["componente_id"] == str(barato.id)
+    assert body["componente_codigo"] == barato.codigo
+    assert body["componente_codigo_comercial"] == barato.codigo_comercial
+
+
+def test_listar_salidas_sin_componente_devuelve_codigo_null(client, db_session):
+    seccion_id = _setup_tablero(client, db_session, "salidas14.test@pyre.com")
+
+    response = client.post(
+        f"/secciones/{seccion_id}/salidas",
+        json={
+            "carga_valor": "16",
+            "carga_unidad": "A",
+            "formato": "unipolar",
+            "tipo_proteccion": "seccional_termomagnetico",
+        },
+    )
+
+    assert response.status_code == 201
+    body = response.json()
+    assert body["componente_id"] is None
+    assert body["componente_codigo"] is None
+    assert body["componente_codigo_comercial"] is None

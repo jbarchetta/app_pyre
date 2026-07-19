@@ -41,12 +41,15 @@ class SalidaResponse(BaseModel):
     formato: str
     tipo_proteccion: str
     componente_id: str | None
+    componente_codigo: str | None
+    componente_codigo_comercial: str | None
     origen: str
 
     model_config = {"from_attributes": True}
 
 
-def _salida_response(salida: Salida) -> SalidaResponse:
+def _salida_response(db: Session, salida: Salida) -> SalidaResponse:
+    componente = db.get(CatalogoComponente, salida.componente_id) if salida.componente_id else None
     return SalidaResponse(
         id=str(salida.id),
         seccion_id=str(salida.seccion_id),
@@ -55,6 +58,8 @@ def _salida_response(salida: Salida) -> SalidaResponse:
         formato=salida.formato.value,
         tipo_proteccion=salida.tipo_proteccion.value,
         componente_id=str(salida.componente_id) if salida.componente_id else None,
+        componente_codigo=componente.codigo if componente else None,
+        componente_codigo_comercial=componente.codigo_comercial if componente else None,
         origen=salida.origen.value,
     )
 
@@ -125,7 +130,7 @@ def crear_salida(
     db.add(salida)
     db.commit()
     db.refresh(salida)
-    return _salida_response(salida)
+    return _salida_response(db, salida)
 
 
 class SalidaUpdate(BaseModel):
@@ -183,7 +188,7 @@ def actualizar_salida(
 
     db.commit()
     db.refresh(salida)
-    return _salida_response(salida)
+    return _salida_response(db, salida)
 
 
 @router.delete("/salidas/{salida_id}", status_code=status.HTTP_204_NO_CONTENT)
@@ -207,4 +212,4 @@ def listar_salidas(
     if seccion is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Sección no encontrada")
     salidas = db.query(Salida).filter(Salida.seccion_id == seccion_id).order_by(Salida.posicion_orden).all()
-    return [_salida_response(s) for s in salidas]
+    return [_salida_response(db, s) for s in salidas]

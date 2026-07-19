@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.auth.dependencies import get_current_user, require_role
 from app.database import get_db
-from app.models import Proyecto, RolUsuario, Salida, Seccion, Tablero, Usuario
+from app.models import CatalogoComponente, Proyecto, RolUsuario, Salida, Seccion, Tablero, Usuario
 
 router = APIRouter(tags=["tableros"])
 
@@ -24,11 +24,18 @@ class TableroResponse(BaseModel):
     nombre: str
     nivel_falla_ka: Decimal
     interruptor_principal_id: str | None
+    interruptor_principal_codigo: str | None
+    interruptor_principal_codigo_comercial: str | None
 
     model_config = {"from_attributes": True}
 
 
-def _tablero_response(tablero: Tablero) -> TableroResponse:
+def _tablero_response(db: Session, tablero: Tablero) -> TableroResponse:
+    componente = (
+        db.get(CatalogoComponente, tablero.interruptor_principal_id)
+        if tablero.interruptor_principal_id
+        else None
+    )
     return TableroResponse(
         id=str(tablero.id),
         proyecto_id=str(tablero.proyecto_id),
@@ -37,6 +44,8 @@ def _tablero_response(tablero: Tablero) -> TableroResponse:
         interruptor_principal_id=str(tablero.interruptor_principal_id)
         if tablero.interruptor_principal_id
         else None,
+        interruptor_principal_codigo=componente.codigo if componente else None,
+        interruptor_principal_codigo_comercial=componente.codigo_comercial if componente else None,
     )
 
 
@@ -62,7 +71,7 @@ def crear_tablero(
     db.add(tablero)
     db.commit()
     db.refresh(tablero)
-    return _tablero_response(tablero)
+    return _tablero_response(db, tablero)
 
 
 @router.get("/proyectos/{proyecto_id}/tableros", response_model=list[TableroResponse])
@@ -73,7 +82,7 @@ def listar_tableros(
     if proyecto is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Proyecto no encontrado")
     tableros = db.query(Tablero).filter(Tablero.proyecto_id == proyecto_id).all()
-    return [_tablero_response(t) for t in tableros]
+    return [_tablero_response(db, t) for t in tableros]
 
 
 @router.get("/tableros/{tablero_id}", response_model=TableroResponse)
@@ -83,7 +92,7 @@ def obtener_tablero(
     tablero = db.get(Tablero, tablero_id)
     if tablero is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tablero no encontrado")
-    return _tablero_response(tablero)
+    return _tablero_response(db, tablero)
 
 
 class TableroUpdate(BaseModel):
@@ -115,7 +124,7 @@ def actualizar_tablero(
 
     db.commit()
     db.refresh(tablero)
-    return _tablero_response(tablero)
+    return _tablero_response(db, tablero)
 
 
 @router.delete("/tableros/{tablero_id}", status_code=status.HTTP_204_NO_CONTENT)

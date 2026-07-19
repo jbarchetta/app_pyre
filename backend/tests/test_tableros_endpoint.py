@@ -251,3 +251,33 @@ def test_delete_seccion_inexistente_devuelve_404(client, db_session):
     response = client.delete(f"/secciones/{uuid.uuid4()}")
 
     assert response.status_code == 404
+
+
+def test_obtener_tablero_incluye_codigo_legible_del_interruptor_principal(client, db_session):
+    proyecto_id = _proyecto(client, db_session, email="codigolegible.test@pyre.com")
+    componente = _componente(db_session, "TAB-COD-1")
+    tablero_id = client.post(
+        f"/proyectos/{proyecto_id}/tableros",
+        json={"nombre": "TG1", "nivel_falla_ka": "10.00", "interruptor_principal_id": str(componente.id)},
+    ).json()["id"]
+
+    response = client.get(f"/tableros/{tablero_id}")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["interruptor_principal_codigo"] == componente.codigo
+    assert body["interruptor_principal_codigo_comercial"] == componente.codigo_comercial
+
+
+def test_obtener_tablero_sin_interruptor_principal_devuelve_codigo_null(client, db_session):
+    proyecto_id = _proyecto(client, db_session, email="codigolegible404.test@pyre.com")
+    tablero_id = client.post(
+        f"/proyectos/{proyecto_id}/tableros", json={"nombre": "TG1", "nivel_falla_ka": "10.00"}
+    ).json()["id"]
+
+    response = client.get(f"/tableros/{tablero_id}")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert body["interruptor_principal_codigo"] is None
+    assert body["interruptor_principal_codigo_comercial"] is None
