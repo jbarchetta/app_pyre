@@ -336,3 +336,79 @@ def test_buscar_combina_categorias_solo_con_atributos_y_filtros(client, db_sessi
     ids = [c["id"] for c in response.json()["resultados"]]
     assert str(match.id) in ids
     assert str(otro_polos.id) not in ids
+
+
+def test_opciones_filtro_devuelve_valores_distintos_ordenados(client, db_session):
+    _login(client, db_session, email="opcionesfiltro1.test@pyre.com")
+    _componente_con_atributos(db_session, "ZQXOPC-C1", 3, 32, 10, "Interruptor ZQXOPC A")
+    _componente_con_atributos(db_session, "ZQXOPC-C2", 3, 16, 18, "Interruptor ZQXOPC B")
+    _componente_con_atributos(db_session, "ZQXOPC-C3", 4, 16, 10, "Interruptor ZQXOPC C")
+
+    response = client.get(
+        "/catalogo/opciones-filtro", params={"categorias": ["Interruptores Termomagneticos"]}
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert 3 in body["polos"] and 4 in body["polos"]
+    assert body["polos"] == sorted(set(body["polos"]))
+    assert "16" in body["corrientes_nominales_a"] or "16.00" in body["corrientes_nominales_a"]
+    assert "32" in body["corrientes_nominales_a"] or "32.00" in body["corrientes_nominales_a"]
+
+
+def test_opciones_filtro_excluye_filas_sin_atributos(client, db_session):
+    _login(client, db_session, email="opcionesfiltro2.test@pyre.com")
+    sin_atributos = CatalogoComponente(
+        proveedor="ABB",
+        codigo="ZQXOPCVACIO-C1",
+        categoria_path=["Interruptores Termomagneticos"],
+        categoria_raiz="Interruptores Termomagneticos",
+        descripcion="Accesorio ZQXOPCVACIO",
+        unidad="Unidad",
+        precio_neto=Decimal("42.00"),
+        archivo_origen="test.xlsx",
+        fila_origen=1,
+    )
+    db_session.add(sin_atributos)
+    db_session.commit()
+
+    response = client.get(
+        "/catalogo/opciones-filtro", params={"categorias": ["Interruptores Termomagneticos"]}
+    )
+
+    assert response.status_code == 200
+    # No hay assert directo posible sobre "ausencia de un valor" sin saber el
+    # atributo exacto -- lo que importa es que la fila sin atributos no rompe
+    # el endpoint (no hay 500) y las listas siguen siendo válidas.
+    assert isinstance(response.json()["polos"], list)
+
+
+def test_opciones_filtro_scoped_por_categorias(client, db_session):
+    _login(client, db_session, email="opcionesfiltro3.test@pyre.com")
+    componente = CatalogoComponente(
+        proveedor="ABB",
+        codigo="ZQXOPCOTRA-C1",
+        categoria_path=["Relés"],
+        categoria_raiz="Relés",
+        descripcion="Relé ZQXOPCOTRA",
+        unidad="Unidad",
+        precio_neto=Decimal("42.00"),
+        atributos={"tipo": "seccional_termomagnetico", "polos": 99, "corriente_nominal_a": 999, "capacidad_corte_ka": 999},
+        archivo_origen="test.xlsx",
+        fila_origen=1,
+    )
+    db_session.add(componente)
+    db_session.commit()
+
+    response = client.get(
+        "/catalogo/opciones-filtro", params={"categorias": ["Interruptores Termomagneticos"]}
+    )
+
+    assert response.status_code == 200
+    assert 99 not in response.json()["polos"]
+
+
+def test_opciones_filtro_requiere_autenticacion(client):
+    response = client.get("/catalogo/opciones-filtro")
+
+    assert response.status_code == 401

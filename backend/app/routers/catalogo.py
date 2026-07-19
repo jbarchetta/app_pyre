@@ -156,3 +156,50 @@ def buscar_componentes(
         ],
         total=total,
     )
+
+
+class OpcionesFiltroResponse(BaseModel):
+    polos: list[int]
+    corrientes_nominales_a: list[Decimal]
+    capacidades_corte_ka: list[Decimal]
+
+
+def _decimal_sin_ruido_de_float(valor: float) -> Decimal:
+    # atributos["x"].as_float() castea el JSONB a double precision, así que un
+    # valor guardado como entero (16) vuelve como 16.0. Decimal(str(16.0))
+    # arrastraría ese ".0" hasta el JSON de respuesta ("16.0"), que no es como
+    # se quiere mostrar en un dropdown. Redondeamos a entero cuando el valor
+    # no tiene parte fraccionaria real, sin pasar por Decimal.normalize() (que
+    # para números redondos como 100 produce notación científica "1E+2").
+    decimal = Decimal(str(valor))
+    entero = decimal.to_integral_value()
+    return entero if decimal == entero else decimal
+
+
+@router.get("/opciones-filtro", response_model=OpcionesFiltroResponse)
+def obtener_opciones_filtro(
+    categorias: list[str] | None = Query(default=None),
+    db: Session = Depends(get_db),
+    usuario: Usuario = Depends(get_current_user),
+):
+    # Los valores de cada select se derivan de lo que realmente hay en el
+    # catálogo -- no hay una lista hardcodeada que mantener, se autoactualiza
+    # con cada reimport. Siempre exige atributos poblados: sin eso no hay
+    # nada que ofrecer como opción de filtro.
+    filtro = CatalogoComponente.atributos.isnot(None)
+    if categorias:
+        filtro = and_(filtro, CatalogoComponente.categoria_raiz.in_(categorias))
+
+    polos_rows = db.query(CatalogoComponente.atributos["polos"].as_integer()).filter(filtro).distinct().all()
+    corrientes_rows = (
+        db.query(CatalogoComponente.atributos["corriente_nominal_a"].as_float()).filter(filtro).distinct().all()
+    )
+    capacidades_rows = (
+        db.query(CatalogoComponente.atributos["capacidad_corte_ka"].as_float()).filter(filtro).distinct().all()
+    )
+
+    polos = sorted({r[0] for r in polos_rows if r[0] is not None})
+    corrientes = sorted({_decimal_sin_ruido_de_float(r[0]) for r in corrientes_rows if r[0] is not None})
+    capacidades = sorted({_decimal_sin_ruido_de_float(r[0]) for r in capacidades_rows if r[0] is not None})
+
+    return OpcionesFiltroResponse(polos=polos, corrientes_nominales_a=corrientes, capacidades_corte_ka=capacidades)
