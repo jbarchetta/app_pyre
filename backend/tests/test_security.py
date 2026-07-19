@@ -22,6 +22,17 @@ def test_verify_password_rejects_wrong_password():
     assert verify_password("otra-clave", hashed) is False
 
 
+def test_verify_password_acepta_hash_legacy_de_passlib():
+    # Hash literal generado con passlib 1.7.4 (bcrypt estándar $2b$12$) para la
+    # clave "test-clave-123". Tras reemplazar passlib por bcrypt directo (ciclo
+    # 8), los usuarios creados antes del cambio deben seguir pudiendo loguearse
+    # sin migración de hashes.
+    hash_legacy = "$2b$12$Mejz.f440tJJ3yq.IatbiO.cMrwQSZYdQNCbfUv8qkgQGoGKHiduW"
+
+    assert verify_password("test-clave-123", hash_legacy) is True
+    assert verify_password("otra-clave", hash_legacy) is False
+
+
 def test_access_token_round_trip():
     token = create_access_token(subject="user-id-123", rol="analista")
     payload = decode_access_token(token)

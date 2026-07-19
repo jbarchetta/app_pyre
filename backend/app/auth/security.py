@@ -1,19 +1,20 @@
 from datetime import datetime, timedelta, timezone
 
+import bcrypt
 import jwt
-from passlib.context import CryptContext
 
 from app.config import settings
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
 
 def hash_password(password: str) -> str:
-    return pwd_context.hash(password)
+    # bcrypt trunca a 72 bytes (comportamiento histórico del algoritmo, igual
+    # que passlib). Los hashes generados son bcrypt estándar $2b$ — compatibles
+    # con los creados por passlib antes de ciclo 8.
+    return bcrypt.hashpw(password.encode("utf-8"), bcrypt.gensalt()).decode("utf-8")
 
 
 def verify_password(password: str, password_hash: str) -> bool:
-    return pwd_context.verify(password, password_hash)
+    return bcrypt.checkpw(password.encode("utf-8"), password_hash.encode("utf-8"))
 
 
 def create_access_token(subject: str, rol: str) -> str:
