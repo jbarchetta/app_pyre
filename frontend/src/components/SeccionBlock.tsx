@@ -12,6 +12,7 @@ import {
 } from "../api/client";
 import { ComponentePicker } from "./ComponentePicker";
 import { ConfirmDialog } from "./ConfirmDialog";
+import { useCerrarAlClickFuera } from "../hooks/useCerrarAlClickFuera";
 
 interface SeccionBlockProps {
   seccion: Seccion;
@@ -80,6 +81,8 @@ export function SeccionBlock({
     setError(null);
     ultimoTriggerRef.current?.focus();
   }
+
+  const { onMouseDown: onMouseDownModal, onClick: onClickModal } = useCerrarAlClickFuera(cerrarEdicion);
 
   useEffect(() => {
     if (!salidaEnEdicion || pickerAbierto) return;
@@ -251,7 +254,11 @@ export function SeccionBlock({
       </form>
 
       {salidaEnEdicion && !pickerAbierto && (
-        <div className="fixed inset-0 z-20 flex items-center justify-center bg-black/40" onClick={cerrarEdicion}>
+        <div
+          className="fixed inset-0 z-20 flex items-center justify-center bg-black/40"
+          onMouseDown={onMouseDownModal}
+          onClick={onClickModal}
+        >
           <form
             onSubmit={handleGuardarEdicion}
             onClick={(e) => e.stopPropagation()}

@@ -17,6 +17,7 @@ import { EsquemaVisualCanvas } from "./EsquemaVisualCanvas";
 import { ComponentePicker } from "./ComponentePicker";
 import { SeccionBlock } from "./SeccionBlock";
 import { ConfirmDialog } from "./ConfirmDialog";
+import { useCerrarAlClickFuera } from "../hooks/useCerrarAlClickFuera";
 
 interface SeccionConSalidas {
   seccion: Seccion;
@@ -93,6 +94,8 @@ export function DetalleTablero({
     setError(null);
     ultimoTriggerRef.current?.focus();
   }
+
+  const { onMouseDown: onMouseDownModal, onClick: onClickModal } = useCerrarAlClickFuera(cerrarModales);
 
   useEffect(() => {
     const hayModalAbierto = modalIcc || modalInterruptor || modalNuevaFila || filaEnEdicion !== null;
@@ -236,7 +239,11 @@ export function DetalleTablero({
       </p>
 
       {modalIcc && (
-        <div className="fixed inset-0 z-20 flex items-center justify-center bg-black/40" onClick={cerrarModales}>
+        <div
+          className="fixed inset-0 z-20 flex items-center justify-center bg-black/40"
+          onMouseDown={onMouseDownModal}
+          onClick={onClickModal}
+        >
           <form
             onSubmit={handleGuardarNivelFalla}
             onClick={(e) => e.stopPropagation()}
@@ -286,7 +293,11 @@ export function DetalleTablero({
       )}
 
       {modalNuevaFila && (
-        <div className="fixed inset-0 z-20 flex items-center justify-center bg-black/40" onClick={cerrarModales}>
+        <div
+          className="fixed inset-0 z-20 flex items-center justify-center bg-black/40"
+          onMouseDown={onMouseDownModal}
+          onClick={onClickModal}
+        >
           <form
             onSubmit={handleCrearFila}
             onClick={(e) => e.stopPropagation()}
@@ -327,7 +338,11 @@ export function DetalleTablero({
       )}
 
       {filaEnEdicion && (
-        <div className="fixed inset-0 z-20 flex items-center justify-center bg-black/40" onClick={cerrarModales}>
+        <div
+          className="fixed inset-0 z-20 flex items-center justify-center bg-black/40"
+          onMouseDown={onMouseDownModal}
+          onClick={onClickModal}
+        >
           <form
             onSubmit={handleRenombrarFila}
             onClick={(e) => e.stopPropagation()}

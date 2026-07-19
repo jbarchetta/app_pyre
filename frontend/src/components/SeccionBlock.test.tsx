@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { render, screen, within } from "@testing-library/react";
+import { render, screen, within, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { SeccionBlock } from "./SeccionBlock";
 import type { Seccion } from "../api/client";
@@ -276,5 +276,25 @@ describe("SeccionBlock", () => {
 
     expect(await screen.findByRole("alert")).toHaveTextContent(/no se pudo borrar la salida/i);
     expect(screen.getByRole("row", { name: /20 a/i })).toBeInTheDocument();
+  });
+
+  it("does not close the edit modal when a mousedown starts inside it but the click resolves on the backdrop", async () => {
+    render(
+      <SeccionBlock
+        seccion={seccion}
+        salidas={[salidaConMatch]}
+        onSalidaCreada={vi.fn()}
+        onSalidaActualizada={vi.fn()}
+        onSalidaBorrada={vi.fn()}
+      />,
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: /editar salida 20 a/i }));
+    const dialog = screen.getByRole("dialog");
+    const backdrop = dialog.parentElement!;
+    fireEvent.mouseDown(dialog);
+    fireEvent.click(backdrop);
+
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
   });
 });

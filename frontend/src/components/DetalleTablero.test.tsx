@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { DetalleTablero } from "./DetalleTablero";
 import type { Tablero } from "../api/client";
@@ -392,5 +392,18 @@ describe("DetalleTablero", () => {
     );
 
     expect(await screen.findByRole("button", { name: /ajustar zoom/i })).toHaveTextContent("150%");
+  });
+
+  it("does not close the Icc modal when a mousedown starts inside it but the click resolves on the backdrop", async () => {
+    renderDetalle();
+    await screen.findByRole("tab", { name: "Sección 1" });
+
+    await userEvent.click(screen.getByRole("button", { name: /editar intensidad de cortocircuito/i }));
+    const dialog = screen.getByRole("dialog");
+    const backdrop = dialog.parentElement!;
+    fireEvent.mouseDown(dialog);
+    fireEvent.click(backdrop);
+
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
   });
 });
