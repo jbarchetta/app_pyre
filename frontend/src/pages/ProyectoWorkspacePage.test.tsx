@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { ProyectoWorkspacePage } from "./ProyectoWorkspacePage";
@@ -313,5 +313,19 @@ describe("ProyectoWorkspacePage", () => {
 
     expect(await screen.findByRole("alert")).toHaveTextContent(/no se pudo borrar el tablero/i);
     expect(screen.getByRole("tab", { name: "TG1" })).toBeInTheDocument();
+  });
+
+  it("does not close the Nuevo tablero modal when a mousedown starts inside it but the click resolves on the backdrop", async () => {
+    mockFetchConDosTableros();
+    renderPage();
+    await screen.findByRole("tab", { name: "TG1" });
+
+    await userEvent.click(screen.getByRole("button", { name: /^nuevo tablero$/i }));
+    const dialog = screen.getByRole("dialog");
+    const backdrop = dialog.parentElement!;
+    fireEvent.mouseDown(dialog);
+    fireEvent.click(backdrop);
+
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
   });
 });

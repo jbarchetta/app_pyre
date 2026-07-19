@@ -9,6 +9,7 @@ import {
   type Proyecto,
 } from "../api/client";
 import { ConfirmDialog } from "../components/ConfirmDialog";
+import { useCerrarAlClickFuera } from "../hooks/useCerrarAlClickFuera";
 
 type Modal = { tipo: "crear" } | { tipo: "editar"; proyecto: Proyecto } | null;
 
@@ -41,6 +42,8 @@ export function ProyectosPage() {
     setError(null);
     triggerRef.current?.focus();
   }, []);
+
+  const { onMouseDown: onMouseDownModal, onClick: onClickModal } = useCerrarAlClickFuera(cerrarModal);
 
   useEffect(() => {
     if (!modal) return;
@@ -156,7 +159,7 @@ export function ProyectosPage() {
       </div>
 
       {modal && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black/40" onClick={cerrarModal}>
+        <div className="fixed inset-0 flex items-center justify-center bg-black/40" onMouseDown={onMouseDownModal} onClick={onClickModal}>
           <form
             onSubmit={handleSubmit}
             onClick={(e) => e.stopPropagation()}

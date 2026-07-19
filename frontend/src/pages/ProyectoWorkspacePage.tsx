@@ -15,6 +15,7 @@ import { ComponentePicker } from "../components/ComponentePicker";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { DetalleTablero } from "../components/DetalleTablero";
 import type { Capas } from "../components/EsquemaVisual";
+import { useCerrarAlClickFuera } from "../hooks/useCerrarAlClickFuera";
 
 // Icc estándar de arranque para no bloquear la creación del tablero — el
 // analista lo puede editar desde el detalle del tablero si el estudio
@@ -74,6 +75,8 @@ export function ProyectoWorkspacePage() {
     setError(null);
     triggerRef.current?.focus();
   }
+
+  const { onMouseDown: onMouseDownModal, onClick: onClickModal } = useCerrarAlClickFuera(cerrarModales);
 
   // TODO: los guards de "cancelado mientras el pedido estaba en curso" de
   // handleSubmit/handleRenombrarTablero comparan estado leído por closure, que
@@ -240,7 +243,7 @@ export function ProyectoWorkspacePage() {
       )}
 
       {modalNuevoTablero && !pickerAbierto && (
-        <div className="fixed inset-0 z-20 flex items-center justify-center bg-black/40" onClick={cerrarModales}>
+        <div className="fixed inset-0 z-20 flex items-center justify-center bg-black/40" onMouseDown={onMouseDownModal} onClick={onClickModal}>
           <form
             onSubmit={handleSubmit}
             onClick={(e) => e.stopPropagation()}
@@ -288,7 +291,7 @@ export function ProyectoWorkspacePage() {
       )}
 
       {tableroEnEdicion && (
-        <div className="fixed inset-0 z-20 flex items-center justify-center bg-black/40" onClick={cerrarModales}>
+        <div className="fixed inset-0 z-20 flex items-center justify-center bg-black/40" onMouseDown={onMouseDownModal} onClick={onClickModal}>
           <form
             onSubmit={handleRenombrarTablero}
             onClick={(e) => e.stopPropagation()}

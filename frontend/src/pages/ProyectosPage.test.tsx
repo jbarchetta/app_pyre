@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen, waitFor, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { ProyectosPage } from "./ProyectosPage";
@@ -174,5 +174,22 @@ describe("ProyectosPage", () => {
     await userEvent.click(screen.getByRole("button", { name: /cancelar/i }));
 
     expect(screen.getByText(/Proyecto Existente/i)).toBeInTheDocument();
+  });
+
+  it("does not close the modal when a mousedown starts inside it but the click resolves on the backdrop", async () => {
+    render(
+      <MemoryRouter>
+        <ProyectosPage />
+      </MemoryRouter>,
+    );
+    await screen.findByText(/Proyecto Existente/i);
+
+    await userEvent.click(screen.getByRole("button", { name: /nuevo proyecto/i }));
+    const dialog = screen.getByRole("dialog");
+    const backdrop = dialog.parentElement!;
+    fireEvent.mouseDown(dialog);
+    fireEvent.click(backdrop);
+
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
   });
 });
