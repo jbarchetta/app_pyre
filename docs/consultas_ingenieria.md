@@ -32,6 +32,18 @@ Tienen polos, corriente nominal y capacidad de corte (los tres datos que necesit
 
 **Mientras tanto:** el buscador de catálogo (`ComponentePicker` + `GET /catalogo/buscar`) solo filtra por texto libre (código/código comercial/descripción) y por categoría (`categorias`) — no hay filtro estructurado por polos/In/regulación en este ciclo.
 
+### 3. Asignación manual que queda inconsistente con la carga — ¿advertir al analista?
+
+**Encontrado:** 2026-07-19, durante el ciclo 8 de hardening (spec `docs/superpowers/specs/2026-07-19-fase-c-hardening-seguridad-performance-design.md` → "Decisión explícita"), vía tests incidentales que codificaban el comportamiento contrario.
+
+**Contexto:** cuando una salida tiene componente asignado manualmente (`asignado_manualmente = true`), cambios posteriores de carga/formato/protección **no** disparan recálculo ni validación: el componente manual se conserva siempre. Es el comportamiento deliberado del ciclo de asignación manual ("el analista manda"), pero tiene un riesgo eléctrico real: el analista puede asignar manualmente un interruptor de 20A a una carga de 10A, luego corregir la carga a 32A, y el sistema conserva silenciosamente un interruptor subdimensionado (tampoco valida capacidad de corte ni selectividad de las asignaciones manuales).
+
+**Por qué importa:** una propuesta automática siempre cumple corriente/corte/selectividad; una asignación manual puede dejar de cumplirlas sin que nadie se entere. El BOM heredaría el componente incorrecto.
+
+**Qué se necesita:** decisión de PYRE (producto + criterio eléctrico). Opciones: (a) comportamiento actual — el sistema nunca cuestiona al analista; (b) marcar la salida con un flag/badge "inconsistente con la carga actual" en la API y la tabla, **sin** tocar el componente — el analista decide; (c) advertir en el momento del cambio de carga ("la asignación manual X no cubre 32A, ¿recalcular o conservar?"). La opción (b) es la de menor fricción y la recomendada por defecto si no hay objeción.
+
+**Mientras tanto:** se mantiene el comportamiento actual (el componente manual se conserva siempre, sin validación ni advertencia).
+
 ## Resueltas
 
 _(ninguna todavía)_

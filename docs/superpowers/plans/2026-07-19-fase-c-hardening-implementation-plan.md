@@ -1,10 +1,13 @@
 # Fase C — Ciclo 8: Plan de implementación (hardening)
 
 **Spec:** `docs/superpowers/specs/2026-07-19-fase-c-hardening-seguridad-performance-design.md`
-**Rama:** `feat/fase-c-hardening`
+**Rama:** `feat/fase-c-hardening` — **MERGEADA a `master` el 2026-07-19** (fast-forward, hasta `69cebb2`; rama eliminada).
 **Convención:** TDD por tarea — test que falla → implementación mínima → verde → commit.
 
 Baseline antes de empezar: pytest 145 verde, vitest 105 verde (14 archivos), `docker compose up -d db` corriendo.
+**Resultado final:** pytest 164 verde (+19 tests), vitest 105 verde (sin cambios de UI).
+
+> **Note (incidente de arranque):** antes de crear la rama aparecieron en el working tree tests no commiteados (`test_salidas_endpoint.py`) escritos incidentalmente por un subagente de análisis durante la auditoría. Al correrlos: 1 fallaba por la fragilidad de tabla compartida (ver Task 2) y otro codificaba un comportamiento distinto al vigente para asignación manual + cambio de carga (ver spec → "Decisión explícita"). Se descartaron con `git checkout` (no eran trabajo deliberado de nadie), pero dejaron dos hallazgos útiles: la fragilidad de aislamiento que se arregló en Task 2, y la pregunta de producto que quedó como `docs/consultas_ingenieria.md` #3. Lección operativa: los subagentes de lectura deben ser estrictamente de solo-lectura; conviene verificar `git status` antes y después de tareas delegadas.
 
 ---
 
@@ -28,6 +31,8 @@ git checkout -b feat/fase-c-hardening
 
 > **Nota de comportamiento:** los filtros de rango (`>=`) en JSONB van como `as_float()` — mismas semánticas que el `Decimal` de Python para los valores reales del catálogo (todos numéricos simples: 1-4 polos, 0.5-125A, 3-100kA). Si apareciera un `atributos` con tipos raros (string en vez de número), la comparación `as_float()` devuelve NULL y la fila se excluye — mismo resultado que el `continue` actual por no cumplir.
 
+> **Note (hallazgo grande del ciclo):** al correr subconjuntos de la suite apareció un fallo que parecía regresión del cambio SQL (`test_motor_configuracion_integracion` esperaba su propio componente y recibía otro), pero con `git stash` se confirmó que **fallaba igual sin el cambio**: era fragilidad preexistente de la suite. `catalogo_componente` era tabla compartida por toda la sesión y los fixtures `SAL-*` de `test_salidas_endpoint.py` (más baratos) le ganaban la propuesta al fixture del test de integración — la suite completa solo pasaba porque el orden alfabético ejecuta `test_motor_configuracion_integracion` ANTES que `test_salidas_endpoint`. Fix definitivo: fixture `autouse` en `conftest.py` que hace `TRUNCATE catalogo_componente, catalogo_precio_historial CASCADE` antes de cada test — cada test ve solo sus fixtures y cualquier subconjunto corre verde en cualquier orden (verificado). Efecto colateral positivo: los "umbrales defensivos" de `test_motor_propuesta.py` quedaron innecesarios (se conservan como claridad de intención; el NOTE del archivo se actualizó). Moraleja: una suite verde "de casualidad de orden" es una suite rota que todavía no se descubre — el truncate por test debería haber estado desde el principio; evaluar lo mismo para `proyecto`/`tablero`/`seccion`/`salida` si algún test nuevo vuelve a depender de acumulación.
+
 ---
 
 ## Task 3 — 8b: passlib → bcrypt directo
@@ -41,6 +46,8 @@ git checkout -b feat/fase-c-hardening
 5. Commit: `refactor: replace abandoned passlib with direct bcrypt calls`
 
 > **Gotcha a verificar:** generar el hash literal ANTES de desinstalar passlib (`python -c "from passlib.context import CryptContext; print(CryptContext(schemes=['bcrypt']).hash('test-clave-123'))"`) y pegarlo en el test.
+
+> **Note (ejecutado):** los hashes de passlib son bcrypt estándar `$2b$12$`, así que `bcrypt.checkpw` los verifica sin migración — usuarios existentes no se ven afectados (test de regresión `test_verify_password_acepta_hash_legacy_de_passlib` lo traba). `bcrypt` queda pineado a `4.0.1` por ahora; con passlib eliminado, el upgrade a `bcrypt>=4.1` ya está desbloqueado y queda en el backlog (`docs/backlog_mejoras.md`).
 
 ---
 
@@ -57,6 +64,8 @@ git checkout -b feat/fase-c-hardening
 2. Agregar `@model_validator(mode="after")` en `Settings` con los chequeos de la spec.
 3. Correr suite completa — `conftest.py` setea `TABLERO_ENVIRONMENT=test`, no afecta.
 4. Commit: `feat: refuse to start in production with development secrets`
+
+> **Note (gotcha de entorno en tests):** `conftest.py` exporta `TABLERO_JWT_SECRET=test-secret` al proceso, así que un test que aserte el valor default del secret falla aunque instancie `Settings(_env_file=None)` — las env vars del proceso tienen precedencia sobre los defaults de pydantic-settings. Los tests de "arranca en development/test" asertan solo `environment`, no el valor del secret. Y `Settings(_env_file=None)` es imprescindible en todos los tests de config: sin eso heredan el `.env` local del desarrollador y el test pasa/falla según la máquina.
 
 ---
 
@@ -92,13 +101,16 @@ git checkout -b feat/fase-c-hardening
 
 > **Riesgo principal:** algún test existente podría crear el proyecto con un usuario y operar con otro implícitamente (todos usan el mismo helper de login por test, no debería pasar). Si aparece un fallo así, es un bug del test (setup), no aflojar la regla.
 
+> **Note (ejecutado):** el riesgo no se materializó — la suite existente pasó sin tocar un solo test (usa un usuario por test sobre sus propios recursos). Dos decisiones tomadas en implementación: (1) analista que intenta setear `analista_id` recibe **403** (no "ignorar silenciosamente" — un intento de reasignación sin privilegio debe ser visible, no descartado); (2) reasignación a usuario inexistente o con rol != analista recibe **400** (evita proyectos huérfanos por FK o asignar a un supervisor). Y un tropiezo mecánico que la suite pescó al instante: al reemplazar lookups manuales por los helpers `obtener_*_autorizado`, en `eliminar_seccion` el primer reemplazo descartó el valor de retorno y dejó `db.delete(seccion)` referenciando una variable inexistente (NameError → 500; lo detectó `test_delete_seccion_borra_sus_salidas`). Regla para estas reescrituras: si el recurso se usa después del chequeo, el helper siempre asigna (`seccion = obtener_...`), no se descarta.
+
 ---
 
-## Task 7 — Cierre del ciclo
+## Task 7 — Cierre del ciclo (EJECUTADO)
 
-1. Suite backend completa verde + suite frontend verde (sin cambios de UI esperados; si `ProyectosPage` test asume ver todos los proyectos con el usuario de prueba, sigue viendo los suyos — verificar).
-2. Actualizar `docs/reglas_negocio.md` (sección Roles) con la regla efectiva: analista opera solo sus proyectos; supervisor todos; reasignación vía `PATCH` con `analista_id` solo por supervisor.
-3. Actualizar `docs/diccionario_datos.md` si `ProyectoUpdate` documenta campos (revisar).
-4. Actualizar `CLAUDE.md` — estado del ciclo 8.
-5. Pedir confirmación al usuario y mergear `feat/fase-c-hardening` → `master`.
-6. Borrar la rama tras merge.
+1. ✅ Suite backend completa verde (164) + suite frontend verde (105) — sin cambios de UI necesarios: `GET /proyectos` filtrado por propiedad hace que un analista nunca vea proyectos ajenos, los 403 solo son alcanzables por requests directos a la API.
+2. ✅ `docs/reglas_negocio.md` → nueva subsección "Autorización por propiedad (enforced desde ciclo 8)"; `docs/diccionario_datos.md` → entrada `proyecto` actualizada.
+3. ✅ `CLAUDE.md` → ciclo 8 mergeado.
+4. ✅ Merge fast-forward a `master` (hasta `69cebb2`) y rama eliminada, con confirmación del usuario.
+5. ✅ Housekeeping previo del ciclo (commit `a1bd59d` en master): eliminadas 3 ramas obsoletas ya mergeadas (`feat/fase-c-motor-configuracion`, `fix/salida-formato-carga-icono-origen`, `claude/infallible-jennings-8e7e4c` — esta última requirió remover antes su worktree en `.claude/worktrees/`, cuya única modificación sin commitear — recordatorio de cascada de `bom_linea` — se portó a `docs/reglas_negocio.md` antes de borrarla).
+
+> **Note (convención reforzada por el usuario):** al cerrar este ciclo el usuario pidió explícitamente mantener y elevar el rigor documental del proyecto. Todo ciclo futuro debe dejar: spec + plan con `> **Note:**` de bitácora (bugs/gotchas REALES encontrados, no solo lo planeado), `CLAUDE.md` al día, y el tracker `docs/backlog_mejoras.md` actualizado con lo hecho y lo diferido.
