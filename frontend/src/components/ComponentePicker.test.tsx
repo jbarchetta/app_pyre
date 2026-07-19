@@ -7,7 +7,7 @@ const CATEGORIAS = ["Interruptores Termomagneticos"];
 
 describe("ComponentePicker", () => {
   it("renders as a dialog and calls onCancel when Cancelar is clicked", async () => {
-    vi.stubGlobal("fetch", vi.fn());
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, json: async () => ({}) }));
     const onCancel = vi.fn();
     render(<ComponentePicker categorias={CATEGORIAS} onSelect={vi.fn()} onCancel={onCancel} />);
 
@@ -18,7 +18,7 @@ describe("ComponentePicker", () => {
   });
 
   it("calls onCancel on Escape", async () => {
-    vi.stubGlobal("fetch", vi.fn());
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, json: async () => ({}) }));
     const onCancel = vi.fn();
     render(<ComponentePicker categorias={CATEGORIAS} onSelect={vi.fn()} onCancel={onCancel} />);
 
@@ -28,12 +28,23 @@ describe("ComponentePicker", () => {
   });
 
   it("does not search with fewer than 2 characters", async () => {
-    vi.stubGlobal("fetch", vi.fn());
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockImplementation((url: string) => {
+        if (url.includes("/catalogo/opciones-filtro")) {
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({ polos: [], corrientes_nominales_a: [], capacidades_corte_ka: [] }),
+          });
+        }
+        return Promise.resolve({ ok: true, json: async () => ({ resultados: [], total: 0 }) });
+      }),
+    );
     render(<ComponentePicker categorias={CATEGORIAS} onSelect={vi.fn()} onCancel={vi.fn()} />);
 
     await userEvent.type(screen.getByLabelText(/buscar código/i), "a");
 
-    expect(fetch).not.toHaveBeenCalled();
+    expect(fetch).not.toHaveBeenCalledWith(expect.stringContaining("/catalogo/buscar"), expect.anything());
   });
 
   it("includes the categorias filter in the search request", async () => {
@@ -300,7 +311,7 @@ describe("ComponentePicker", () => {
   });
 
   it("does not close when a mousedown starts inside the dialog but the click resolves on the backdrop", async () => {
-    vi.stubGlobal("fetch", vi.fn());
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, json: async () => ({}) }));
     const onCancel = vi.fn();
     render(<ComponentePicker categorias={CATEGORIAS} onSelect={vi.fn()} onCancel={onCancel} />);
 
@@ -310,5 +321,97 @@ describe("ComponentePicker", () => {
     fireEvent.click(backdrop);
 
     expect(onCancel).not.toHaveBeenCalled();
+  });
+
+  it("fetches filter options on mount and shows them when Filtros is opened", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockImplementation((url: string) => {
+        if (url.includes("/catalogo/opciones-filtro")) {
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({
+              polos: [1, 3],
+              corrientes_nominales_a: ["16", "32"],
+              capacidades_corte_ka: ["10", "18"],
+            }),
+          });
+        }
+        return Promise.resolve({ ok: true, json: async () => ({ resultados: [], total: 0 }) });
+      }),
+    );
+    render(<ComponentePicker categorias={CATEGORIAS} onSelect={vi.fn()} onCancel={vi.fn()} />);
+
+    await userEvent.click(await screen.findByRole("button", { name: /filtros/i }));
+
+    expect(await screen.findByRole("option", { name: "3" })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "16A" })).toBeInTheDocument();
+    expect(screen.getByRole("option", { name: "10kA" })).toBeInTheDocument();
+  });
+
+  it("always includes solo_con_atributos=true in search requests", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockImplementation((url: string) => {
+        if (url.includes("/catalogo/opciones-filtro")) {
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({ polos: [], corrientes_nominales_a: [], capacidades_corte_ka: [] }),
+          });
+        }
+        return Promise.resolve({ ok: true, json: async () => ({ resultados: [], total: 0 }) });
+      }),
+    );
+    render(<ComponentePicker categorias={CATEGORIAS} onSelect={vi.fn()} onCancel={vi.fn()} />);
+
+    await userEvent.type(screen.getByLabelText(/buscar código/i), "XT");
+
+    expect(fetch).toHaveBeenCalledWith(expect.stringContaining("solo_con_atributos=true"), expect.anything());
+  });
+
+  it("includes the selected polos filter in the search request after typing a query", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockImplementation((url: string) => {
+        if (url.includes("/catalogo/opciones-filtro")) {
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({ polos: [3], corrientes_nominales_a: [], capacidades_corte_ka: [] }),
+          });
+        }
+        return Promise.resolve({ ok: true, json: async () => ({ resultados: [], total: 0 }) });
+      }),
+    );
+    render(<ComponentePicker categorias={CATEGORIAS} onSelect={vi.fn()} onCancel={vi.fn()} />);
+
+    await userEvent.type(screen.getByLabelText(/buscar código/i), "XT");
+    await userEvent.click(await screen.findByRole("button", { name: /filtros/i }));
+    await userEvent.selectOptions(await screen.findByLabelText(/polos/i), "3");
+
+    expect(fetch).toHaveBeenLastCalledWith(expect.stringContaining("polos=3"), expect.anything());
+  });
+
+  it("removing an active filter chip re-runs the search without that filter", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockImplementation((url: string) => {
+        if (url.includes("/catalogo/opciones-filtro")) {
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({ polos: [3], corrientes_nominales_a: [], capacidades_corte_ka: [] }),
+          });
+        }
+        return Promise.resolve({ ok: true, json: async () => ({ resultados: [], total: 0 }) });
+      }),
+    );
+    render(<ComponentePicker categorias={CATEGORIAS} onSelect={vi.fn()} onCancel={vi.fn()} />);
+
+    await userEvent.type(screen.getByLabelText(/buscar código/i), "XT");
+    await userEvent.click(await screen.findByRole("button", { name: /filtros/i }));
+    await userEvent.selectOptions(await screen.findByLabelText(/polos/i), "3");
+    await userEvent.click(screen.getByRole("button", { name: /3 polos/i }));
+
+    expect(fetch).toHaveBeenLastCalledWith(expect.not.stringContaining("polos=3"), expect.anything());
+    expect(screen.queryByRole("button", { name: /3 polos/i })).not.toBeInTheDocument();
   });
 });
