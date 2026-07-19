@@ -121,6 +121,10 @@ export interface Tablero {
   interruptor_principal_id: string | null;
   interruptor_principal_codigo?: string | null;
   interruptor_principal_codigo_comercial?: string | null;
+  interruptor_principal_descripcion?: string | null;
+  interruptor_principal_polos?: number | null;
+  interruptor_principal_corriente_nominal_a?: string | null;
+  interruptor_principal_capacidad_corte_ka?: string | null;
 }
 
 export async function listarTableros(proyectoId: string): Promise<Tablero[]> {

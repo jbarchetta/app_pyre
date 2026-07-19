@@ -506,30 +506,79 @@ export function DetalleTablero({
               <h3 className="border-b border-surface-stroke bg-industrial-gray p-4 font-bold uppercase tracking-widest">
                 Principal
               </h3>
-              <table className="w-full text-left">
-                <tbody>
-                  <tr>
-                    <td className="p-3">
-                      {tablero.interruptor_principal_id
-                        ? (tablero.interruptor_principal_codigo ?? tablero.interruptor_principal_id)
-                        : "sin definir"}
-                    </td>
-                    <td className="p-3 text-right">
-                      <button
-                        type="button"
-                        aria-label="Editar interruptor principal"
-                        onClick={(e) => {
-                          ultimoTriggerRef.current = e.currentTarget;
-                          setModalInterruptor(true);
-                        }}
-                        className="text-on-background hover:text-abb-red"
-                      >
-                        <span className="material-symbols-outlined text-sm">edit</span>
-                      </button>
-                    </td>
-                  </tr>
-                </tbody>
-              </table>
+              {tablero.interruptor_principal_id ? (
+                <table className="w-full text-left">
+                  <thead>
+                    <tr className="border-b border-surface-stroke text-xs uppercase tracking-widest text-secondary">
+                      <th scope="col" className="p-3">Código SAP</th>
+                      <th scope="col" className="p-3">Código Comercial</th>
+                      <th scope="col" className="p-3">Corriente (In)</th>
+                      <th scope="col" className="p-3">Polos</th>
+                      <th scope="col" className="p-3">Capacidad (Icu)</th>
+                      <th scope="col" className="p-3">Descripción</th>
+                      <th scope="col" className="p-3 text-right">Acciones</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr className="border-b border-surface-stroke">
+                      <td className="p-3 font-mono text-xs">
+                        {tablero.interruptor_principal_codigo ?? tablero.interruptor_principal_id}
+                      </td>
+                      <td className="p-3 text-sm text-secondary">
+                        {tablero.interruptor_principal_codigo_comercial ?? "—"}
+                      </td>
+                      <td className="p-3 font-mono text-sm">
+                        {tablero.interruptor_principal_corriente_nominal_a ? `${tablero.interruptor_principal_corriente_nominal_a} A` : "—"}
+                      </td>
+                      <td className="p-3 text-sm">
+                        {tablero.interruptor_principal_polos ? `${tablero.interruptor_principal_polos} polos` : "—"}
+                      </td>
+                      <td className="p-3 font-mono text-sm">
+                        {tablero.interruptor_principal_capacidad_corte_ka ? `${tablero.interruptor_principal_capacidad_corte_ka} kA` : "—"}
+                      </td>
+                      <td className="p-3 text-xs text-secondary max-w-xs truncate" title={tablero.interruptor_principal_descripcion ?? undefined}>
+                        {tablero.interruptor_principal_descripcion ?? "—"}
+                      </td>
+                      <td className="p-3 text-right">
+                        <button
+                          type="button"
+                          aria-label="Editar interruptor principal"
+                          onClick={(e) => {
+                            ultimoTriggerRef.current = e.currentTarget;
+                            setModalInterruptor(true);
+                          }}
+                          className="text-on-background hover:text-abb-red"
+                        >
+                          <span className="material-symbols-outlined text-sm">edit</span>
+                        </button>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              ) : (
+                <table className="w-full text-left">
+                  <tbody>
+                    <tr>
+                      <td className="p-3 text-secondary italic">
+                        Interruptor principal sin definir
+                      </td>
+                      <td className="p-3 text-right">
+                        <button
+                          type="button"
+                          aria-label="Editar interruptor principal"
+                          onClick={(e) => {
+                            ultimoTriggerRef.current = e.currentTarget;
+                            setModalInterruptor(true);
+                          }}
+                          className="text-on-background hover:text-abb-red"
+                        >
+                          <span className="material-symbols-outlined text-sm">edit</span>
+                        </button>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              )}
             </div>
           ) : (
             seccionSeleccionada && (

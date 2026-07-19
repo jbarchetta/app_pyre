@@ -26,6 +26,10 @@ class TableroResponse(BaseModel):
     interruptor_principal_id: str | None
     interruptor_principal_codigo: str | None
     interruptor_principal_codigo_comercial: str | None
+    interruptor_principal_descripcion: str | None = None
+    interruptor_principal_polos: int | None = None
+    interruptor_principal_corriente_nominal_a: Decimal | None = None
+    interruptor_principal_capacidad_corte_ka: Decimal | None = None
 
     model_config = {"from_attributes": True}
 
@@ -36,6 +40,7 @@ def _tablero_response(db: Session, tablero: Tablero) -> TableroResponse:
         if tablero.interruptor_principal_id
         else None
     )
+    atributos = componente.atributos or {} if componente else {}
     return TableroResponse(
         id=str(tablero.id),
         proyecto_id=str(tablero.proyecto_id),
@@ -46,6 +51,14 @@ def _tablero_response(db: Session, tablero: Tablero) -> TableroResponse:
         else None,
         interruptor_principal_codigo=componente.codigo if componente else None,
         interruptor_principal_codigo_comercial=componente.codigo_comercial if componente else None,
+        interruptor_principal_descripcion=componente.descripcion if componente else None,
+        interruptor_principal_polos=atributos.get("polos"),
+        interruptor_principal_corriente_nominal_a=Decimal(str(atributos["corriente_nominal_a"]))
+        if "corriente_nominal_a" in atributos and atributos["corriente_nominal_a"] is not None
+        else None,
+        interruptor_principal_capacidad_corte_ka=Decimal(str(atributos["capacidad_corte_ka"]))
+        if "capacidad_corte_ka" in atributos and atributos["capacidad_corte_ka"] is not None
+        else None,
     )
 
 

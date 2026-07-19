@@ -22,6 +22,77 @@ interface SeccionBlockProps {
   onSalidaBorrada: (salidaId: string) => void;
 }
 
+interface FilaSalidaProps {
+  salida: Salida;
+  onAbrirEdicion: (salida: Salida, trigger: HTMLElement) => void;
+  onConfirmarBorrado: (salida: Salida, trigger: HTMLElement) => void;
+}
+
+function FilaSalida({ salida, onAbrirEdicion, onConfirmarBorrado }: FilaSalidaProps) {
+  const prevComponenteIdRef = useRef<string | null>(salida.componente_id);
+  const [animar, setAnimar] = useState(false);
+
+  useEffect(() => {
+    if (prevComponenteIdRef.current !== salida.componente_id) {
+      setAnimar(true);
+      prevComponenteIdRef.current = salida.componente_id;
+      const timer = setTimeout(() => setAnimar(false), 1200);
+      return () => clearTimeout(timer);
+    }
+  }, [salida.componente_id]);
+
+  return (
+    <tr className="border-b border-surface-stroke odd:bg-industrial-gray/40">
+      <td className="p-3 font-mono">
+        {salida.carga_unidad === "A" ? Math.round(Number(salida.carga_valor)) : salida.carga_valor} {salida.carga_unidad}
+      </td>
+      <td className="p-3">{salida.formato}</td>
+      <td className={`p-3 transition-colors ${animar ? "animate-flash" : ""}`}>
+        {salida.componente_id ? (
+          <span
+            className="inline-flex items-center gap-2"
+            title={salida.componente_descripcion ?? undefined}
+          >
+            {salida.asignado_manualmente ? (
+              <span className="material-symbols-outlined text-abb-red text-base" title="Asignado manualmente">edit_note</span>
+            ) : (
+              <span className="material-symbols-outlined text-tech-blue text-base" title="Propuesta automática">settings_suggest</span>
+            )}
+            <span className="font-mono text-xs">{salida.componente_codigo ?? salida.componente_id}</span>
+            {salida.componente_codigo_comercial && (
+              <span className="text-secondary text-xs"> — {salida.componente_codigo_comercial}</span>
+            )}
+          </span>
+        ) : (
+          <span className="inline-flex items-center gap-2 text-xs">
+            <span className="h-2 w-2 border border-secondary" /> sin match
+          </span>
+        )}
+      </td>
+      <td className="p-3">
+        <div className="flex gap-3 text-on-background">
+          <button
+            type="button"
+            aria-label={`Editar salida ${salida.carga_valor} ${salida.carga_unidad}`}
+            onClick={(e) => onAbrirEdicion(salida, e.currentTarget)}
+            className="hover:text-abb-red"
+          >
+            <span className="material-symbols-outlined text-base">edit</span>
+          </button>
+          <button
+            type="button"
+            aria-label={`Borrar salida ${salida.carga_valor} ${salida.carga_unidad}`}
+            onClick={(e) => onConfirmarBorrado(salida, e.currentTarget)}
+            className="hover:text-abb-red"
+          >
+            <span className="material-symbols-outlined text-base">delete</span>
+          </button>
+        </div>
+      </td>
+    </tr>
+  );
+}
+
 export function SeccionBlock({
   seccion,
   salidas,
@@ -170,60 +241,15 @@ export function SeccionBlock({
         </thead>
         <tbody>
           {salidas.map((salida) => (
-            <tr key={salida.id} className="border-b border-surface-stroke">
-              <td className="p-3 font-mono">
-                {salida.carga_unidad === "A" ? Math.round(Number(salida.carga_valor)) : salida.carga_valor} {salida.carga_unidad}
-              </td>
-              <td className="p-3">{salida.formato}</td>
-              <td
-                key={salida.componente_id || "sin-match"}
-                className={`p-3 transition-colors ${salida.componente_id ? "animate-flash" : ""}`}
-              >
-                {salida.componente_id ? (
-                  <span
-                    className="inline-flex items-center gap-2"
-                    title={salida.componente_descripcion ?? undefined}
-                  >
-                    {salida.asignado_manualmente ? (
-                      <span className="material-symbols-outlined text-abb-red text-base" title="Asignado manualmente">edit_note</span>
-                    ) : (
-                      <span className="material-symbols-outlined text-secondary text-base" title="Propuesta automática">settings_suggest</span>
-                    )}
-                    <span className="font-mono text-xs">{salida.componente_codigo ?? salida.componente_id}</span>
-                    {salida.componente_codigo_comercial && (
-                      <span className="text-secondary text-xs"> — {salida.componente_codigo_comercial}</span>
-                    )}
-                  </span>
-                ) : (
-                  <span className="inline-flex items-center gap-2 text-xs">
-                    <span className="h-2 w-2 border border-secondary" /> sin match
-                  </span>
-                )}
-              </td>
-              <td className="p-3">
-                <div className="flex gap-3 text-on-background">
-                  <button
-                    type="button"
-                    aria-label={`Editar salida ${salida.carga_valor} ${salida.carga_unidad}`}
-                    onClick={(e) => abrirEdicion(salida, e.currentTarget)}
-                    className="hover:text-abb-red"
-                  >
-                    <span className="material-symbols-outlined text-base">edit</span>
-                  </button>
-                  <button
-                    type="button"
-                    aria-label={`Borrar salida ${salida.carga_valor} ${salida.carga_unidad}`}
-                    onClick={(e) => {
-                      ultimoTriggerRef.current = e.currentTarget;
-                      setSalidaABorrar(salida);
-                    }}
-                    className="hover:text-abb-red"
-                  >
-                    <span className="material-symbols-outlined text-base">delete</span>
-                  </button>
-                </div>
-              </td>
-            </tr>
+            <FilaSalida
+              key={salida.id}
+              salida={salida}
+              onAbrirEdicion={abrirEdicion}
+              onConfirmarBorrado={(sal, trigger) => {
+                ultimoTriggerRef.current = trigger;
+                setSalidaABorrar(sal);
+              }}
+            />
           ))}
         </tbody>
       </table>
