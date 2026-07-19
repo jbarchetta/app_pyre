@@ -199,3 +199,140 @@ def test_buscar_sin_categorias_no_filtra(client, db_session):
     assert response.status_code == 200
     ids = [c["id"] for c in response.json()["resultados"]]
     assert str(componente.id) in ids
+
+
+def _componente_con_atributos(db_session, codigo, polos, corriente, capacidad_corte, descripcion=None):
+    componente = CatalogoComponente(
+        proveedor="ABB",
+        codigo=codigo,
+        categoria_path=["Interruptores Termomagneticos"],
+        categoria_raiz="Interruptores Termomagneticos",
+        descripcion=descripcion or f"Interruptor {codigo}",
+        unidad="Unidad",
+        # Precio deliberadamente alto (catalogo_componente es una tabla
+        # compartida sin rollback por test, ver nota en
+        # test_motor_propuesta.py): un precio bajo con atributos completos
+        # haría que proponer_componente() -- que ordena candidatos por precio
+        # ascendente sin filtrar por código -- eligiera estas filas de test
+        # por encima de las fixtures de ese archivo.
+        precio_neto=Decimal("999.00"),
+        atributos={
+            "tipo": "seccional_termomagnetico",
+            "polos": polos,
+            "corriente_nominal_a": corriente,
+            "capacidad_corte_ka": capacidad_corte,
+        },
+        archivo_origen="test.xlsx",
+        fila_origen=1,
+    )
+    db_session.add(componente)
+    db_session.commit()
+    return componente
+
+
+def test_buscar_con_solo_con_atributos_excluye_filas_sin_atributos(client, db_session):
+    _login(client, db_session, email="buscarcat11.test@pyre.com")
+    con_atributos = _componente_con_atributos(db_session, "ZQXATR-C1", 3, 16, 10, "Interruptor ZQXATR real")
+    sin_atributos = CatalogoComponente(
+        proveedor="ABB",
+        codigo="ZQXATR-C2",
+        categoria_path=["Interruptores Termomagneticos"],
+        categoria_raiz="Interruptores Termomagneticos",
+        descripcion="Accesorio ZQXATR sin datos",
+        unidad="Unidad",
+        precio_neto=Decimal("42.00"),
+        archivo_origen="test.xlsx",
+        fila_origen=1,
+    )
+    db_session.add(sin_atributos)
+    db_session.commit()
+
+    response = client.get("/catalogo/buscar", params={"q": "ZQXATR", "solo_con_atributos": "true"})
+
+    assert response.status_code == 200
+    ids = [c["id"] for c in response.json()["resultados"]]
+    assert str(con_atributos.id) in ids
+    assert str(sin_atributos.id) not in ids
+
+
+def test_buscar_sin_solo_con_atributos_no_filtra(client, db_session):
+    _login(client, db_session, email="buscarcat12.test@pyre.com")
+    sin_atributos = CatalogoComponente(
+        proveedor="ABB",
+        codigo="ZQXNOFLAG-C1",
+        categoria_path=["Interruptores Termomagneticos"],
+        categoria_raiz="Interruptores Termomagneticos",
+        descripcion="Accesorio ZQXNOFLAG sin datos",
+        unidad="Unidad",
+        precio_neto=Decimal("42.00"),
+        archivo_origen="test.xlsx",
+        fila_origen=1,
+    )
+    db_session.add(sin_atributos)
+    db_session.commit()
+
+    response = client.get("/catalogo/buscar", params={"q": "ZQXNOFLAG"})
+
+    assert response.status_code == 200
+    ids = [c["id"] for c in response.json()["resultados"]]
+    assert str(sin_atributos.id) in ids
+
+
+def test_buscar_filtra_por_polos(client, db_session):
+    _login(client, db_session, email="buscarcat13.test@pyre.com")
+    tripolar = _componente_con_atributos(db_session, "ZQXPOL-C1", 3, 16, 10, "Interruptor ZQXPOL tripolar")
+    tetrapolar = _componente_con_atributos(db_session, "ZQXPOL-C2", 4, 16, 10, "Interruptor ZQXPOL tetrapolar")
+
+    response = client.get("/catalogo/buscar", params={"q": "ZQXPOL", "polos": 3})
+
+    assert response.status_code == 200
+    ids = [c["id"] for c in response.json()["resultados"]]
+    assert str(tripolar.id) in ids
+    assert str(tetrapolar.id) not in ids
+
+
+def test_buscar_filtra_por_corriente_nominal(client, db_session):
+    _login(client, db_session, email="buscarcat14.test@pyre.com")
+    de_16a = _componente_con_atributos(db_session, "ZQXIN-C1", 3, 16, 10, "Interruptor ZQXIN 16A")
+    de_32a = _componente_con_atributos(db_session, "ZQXIN-C2", 3, 32, 10, "Interruptor ZQXIN 32A")
+
+    response = client.get("/catalogo/buscar", params={"q": "ZQXIN", "corriente_nominal_a": "16"})
+
+    assert response.status_code == 200
+    ids = [c["id"] for c in response.json()["resultados"]]
+    assert str(de_16a.id) in ids
+    assert str(de_32a.id) not in ids
+
+
+def test_buscar_filtra_por_capacidad_de_corte(client, db_session):
+    _login(client, db_session, email="buscarcat15.test@pyre.com")
+    de_10ka = _componente_con_atributos(db_session, "ZQXKA-C1", 3, 16, 10, "Interruptor ZQXKA 10kA")
+    de_18ka = _componente_con_atributos(db_session, "ZQXKA-C2", 3, 16, 18, "Interruptor ZQXKA 18kA")
+
+    response = client.get("/catalogo/buscar", params={"q": "ZQXKA", "capacidad_corte_ka": "10"})
+
+    assert response.status_code == 200
+    ids = [c["id"] for c in response.json()["resultados"]]
+    assert str(de_10ka.id) in ids
+    assert str(de_18ka.id) not in ids
+
+
+def test_buscar_combina_categorias_solo_con_atributos_y_filtros(client, db_session):
+    _login(client, db_session, email="buscarcat16.test@pyre.com")
+    match = _componente_con_atributos(db_session, "ZQXCOMBO-C1", 3, 25, 15, "Interruptor ZQXCOMBO match")
+    otro_polos = _componente_con_atributos(db_session, "ZQXCOMBO-C2", 4, 25, 15, "Interruptor ZQXCOMBO otro polos")
+
+    response = client.get(
+        "/catalogo/buscar",
+        params={
+            "q": "ZQXCOMBO",
+            "categorias": ["Interruptores Termomagneticos"],
+            "solo_con_atributos": "true",
+            "polos": 3,
+        },
+    )
+
+    assert response.status_code == 200
+    ids = [c["id"] for c in response.json()["resultados"]]
+    assert str(match.id) in ids
+    assert str(otro_polos.id) not in ids

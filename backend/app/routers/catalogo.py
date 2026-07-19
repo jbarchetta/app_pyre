@@ -67,6 +67,10 @@ _LIMIT_POR_DEFECTO = 20
 def buscar_componentes(
     q: str = "",
     categorias: list[str] | None = Query(default=None),
+    solo_con_atributos: bool = False,
+    polos: int | None = None,
+    corriente_nominal_a: Decimal | None = None,
+    capacidad_corte_ka: Decimal | None = None,
     limit: int = _LIMIT_POR_DEFECTO,
     offset: int = 0,
     db: Session = Depends(get_db),
@@ -103,6 +107,25 @@ def buscar_componentes(
         # las categorías relevantes del contexto (ej. solo interruptores),
         # en vez de barrer las ~9-10k filas de todo el catálogo real.
         filtro = and_(filtro, CatalogoComponente.categoria_raiz.in_(categorias))
+    if solo_con_atributos:
+        # Saca del medio filas sin polos/In/capacidad de corte extraídos --
+        # en la práctica esto son accesorios (terminales, mandos, bloqueos)
+        # que comparten categoria_raiz con interruptores reales, más el
+        # pequeño % de interruptores reales sin atributos extraídos (ver
+        # docs/consultas_ingenieria.md #1). Opt-in: no cambia el
+        # comportamiento por defecto para futuros contextos de búsqueda que
+        # sí quieran ver filas sin atributos.
+        filtro = and_(filtro, CatalogoComponente.atributos.isnot(None))
+    if polos is not None:
+        filtro = and_(filtro, CatalogoComponente.atributos["polos"].as_integer() == polos)
+    if corriente_nominal_a is not None:
+        filtro = and_(
+            filtro, CatalogoComponente.atributos["corriente_nominal_a"].as_float() == float(corriente_nominal_a)
+        )
+    if capacidad_corte_ka is not None:
+        filtro = and_(
+            filtro, CatalogoComponente.atributos["capacidad_corte_ka"].as_float() == float(capacidad_corte_ka)
+        )
 
     # Nota: esto ejecuta una segunda query completa (además de la paginada de
     # abajo) en cada búsqueda -- a la escala actual del catálogo (~9-10k
