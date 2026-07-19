@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ComponentePicker } from "./ComponentePicker";
 
@@ -297,5 +297,18 @@ describe("ComponentePicker", () => {
     await new Promise((r) => setTimeout(r, 0));
 
     expect(screen.getByRole("button", { name: /cargar más/i })).not.toBeDisabled();
+  });
+
+  it("does not close when a mousedown starts inside the dialog but the click resolves on the backdrop", async () => {
+    vi.stubGlobal("fetch", vi.fn());
+    const onCancel = vi.fn();
+    render(<ComponentePicker categorias={CATEGORIAS} onSelect={vi.fn()} onCancel={onCancel} />);
+
+    const dialog = screen.getByRole("dialog");
+    const backdrop = dialog.parentElement!;
+    fireEvent.mouseDown(dialog);
+    fireEvent.click(backdrop);
+
+    expect(onCancel).not.toHaveBeenCalled();
   });
 });

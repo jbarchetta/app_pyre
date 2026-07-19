@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ConfirmDialog } from "./ConfirmDialog";
 
@@ -95,5 +95,20 @@ describe("ConfirmDialog", () => {
     );
 
     expect(screen.getByRole("alert")).toHaveTextContent(/no se pudo borrar el proyecto/i);
+  });
+
+  it("does not close when a mousedown starts inside the dialog but the click resolves on the backdrop", () => {
+    const onConfirm = vi.fn();
+    const onCancel = vi.fn();
+    render(
+      <ConfirmDialog titulo="Confirmar borrado" mensaje="¿Borrar?" onConfirm={onConfirm} onCancel={onCancel} />,
+    );
+
+    const dialog = screen.getByRole("dialog");
+    const backdrop = dialog.parentElement!;
+    fireEvent.mouseDown(dialog);
+    fireEvent.click(backdrop);
+
+    expect(onCancel).not.toHaveBeenCalled();
   });
 });

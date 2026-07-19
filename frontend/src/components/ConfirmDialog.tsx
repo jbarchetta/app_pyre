@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { useCerrarAlClickFuera } from "../hooks/useCerrarAlClickFuera";
 
 interface ConfirmDialogProps {
   titulo: string;
@@ -18,6 +19,7 @@ export function ConfirmDialog({
   error = null,
 }: ConfirmDialogProps) {
   const dialogRef = useRef<HTMLDivElement>(null);
+  const { onMouseDown, onClick } = useCerrarAlClickFuera(onCancel);
 
   useEffect(() => {
     dialogRef.current?.focus();
@@ -29,7 +31,7 @@ export function ConfirmDialog({
   }, [onCancel]);
 
   return (
-    <div className="fixed inset-0 z-30 flex items-center justify-center bg-black/40" onClick={onCancel}>
+    <div className="fixed inset-0 z-30 flex items-center justify-center bg-black/40" onMouseDown={onMouseDown} onClick={onClick}>
       <div
         ref={dialogRef}
         tabIndex={-1}

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { buscarCatalogo, type ComponenteBusqueda } from "../api/client";
+import { useCerrarAlClickFuera } from "../hooks/useCerrarAlClickFuera";
 
 const RESULTADOS_POR_PAGINA = 20;
 
@@ -22,6 +23,7 @@ export function ComponentePicker({
   const [cargandoMas, setCargandoMas] = useState(false);
   const solicitudActualRef = useRef(0);
   const inputRef = useRef<HTMLInputElement>(null);
+  const { onMouseDown, onClick } = useCerrarAlClickFuera(onCancel);
 
   useEffect(() => {
     inputRef.current?.focus();
@@ -64,7 +66,7 @@ export function ComponentePicker({
   }
 
   return (
-    <div className="fixed inset-0 z-20 flex items-center justify-center bg-black/40" onClick={onCancel}>
+    <div className="fixed inset-0 z-20 flex items-center justify-center bg-black/40" onMouseDown={onMouseDown} onClick={onClick}>
       <div
         tabIndex={-1}
         onClick={(e) => e.stopPropagation()}
