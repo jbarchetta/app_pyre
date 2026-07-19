@@ -6,6 +6,11 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.auth.dependencies import get_current_user, require_role
+from app.auth.ownership import (
+    obtener_proyecto_autorizado,
+    obtener_seccion_autorizada,
+    obtener_tablero_autorizado,
+)
 from app.database import get_db
 from app.models import CatalogoComponente, Proyecto, RolUsuario, Salida, Seccion, Tablero, Usuario
 
@@ -71,9 +76,7 @@ def crear_tablero(
     db: Session = Depends(get_db),
     usuario: Usuario = Depends(require_role(RolUsuario.ANALISTA, RolUsuario.SUPERVISOR)),
 ):
-    proyecto = db.get(Proyecto, proyecto_id)
-    if proyecto is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Proyecto no encontrado")
+    obtener_proyecto_autorizado(db, proyecto_id, usuario)
 
     tablero = Tablero(
         proyecto_id=proyecto_id,
@@ -91,9 +94,7 @@ def crear_tablero(
 def listar_tableros(
     proyecto_id: uuid.UUID, db: Session = Depends(get_db), usuario: Usuario = Depends(get_current_user)
 ):
-    proyecto = db.get(Proyecto, proyecto_id)
-    if proyecto is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Proyecto no encontrado")
+    obtener_proyecto_autorizado(db, proyecto_id, usuario)
     tableros = db.query(Tablero).filter(Tablero.proyecto_id == proyecto_id).all()
     return [_tablero_response(db, t) for t in tableros]
 
@@ -102,10 +103,7 @@ def listar_tableros(
 def obtener_tablero(
     tablero_id: uuid.UUID, db: Session = Depends(get_db), usuario: Usuario = Depends(get_current_user)
 ):
-    tablero = db.get(Tablero, tablero_id)
-    if tablero is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tablero no encontrado")
-    return _tablero_response(db, tablero)
+    return _tablero_response(db, obtener_tablero_autorizado(db, tablero_id, usuario))
 
 
 class TableroUpdate(BaseModel):
@@ -121,9 +119,7 @@ def actualizar_tablero(
     db: Session = Depends(get_db),
     usuario: Usuario = Depends(require_role(RolUsuario.ANALISTA, RolUsuario.SUPERVISOR)),
 ):
-    tablero = db.get(Tablero, tablero_id)
-    if tablero is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tablero no encontrado")
+    tablero = obtener_tablero_autorizado(db, tablero_id, usuario)
 
     # exclude_unset: un PATCH solo toca los campos que el cliente mandó — mandar
     # nivel_falla_ka sin interruptor_principal_id no debe borrar este último.
@@ -146,9 +142,7 @@ def eliminar_tablero(
     db: Session = Depends(get_db),
     usuario: Usuario = Depends(require_role(RolUsuario.ANALISTA, RolUsuario.SUPERVISOR)),
 ):
-    tablero = db.get(Tablero, tablero_id)
-    if tablero is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tablero no encontrado")
+    tablero = obtener_tablero_autorizado(db, tablero_id, usuario)
 
     seccion_ids = [s.id for s in db.query(Seccion.id).filter(Seccion.tablero_id == tablero_id)]
     if seccion_ids:
@@ -186,9 +180,7 @@ def crear_seccion(
     db: Session = Depends(get_db),
     usuario: Usuario = Depends(require_role(RolUsuario.ANALISTA, RolUsuario.SUPERVISOR)),
 ):
-    tablero = db.get(Tablero, tablero_id)
-    if tablero is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tablero no encontrado")
+    obtener_tablero_autorizado(db, tablero_id, usuario)
 
     seccion = Seccion(tablero_id=tablero_id, nombre=payload.nombre, orden=payload.orden)
     db.add(seccion)
@@ -201,9 +193,7 @@ def crear_seccion(
 def listar_secciones(
     tablero_id: uuid.UUID, db: Session = Depends(get_db), usuario: Usuario = Depends(get_current_user)
 ):
-    tablero = db.get(Tablero, tablero_id)
-    if tablero is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Tablero no encontrado")
+    obtener_tablero_autorizado(db, tablero_id, usuario)
     secciones = db.query(Seccion).filter(Seccion.tablero_id == tablero_id).order_by(Seccion.orden).all()
     return [_seccion_response(s) for s in secciones]
 
@@ -219,9 +209,7 @@ def actualizar_seccion(
     db: Session = Depends(get_db),
     usuario: Usuario = Depends(require_role(RolUsuario.ANALISTA, RolUsuario.SUPERVISOR)),
 ):
-    seccion = db.get(Seccion, seccion_id)
-    if seccion is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Sección no encontrada")
+    seccion = obtener_seccion_autorizada(db, seccion_id, usuario)
 
     cambios = payload.model_dump(exclude_unset=True)
     if "nombre" in cambios:
@@ -238,9 +226,7 @@ def eliminar_seccion(
     db: Session = Depends(get_db),
     usuario: Usuario = Depends(require_role(RolUsuario.ANALISTA, RolUsuario.SUPERVISOR)),
 ):
-    seccion = db.get(Seccion, seccion_id)
-    if seccion is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Sección no encontrada")
+    seccion = obtener_seccion_autorizada(db, seccion_id, usuario)
 
     db.query(Salida).filter(Salida.seccion_id == seccion_id).delete(synchronize_session=False)
     db.delete(seccion)

@@ -6,6 +6,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.auth.dependencies import get_current_user, require_role
+from app.auth.ownership import obtener_salida_autorizada, obtener_seccion_autorizada
 from app.database import get_db
 from app.models import (
     CatalogoComponente,
@@ -109,9 +110,7 @@ def crear_salida(
     db: Session = Depends(get_db),
     usuario: Usuario = Depends(require_role(RolUsuario.ANALISTA, RolUsuario.SUPERVISOR)),
 ):
-    seccion = db.get(Seccion, seccion_id)
-    if seccion is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Sección no encontrada")
+    seccion = obtener_seccion_autorizada(db, seccion_id, usuario)
     tablero = db.get(Tablero, seccion.tablero_id)
 
     parametros = obtener_parametros(db)
@@ -153,9 +152,7 @@ def actualizar_salida(
     db: Session = Depends(get_db),
     usuario: Usuario = Depends(require_role(RolUsuario.ANALISTA, RolUsuario.SUPERVISOR)),
 ):
-    salida = db.get(Salida, salida_id)
-    if salida is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Salida no encontrada")
+    salida = obtener_salida_autorizada(db, salida_id, usuario)
 
     # exclude_unset: igual que TableroUpdate/ProyectoUpdate -- un PATCH parcial
     # no debe pisar campos que el cliente no mandó.
@@ -212,9 +209,7 @@ def eliminar_salida(
     db: Session = Depends(get_db),
     usuario: Usuario = Depends(require_role(RolUsuario.ANALISTA, RolUsuario.SUPERVISOR)),
 ):
-    salida = db.get(Salida, salida_id)
-    if salida is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Salida no encontrada")
+    salida = obtener_salida_autorizada(db, salida_id, usuario)
     db.delete(salida)
     db.commit()
 
@@ -223,8 +218,6 @@ def eliminar_salida(
 def listar_salidas(
     seccion_id: uuid.UUID, db: Session = Depends(get_db), usuario: Usuario = Depends(get_current_user)
 ):
-    seccion = db.get(Seccion, seccion_id)
-    if seccion is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Sección no encontrada")
+    obtener_seccion_autorizada(db, seccion_id, usuario)
     salidas = db.query(Salida).filter(Salida.seccion_id == seccion_id).order_by(Salida.posicion_orden).all()
     return [_salida_response(db, s) for s in salidas]

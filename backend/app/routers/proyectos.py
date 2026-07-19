@@ -5,6 +5,7 @@ from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from app.auth.dependencies import get_current_user, require_role
+from app.auth.ownership import obtener_proyecto_autorizado
 from app.database import get_db
 from app.models import Proyecto, RolUsuario, Salida, Seccion, Tablero, Usuario
 
@@ -51,23 +52,26 @@ def crear_proyecto(
 
 @router.get("", response_model=list[ProyectoResponse])
 def listar_proyectos(db: Session = Depends(get_db), usuario: Usuario = Depends(get_current_user)):
-    proyectos = db.query(Proyecto).all()
-    return [_to_response(p) for p in proyectos]
+    # Autorización por propiedad (ciclo 8): el analista solo ve sus proyectos;
+    # el supervisor ve todos.
+    consulta = db.query(Proyecto)
+    if usuario.rol != RolUsuario.SUPERVISOR:
+        consulta = consulta.filter(Proyecto.analista_id == usuario.id)
+    return [_to_response(p) for p in consulta.all()]
 
 
 @router.get("/{proyecto_id}", response_model=ProyectoResponse)
 def obtener_proyecto(
     proyecto_id: uuid.UUID, db: Session = Depends(get_db), usuario: Usuario = Depends(get_current_user)
 ):
-    proyecto = db.get(Proyecto, proyecto_id)
-    if proyecto is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Proyecto no encontrado")
-    return _to_response(proyecto)
+    return _to_response(obtener_proyecto_autorizado(db, proyecto_id, usuario))
 
 
 class ProyectoUpdate(BaseModel):
     nombre: str | None = None
     cliente: str | None = None
+    # Reasignación de propiedad: solo la puede setear un supervisor (ver endpoint).
+    analista_id: uuid.UUID | None = None
 
 
 @router.patch("/{proyecto_id}", response_model=ProyectoResponse)
@@ -77,15 +81,29 @@ def actualizar_proyecto(
     db: Session = Depends(get_db),
     usuario: Usuario = Depends(require_role(RolUsuario.ANALISTA, RolUsuario.SUPERVISOR)),
 ):
-    proyecto = db.get(Proyecto, proyecto_id)
-    if proyecto is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Proyecto no encontrado")
+    proyecto = obtener_proyecto_autorizado(db, proyecto_id, usuario)
 
     cambios = payload.model_dump(exclude_unset=True)
     if "nombre" in cambios:
         proyecto.nombre = cambios["nombre"]
     if "cliente" in cambios:
         proyecto.cliente = cambios["cliente"]
+    if "analista_id" in cambios:
+        # "Proyectos reasignables entre analistas" (reglas_negocio.md): la
+        # reasignación es una decisión de supervisión — un analista no puede
+        # ceder el suyo ni tomar uno ajeno.
+        if usuario.rol != RolUsuario.SUPERVISOR:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Solo un supervisor puede reasignar el analista de un proyecto",
+            )
+        nuevo_analista = db.get(Usuario, cambios["analista_id"])
+        if nuevo_analista is None or nuevo_analista.rol != RolUsuario.ANALISTA:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="analista_id debe ser un usuario con rol analista existente",
+            )
+        proyecto.analista_id = nuevo_analista.id
 
     db.commit()
     db.refresh(proyecto)
@@ -98,9 +116,7 @@ def eliminar_proyecto(
     db: Session = Depends(get_db),
     usuario: Usuario = Depends(require_role(RolUsuario.ANALISTA, RolUsuario.SUPERVISOR)),
 ):
-    proyecto = db.get(Proyecto, proyecto_id)
-    if proyecto is None:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Proyecto no encontrado")
+    proyecto = obtener_proyecto_autorizado(db, proyecto_id, usuario)
 
     # No hay ondelete="CASCADE" en el esquema -- el borrado en cascada se hace
     # a mano acá, en orden hijo-a-padre, dentro de la misma transacción.
