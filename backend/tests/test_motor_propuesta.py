@@ -33,11 +33,10 @@ def _componente(db_session, codigo, tipo="seccional_termomagnetico", polos=1, co
     return componente
 
 
-# NOTE: catalogo_componente is a session-scoped shared table (no per-test rollback,
-# same convention as tests/test_upsert_catalogo.py) — rows from earlier tests in this
-# file stay visible to later ones. "No match" tests use thresholds no fixture in this
-# file can satisfy (e.g. corriente_nominal=500) so they stay correct regardless of
-# execution order, instead of relying on the table being empty.
+# NOTE: desde ciclo 8, conftest trunca catalogo_componente antes de cada test —
+# cada test ve solo sus propios fixtures y el orden de ejecución no importa. Los
+# umbrales defensivos de algunos tests (ej. corriente_nominal=500) quedan como
+# claridad de intención, ya no como requisito de aislamiento.
 
 
 def test_propone_el_mas_barato_que_cumple(db_session):
@@ -110,6 +109,34 @@ def test_empate_de_precio_desempata_por_codigo(db_session):
     )
 
     assert resultado.codigo == primero.codigo == "PROP-C8"
+
+
+def test_no_propone_componente_sin_precio_neto(db_session):
+    # Umbral de corriente (700A) que ningún otro fixture de la suite satisface,
+    # así el único candidato posible es este — que no tiene precio_neto y por lo
+    # tanto no es elegible. Traba la regla "sin precio no se propone" para cuando
+    # los filtros se muevan a SQL (ciclo 8 hardening).
+    sin_precio = CatalogoComponente(
+        proveedor="ABB",
+        codigo="PROP-SIN-PRECIO",
+        categoria_path=["Interruptores Termomagneticos"],
+        categoria_raiz="Interruptores Termomagneticos",
+        descripcion="Interruptor sin precio",
+        unidad="Unidad",
+        precio_neto=None,
+        atributos={"tipo": "seccional_termomagnetico", "polos": 1, "corriente_nominal_a": 777, "capacidad_corte_ka": 6},
+        archivo_origen="test.xlsx",
+        fila_origen=1,
+    )
+    db_session.add(sin_precio)
+    db_session.commit()
+
+    resultado = proponer_componente(
+        db_session, TipoProteccion.SECCIONAL_TERMOMAGNETICO, FormatoPolos.UNIPOLAR,
+        Decimal("700"), Decimal("6"), Decimal("40000"), _parametros(),
+    )
+
+    assert resultado is None
 
 
 def test_sin_candidatos_devuelve_none(db_session):
