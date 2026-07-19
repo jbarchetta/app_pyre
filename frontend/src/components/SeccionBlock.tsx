@@ -176,7 +176,10 @@ export function SeccionBlock({
               <td className="p-3">
                 {salida.componente_id ? (
                   <span className="inline-flex items-center gap-2">
-                    <span className="h-2 w-2 bg-abb-red" /> propuesto: {salida.componente_id}
+                    <span className="h-2 w-2 bg-abb-red" /> propuesto: {salida.componente_codigo ?? salida.componente_id}
+                    {salida.componente_codigo_comercial && (
+                      <span className="text-secondary"> — {salida.componente_codigo_comercial}</span>
+                    )}
                   </span>
                 ) : (
                   <span className="inline-flex items-center gap-2">
@@ -302,7 +305,12 @@ export function SeccionBlock({
               <option value="seccional_termomagnetico">Termomagnético</option>
               <option value="seccional_diferencial">Diferencial</option>
             </select>
-            <p className="text-secondary">Componente: {salidaEnEdicion.componente_id ?? "sin definir"}</p>
+            <p className="text-secondary">
+              Componente:{" "}
+              {salidaEnEdicion.componente_id
+                ? (salidaEnEdicion.componente_codigo ?? salidaEnEdicion.componente_id)
+                : "sin definir"}
+            </p>
             <button
               type="button"
               onClick={() => setPickerAbierto(true)}

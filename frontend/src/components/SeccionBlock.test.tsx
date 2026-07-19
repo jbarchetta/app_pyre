@@ -25,6 +25,8 @@ const salidaConMatch = {
   formato: "unipolar" as const,
   tipo_proteccion: "seccional_termomagnetico" as const,
   componente_id: "c1",
+  componente_codigo: "1SDA067004R1",
+  componente_codigo_comercial: "XT2N 160 TMD 160-1600",
   origen: "manual",
 };
 
@@ -95,7 +97,8 @@ describe("SeccionBlock", () => {
     );
 
     const fila = screen.getByRole("row", { name: /20 a/i });
-    expect(fila).toHaveTextContent(/propuesto: c1/i);
+    expect(fila).toHaveTextContent(/propuesto: 1SDA067004R1/i);
+    expect(screen.queryByText(/\bc1\b/)).not.toBeInTheDocument();
   });
 
   it("opens the edit modal and saves changed carga/formato/protección fields", async () => {
@@ -276,6 +279,22 @@ describe("SeccionBlock", () => {
 
     expect(await screen.findByRole("alert")).toHaveTextContent(/no se pudo borrar la salida/i);
     expect(screen.getByRole("row", { name: /20 a/i })).toBeInTheDocument();
+  });
+
+  it("shows the readable codigo (not the raw id) in the edit modal", async () => {
+    render(
+      <SeccionBlock
+        seccion={seccion}
+        salidas={[salidaConMatch]}
+        onSalidaCreada={vi.fn()}
+        onSalidaActualizada={vi.fn()}
+        onSalidaBorrada={vi.fn()}
+      />,
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: /editar salida 20 a/i }));
+
+    expect(screen.getByText(/Componente:.*1SDA067004R1/)).toBeInTheDocument();
   });
 
   it("does not close the edit modal when a mousedown starts inside it but the click resolves on the backdrop", async () => {

@@ -11,6 +11,7 @@ const tablero: Tablero = {
   nombre: "TG1",
   nivel_falla_ka: "10.00",
   interruptor_principal_id: "c1",
+  interruptor_principal_codigo: "1SDA067004R1",
 };
 
 function renderDetalle() {
@@ -378,6 +379,15 @@ describe("DetalleTablero", () => {
 
     expect(onTableroActualizado).toHaveBeenCalledWith(expect.objectContaining({ interruptor_principal_id: "c2" }));
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("shows the interruptor principal's readable codigo, not the raw id, in the Principal tab", async () => {
+    renderDetalle();
+    await screen.findByRole("tab", { name: "Sección 1" });
+    await userEvent.click(screen.getByRole("tab", { name: /principal/i }));
+
+    expect(screen.getByText(/1SDA067004R1/)).toBeInTheDocument();
+    expect(screen.queryByText(/^c1$/)).not.toBeInTheDocument();
   });
 
   it("renders the EsquemaVisualCanvas with the given zoom", async () => {

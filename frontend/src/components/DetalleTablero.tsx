@@ -493,7 +493,9 @@ export function DetalleTablero({
                 <tbody>
                   <tr>
                     <td className="p-3">
-                      {tablero.interruptor_principal_id ? tablero.interruptor_principal_id : "sin definir"}
+                      {tablero.interruptor_principal_id
+                        ? (tablero.interruptor_principal_codigo ?? tablero.interruptor_principal_id)
+                        : "sin definir"}
                     </td>
                     <td className="p-3 text-right">
                       <button
