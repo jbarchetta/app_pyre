@@ -83,10 +83,10 @@ function FilaSalida({
       onDrop={(e) => onDrop(e, index)}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
-      className={`border-b border-surface-stroke transition-all duration-200 cursor-grab active:cursor-grabbing ${
+      className={`border-b border-surface-stroke transition-all duration-150 cursor-grab active:cursor-grabbing ${
         isHovered
-          ? "bg-red-50/60 ring-1 ring-abb-red/40"
-          : "odd:bg-industrial-gray/40 hover:bg-gray-100/80"
+          ? "bg-red-50 text-gray-900 border-l-4 border-l-abb-red font-medium"
+          : "odd:bg-gray-50/60 hover:bg-gray-100/80"
       }`}
     >
       {/* Drag Handle */}
@@ -449,7 +449,7 @@ export function SeccionBlock({
       </div>
 
       {mostrarFormulario ? (
-        <form onSubmit={handleSubmit} className="flex flex-wrap items-end gap-3 p-4 border-t border-surface-stroke bg-gray-50/50">
+        <form onSubmit={handleSubmit} className="flex flex-wrap items-end gap-3.5 p-4 border-t border-surface-stroke bg-gray-50/90 shadow-inner rounded-b-lg">
           <div>
             <label htmlFor={`tag-${seccion.id}`} className="block text-xs font-semibold text-gray-700 mb-1">
               Circuito / Tag
@@ -459,7 +459,7 @@ export function SeccionBlock({
               placeholder="Ej. PG01"
               value={etiqueta}
               onChange={(e) => setEtiqueta(e.target.value)}
-              className="w-28 text-sm border border-gray-300 rounded px-2.5 py-1.5 focus:border-abb-red focus:outline-none"
+              className="w-32 text-sm border border-gray-300 rounded-md px-3 py-2 bg-white focus:border-abb-red focus:outline-none focus:ring-1 focus:ring-abb-red"
             />
           </div>
 
@@ -474,7 +474,7 @@ export function SeccionBlock({
               value={cargaValor}
               onChange={(e) => setCargaValor(e.target.value)}
               required
-              className="w-24 text-sm border border-gray-300 rounded px-2.5 py-1.5 focus:border-abb-red focus:outline-none"
+              className="w-28 text-sm border border-gray-300 rounded-md px-3 py-2 bg-white focus:border-abb-red focus:outline-none focus:ring-1 focus:ring-abb-red"
             />
             {cargaInvalidaEntero && (
               <p className="text-error text-[11px] mt-0.5">Entero requerido para Amperios</p>
@@ -489,7 +489,7 @@ export function SeccionBlock({
               id={`unidad-${seccion.id}`}
               value={cargaUnidad}
               onChange={(e) => setCargaUnidad(e.target.value)}
-              className="text-sm border border-gray-300 rounded px-2 py-1.5 bg-white focus:border-abb-red focus:outline-none"
+              className="min-w-[80px] text-sm border border-gray-300 rounded-md px-3 pr-8 py-2 bg-white focus:border-abb-red focus:outline-none focus:ring-1 focus:ring-abb-red"
             >
               <option value="A">A</option>
               <option value="kW">kW</option>
@@ -504,7 +504,7 @@ export function SeccionBlock({
               id={`formato-${seccion.id}`}
               value={formato}
               onChange={(e) => setFormato(e.target.value as FormatoPolos)}
-              className="text-sm border border-gray-300 rounded px-2 py-1.5 bg-white focus:border-abb-red focus:outline-none"
+              className="min-w-[150px] text-sm border border-gray-300 rounded-md px-3 pr-8 py-2 bg-white focus:border-abb-red focus:outline-none focus:ring-1 focus:ring-abb-red"
             >
               <option value="unipolar">Unipolar (1P)</option>
               <option value="bipolar">Bipolar (2P)</option>
@@ -521,7 +521,7 @@ export function SeccionBlock({
               id={`proteccion-${seccion.id}`}
               value={tipoProteccion}
               onChange={(e) => setTipoProteccion(e.target.value as TipoProteccion)}
-              className="text-sm border border-gray-300 rounded px-2 py-1.5 bg-white focus:border-abb-red focus:outline-none"
+              className="min-w-[165px] text-sm border border-gray-300 rounded-md px-3 pr-8 py-2 bg-white focus:border-abb-red focus:outline-none focus:ring-1 focus:ring-abb-red"
             >
               <option value="seccional_termomagnetico">Termomagnético</option>
               <option value="seccional_diferencial">Diferencial</option>

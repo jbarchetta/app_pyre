@@ -558,49 +558,97 @@ export function DetalleTablero({
           </div>
 
           {tabActivo === TAB_PRINCIPAL ? (
-            <div className="mt-4 border border-surface-stroke bg-white">
-              <h3 className="border-b border-surface-stroke bg-industrial-gray p-4 font-bold uppercase tracking-widest">
-                Principal
-              </h3>
-              {tablero.interruptor_principal_id ? (
-                <table className="w-full text-left">
+            <div className="mt-4 border border-surface-stroke bg-white rounded-lg shadow-sm overflow-hidden">
+              <div className="border-b border-surface-stroke bg-industrial-gray/60 px-4 py-3 flex items-center justify-between">
+                <h3 className="font-bold text-gray-900 uppercase tracking-widest text-sm flex items-center gap-2">
+                  <span className="material-symbols-outlined text-abb-red text-lg">shield</span>
+                  Interruptor Principal del Tablero
+                </h3>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    ultimoTriggerRef.current = e.currentTarget;
+                    setModalInterruptor(true);
+                  }}
+                  className="inline-flex items-center gap-1.5 bg-abb-red hover:bg-red-700 text-white font-semibold text-xs px-3 py-1.5 rounded transition shadow-sm"
+                >
+                  <span className="material-symbols-outlined text-sm">edit</span>
+                  {tablero.interruptor_principal_id ? "Cambiar interruptor principal" : "Asignar interruptor principal"}
+                </button>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
                   <thead>
-                    <tr className="border-b border-surface-stroke text-xs uppercase tracking-widest text-secondary">
+                    <tr className="border-b border-surface-stroke text-xs uppercase tracking-widest text-secondary bg-gray-50">
+                      <th scope="col" className="p-2 w-8 text-center">#</th>
+                      <th scope="col" className="p-3">Circuito</th>
                       <th scope="col" className="p-3">Carga</th>
-                      <th scope="col" className="p-3">Formato</th>
-                      <th scope="col" className="p-3">Estado</th>
-                      <th scope="col" className="p-3">Código SAP</th>
-                      <th scope="col" className="p-3">Código Comercial</th>
+                      <th scope="col" className="p-3">Formato / Protec</th>
+                      <th scope="col" className="p-3">Componente ABB</th>
                       <th scope="col" className="p-3 text-right">Acciones</th>
                     </tr>
                   </thead>
                   <tbody>
-                    <tr className="border-b border-surface-stroke">
-                      <td className="p-3 font-mono">
+                    <tr className="border-b border-surface-stroke transition-all duration-200 hover:bg-gray-50/80">
+                      <td className="p-2 text-center text-gray-400 font-mono text-xs font-bold w-8">P</td>
+
+                      <td className="p-3 font-semibold text-gray-900 text-sm">
+                        <span className="bg-red-100 text-abb-red px-2 py-0.5 rounded font-mono text-xs font-bold border border-red-200">
+                          PRINCIPAL
+                        </span>
+                      </td>
+
+                      <td className="p-3 font-mono font-medium text-gray-900">
                         {tablero.interruptor_principal_corriente_nominal_a
                           ? `${formatearCorriente(tablero.interruptor_principal_corriente_nominal_a)} A`
-                          : "—"}
+                          : "Calculado"}
                       </td>
-                      <td className="p-3">
-                        {tablero.interruptor_principal_polos === 3
-                          ? "tripolar"
-                          : tablero.interruptor_principal_polos === 4
-                          ? "tetrapolar"
-                          : tablero.interruptor_principal_polos === 2
-                          ? "bipolar"
-                          : tablero.interruptor_principal_polos === 1
-                          ? "unipolar"
-                          : "—"}
+
+                      <td className="p-3 text-xs text-gray-700">
+                        <span className="font-semibold text-gray-900 mr-1.5">
+                          {tablero.interruptor_principal_polos != null
+                            ? `${tablero.interruptor_principal_polos}P`
+                            : "3P"}
+                        </span>
+                        <span className="text-gray-500">(Principal TM)</span>
                       </td>
-                      <td className="p-3">
-                        <span className="material-symbols-outlined text-abb-red text-base" title="Asignado manualmente">edit_note</span>
+
+                      <td className="p-3 font-mono text-xs">
+                        <div className="flex items-center gap-2">
+                          {tablero.interruptor_principal_id ? (
+                            <>
+                              <span
+                                className="material-symbols-outlined text-abb-red text-base shrink-0"
+                                title="Asignado manualmente por el analista"
+                              >
+                                edit_note
+                              </span>
+                              <div className="flex flex-col">
+                                <span className="font-semibold text-gray-900">
+                                  {tablero.interruptor_principal_codigo ?? tablero.interruptor_principal_id}
+                                </span>
+                                {tablero.interruptor_principal_codigo_comercial && (
+                                  <span className="text-gray-500 text-[11px]">
+                                    {tablero.interruptor_principal_codigo_comercial}
+                                  </span>
+                                )}
+                              </div>
+                            </>
+                          ) : (
+                            <>
+                              <span
+                                className="material-symbols-outlined text-amber-500 text-base shrink-0 cursor-help"
+                                title="Interruptor principal aún sin definir"
+                              >
+                                warning
+                              </span>
+                              <span className="text-amber-700 italic">Interruptor principal sin definir</span>
+                            </>
+                          )}
+                        </div>
                       </td>
-                      <td className="p-3 font-mono text-xs" title={tablero.interruptor_principal_descripcion ?? undefined}>
-                        {tablero.interruptor_principal_codigo ?? tablero.interruptor_principal_id}
-                      </td>
-                      <td className="p-3 text-secondary text-xs" title={tablero.interruptor_principal_descripcion ?? undefined}>
-                        {tablero.interruptor_principal_codigo_comercial ?? "—"}
-                      </td>
+
                       <td className="p-3 text-right">
                         <button
                           type="button"
@@ -609,52 +657,16 @@ export function DetalleTablero({
                             ultimoTriggerRef.current = e.currentTarget;
                             setModalInterruptor(true);
                           }}
-                          className="text-on-background hover:text-abb-red"
+                          className="hover:text-abb-red p-1 rounded hover:bg-gray-100"
+                          title="Elegir o cambiar interruptor principal"
                         >
-                          <span className="material-symbols-outlined text-sm">edit</span>
+                          <span className="material-symbols-outlined text-base">edit</span>
                         </button>
                       </td>
                     </tr>
                   </tbody>
                 </table>
-              ) : (
-                <table className="w-full text-left">
-                  <thead>
-                    <tr className="border-b border-surface-stroke text-xs uppercase tracking-widest text-secondary">
-                      <th scope="col" className="p-3">Carga</th>
-                      <th scope="col" className="p-3">Formato</th>
-                      <th scope="col" className="p-3">Estado</th>
-                      <th scope="col" className="p-3">Código SAP</th>
-                      <th scope="col" className="p-3">Código Comercial</th>
-                      <th scope="col" className="p-3 text-right">Acciones</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr>
-                      <td className="p-3 font-mono">—</td>
-                      <td className="p-3">—</td>
-                      <td className="p-3">—</td>
-                      <td className="p-3 text-secondary italic">
-                        Interruptor principal sin definir
-                      </td>
-                      <td className="p-3 text-secondary">—</td>
-                      <td className="p-3 text-right">
-                        <button
-                          type="button"
-                          aria-label="Editar interruptor principal"
-                          onClick={(e) => {
-                            ultimoTriggerRef.current = e.currentTarget;
-                            setModalInterruptor(true);
-                          }}
-                          className="text-on-background hover:text-abb-red"
-                        >
-                          <span className="material-symbols-outlined text-sm">edit</span>
-                        </button>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              )}
+              </div>
             </div>
           ) : (
             seccionSeleccionada && (
