@@ -1,5 +1,14 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import {
+  PencilIcon,
+  TrashIcon,
+  PlusIcon,
+  ShieldCheckIcon,
+  PencilSquareIcon,
+  ExclamationTriangleIcon,
+  XMarkIcon,
+} from "@heroicons/react/24/outline";
+import {
   actualizarSeccion,
   actualizarTablero,
   crearSeccion,
@@ -320,7 +329,7 @@ export function DetalleTablero({
           }}
           className="text-on-background hover:text-abb-red"
         >
-          <span className="material-symbols-outlined text-sm">edit</span>
+          <PencilIcon className="w-3.5 h-3.5 inline" />
         </button>
       </p>
 
@@ -564,7 +573,7 @@ export function DetalleTablero({
                       className="p-1.5 hover:text-abb-red hover:bg-gray-200 rounded transition"
                       title="Renombrar fila"
                     >
-                      <span className="material-symbols-outlined text-lg">edit</span>
+                      <PencilIcon className="w-4 h-4" />
                     </button>
                     <button
                       type="button"
@@ -576,7 +585,7 @@ export function DetalleTablero({
                       className="p-1.5 hover:text-abb-red hover:bg-gray-200 rounded transition"
                       title="Eliminar fila"
                     >
-                      <span className="material-symbols-outlined text-lg">delete</span>
+                      <TrashIcon className="w-4 h-4" />
                     </button>
                   </>
                 )}
@@ -591,7 +600,7 @@ export function DetalleTablero({
                   className="p-1.5 hover:text-abb-red hover:bg-gray-200 rounded transition flex items-center gap-1 text-xs font-bold font-mono uppercase"
                   title="Agregar nueva fila"
                 >
-                  <span className="material-symbols-outlined text-lg">add</span>
+                  <PlusIcon className="w-4 h-4" />
                 </button>
               </div>
             </div>
@@ -601,7 +610,7 @@ export function DetalleTablero({
             <div className="mt-4 border border-surface-stroke bg-white rounded-lg shadow-sm overflow-hidden">
               <div className="border-b border-surface-stroke bg-industrial-gray px-4 py-2.5 flex items-center justify-between min-h-[42px]">
                 <h3 className="font-mono text-xs font-bold uppercase tracking-wider text-gray-700 flex items-center gap-2">
-                  <span className="material-symbols-outlined text-base text-abb-red">shield</span>
+                  <ShieldCheckIcon className="w-4 h-4 text-abb-red" />
                   Interruptor Principal — {tablero.nombre}
                 </h3>
               </div>
@@ -658,12 +667,10 @@ export function DetalleTablero({
                         <div className="flex items-center gap-2">
                           {tablero.interruptor_principal_id ? (
                             <>
-                              <span
-                                className="material-symbols-outlined text-abb-red text-base shrink-0"
+                              <PencilSquareIcon
+                                className="w-4 h-4 text-abb-red shrink-0"
                                 title="Asignado manualmente por el analista"
-                              >
-                                edit_note
-                              </span>
+                              />
                               <div className="flex flex-col min-w-0">
                                 <span className="font-semibold text-gray-900">
                                   {tablero.interruptor_principal_codigo ?? tablero.interruptor_principal_id}
@@ -681,12 +688,10 @@ export function DetalleTablero({
                             </>
                           ) : (
                             <>
-                              <span
-                                className="material-symbols-outlined text-amber-500 text-base shrink-0 cursor-help"
+                              <ExclamationTriangleIcon
+                                className="w-4 h-4 text-amber-500 shrink-0 cursor-help"
                                 title="Interruptor principal aún sin definir"
-                              >
-                                warning
-                              </span>
+                              />
                               <span className="text-amber-700 italic">Interruptor principal sin definir</span>
                             </>
                           )}
@@ -704,7 +709,7 @@ export function DetalleTablero({
                           className="hover:text-abb-red p-1 rounded hover:bg-gray-100"
                           title="Elegir o cambiar interruptor principal"
                         >
-                          <span className="material-symbols-outlined text-base">edit</span>
+                          <PencilIcon className="w-4 h-4" />
                         </button>
                       </td>
                     </tr>
@@ -750,7 +755,7 @@ export function DetalleTablero({
           >
             <div className="flex items-center justify-between border-b border-gray-100 pb-3 mb-4">
               <h2 className="text-base font-bold text-gray-900 flex items-center gap-2">
-                <span className="material-symbols-outlined text-abb-red">edit</span>
+                <PencilIcon className="w-5 h-5 text-abb-red" />
                 Renombrar Tablero
               </h2>
               <button
@@ -758,7 +763,7 @@ export function DetalleTablero({
                 onClick={solicitarCierreModales}
                 className="text-gray-400 hover:text-gray-600 p-1 rounded"
               >
-                <span className="material-symbols-outlined text-lg">close</span>
+                <XMarkIcon className="w-5 h-5" />
               </button>
             </div>
 

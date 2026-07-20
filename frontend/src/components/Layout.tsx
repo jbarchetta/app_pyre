@@ -1,4 +1,5 @@
 import { NavLink, Outlet } from "react-router-dom";
+import { CpuChipIcon } from "@heroicons/react/24/outline";
 
 interface NavItem {
   label: string;
@@ -49,7 +50,7 @@ export function Layout() {
       </aside>
       <div className="flex-1">
         <header className="flex h-16 items-center border-b border-surface-stroke bg-white px-8">
-          <span className="material-symbols-outlined mr-2 text-abb-red">settings_input_component</span>
+          <CpuChipIcon className="w-6 h-6 mr-2 text-abb-red" />
           <span className="text-lg font-bold text-abb-red">CONFIGURADOR PYRE</span>
         </header>
         <main className="p-8">

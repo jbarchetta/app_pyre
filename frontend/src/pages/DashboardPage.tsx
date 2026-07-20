@@ -1,5 +1,18 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import {
+  PlusIcon,
+  FolderIcon,
+  CpuChipIcon,
+  CheckCircleIcon,
+  ArchiveBoxIcon,
+  ClockIcon,
+  ArrowRightIcon,
+  AdjustmentsVerticalIcon,
+  FolderOpenIcon,
+  DocumentArrowUpIcon,
+  Cog6ToothIcon,
+} from "@heroicons/react/24/outline";
 import { listarProyectos, type Proyecto } from "../api/client";
 
 export function DashboardPage() {
@@ -37,7 +50,7 @@ export function DashboardPage() {
             to="/proyectos"
             className="inline-flex items-center gap-2 bg-abb-red hover:bg-red-700 text-white font-medium px-4 py-2 rounded shadow transition"
           >
-            <span className="material-symbols-outlined text-lg">add</span>
+            <PlusIcon className="w-5 h-5" />
             Nuevo Proyecto
           </Link>
         </div>
@@ -47,7 +60,7 @@ export function DashboardPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white border border-surface-stroke p-5 rounded-lg shadow-sm flex items-center gap-4">
           <div className="w-12 h-12 rounded-full bg-red-50 text-abb-red flex items-center justify-center font-bold text-xl">
-            <span className="material-symbols-outlined">folder</span>
+            <FolderIcon className="w-6 h-6 text-abb-red" />
           </div>
           <div>
             <div className="text-2xl font-bold text-gray-900">{cargando ? "-" : totalProyectos}</div>
@@ -57,7 +70,7 @@ export function DashboardPage() {
 
         <div className="bg-white border border-surface-stroke p-5 rounded-lg shadow-sm flex items-center gap-4">
           <div className="w-12 h-12 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-xl">
-            <span className="material-symbols-outlined">design_services</span>
+            <CpuChipIcon className="w-6 h-6 text-blue-600" />
           </div>
           <div>
             <div className="text-2xl font-bold text-gray-900">{cargando ? "-" : activos}</div>
@@ -67,7 +80,7 @@ export function DashboardPage() {
 
         <div className="bg-white border border-surface-stroke p-5 rounded-lg shadow-sm flex items-center gap-4">
           <div className="w-12 h-12 rounded-full bg-green-50 text-green-600 flex items-center justify-center font-bold text-xl">
-            <span className="material-symbols-outlined">check_circle</span>
+            <CheckCircleIcon className="w-6 h-6 text-green-600" />
           </div>
           <div>
             <div className="text-2xl font-bold text-gray-900">{cargando ? "-" : finalizados}</div>
@@ -77,7 +90,7 @@ export function DashboardPage() {
 
         <div className="bg-white border border-surface-stroke p-5 rounded-lg shadow-sm flex items-center gap-4">
           <div className="w-12 h-12 rounded-full bg-amber-50 text-amber-600 flex items-center justify-center font-bold text-xl">
-            <span className="material-symbols-outlined">inventory_2</span>
+            <ArchiveBoxIcon className="w-6 h-6 text-amber-600" />
           </div>
           <div>
             <div className="text-2xl font-bold text-gray-900">ABB</div>
@@ -92,7 +105,7 @@ export function DashboardPage() {
         <div className="lg:col-span-2 bg-white border border-surface-stroke rounded-lg shadow-sm p-5 space-y-4">
           <div className="flex items-center justify-between border-b border-gray-100 pb-3">
             <h2 className="font-semibold text-gray-900 flex items-center gap-2">
-              <span className="material-symbols-outlined text-abb-red">history</span>
+              <ClockIcon className="w-5 h-5 text-abb-red" />
               Proyectos Recientes
             </h2>
             <Link to="/proyectos" className="text-xs font-medium text-abb-red hover:underline">
@@ -148,7 +161,7 @@ export function DashboardPage() {
                       className="text-gray-400 hover:text-abb-red p-1 rounded hover:bg-white"
                       title="Abrir Workspace"
                     >
-                      <span className="material-symbols-outlined text-lg">arrow_forward</span>
+                      <ArrowRightIcon className="w-4 h-4" />
                     </Link>
                   </div>
                 </div>
@@ -161,7 +174,7 @@ export function DashboardPage() {
         <div className="space-y-4">
           <div className="bg-white border border-surface-stroke rounded-lg shadow-sm p-5 space-y-4">
             <h2 className="font-semibold text-gray-900 flex items-center gap-2 border-b border-gray-100 pb-3">
-              <span className="material-symbols-outlined text-gray-600">tune</span>
+              <AdjustmentsVerticalIcon className="w-5 h-5 text-gray-600" />
               Acceso Rápido
             </h2>
             <div className="space-y-2">
@@ -169,21 +182,21 @@ export function DashboardPage() {
                 to="/proyectos"
                 className="flex items-center gap-3 p-3 rounded border border-gray-200 hover:border-abb-red hover:bg-red-50/30 transition text-sm font-medium text-gray-800"
               >
-                <span className="material-symbols-outlined text-abb-red">folder_open</span>
+                <FolderOpenIcon className="w-5 h-5 text-abb-red" />
                 Lista de Proyectos y Tableros
               </Link>
               <Link
                 to="/catalogo"
                 className="flex items-center gap-3 p-3 rounded border border-gray-200 hover:border-abb-red hover:bg-red-50/30 transition text-sm font-medium text-gray-800"
               >
-                <span className="material-symbols-outlined text-gray-700">upload_file</span>
+                <DocumentArrowUpIcon className="w-5 h-5 text-gray-700" />
                 Importar / Actualizar Catálogo
               </Link>
               <Link
                 to="/parametros-calculo"
                 className="flex items-center gap-3 p-3 rounded border border-gray-200 hover:border-abb-red hover:bg-red-50/30 transition text-sm font-medium text-gray-800"
               >
-                <span className="material-symbols-outlined text-gray-700">settings</span>
+                <Cog6ToothIcon className="w-5 h-5 text-gray-700" />
                 Parámetros de Cálculo Electrotécnico
               </Link>
             </div>

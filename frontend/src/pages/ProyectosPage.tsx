@@ -1,6 +1,19 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import {
+  PlusIcon,
+  MagnifyingGlassIcon,
+  Squares2X2Icon,
+  TableCellsIcon,
+  FolderOpenIcon,
+  CalendarDaysIcon,
+  PencilIcon,
+  TrashIcon,
+  HashtagIcon,
+  UserIcon,
+  ArrowRightIcon,
+} from "@heroicons/react/24/outline";
+import {
   actualizarProyecto,
   crearProyecto,
   eliminarProyecto,
@@ -181,7 +194,7 @@ export function ProyectosPage() {
           }}
           className="bg-abb-red hover:bg-red-700 text-white font-medium px-5 py-2.5 rounded shadow inline-flex items-center gap-2 transition"
         >
-          <span className="material-symbols-outlined text-lg">add</span>
+          <PlusIcon className="w-5 h-5" />
           Nuevo proyecto
         </button>
       </div>
@@ -191,7 +204,7 @@ export function ProyectosPage() {
         <div className="flex flex-1 flex-col sm:flex-row items-stretch sm:items-center gap-3">
           {/* Buscador */}
           <div className="relative flex-1">
-            <span className="material-symbols-outlined absolute left-3 top-2.5 text-gray-400 text-lg">search</span>
+            <MagnifyingGlassIcon className="w-4 h-4 absolute left-3 top-3 text-gray-400" />
             <input
               type="text"
               placeholder="Buscar por nombre, cliente, código de obra o autor..."
@@ -223,7 +236,7 @@ export function ProyectosPage() {
               modoVista === "tarjetas" ? "bg-white text-abb-red shadow-sm" : "text-gray-600 hover:text-gray-900"
             }`}
           >
-            <span className="material-symbols-outlined text-base">grid_view</span>
+            <Squares2X2Icon className="w-4 h-4" />
             Tarjetas
           </button>
           <button
@@ -233,15 +246,15 @@ export function ProyectosPage() {
               modoVista === "tabla" ? "bg-white text-abb-red shadow-sm" : "text-gray-600 hover:text-gray-900"
             }`}
           >
-            <span className="material-symbols-outlined text-base">table_rows</span>
+            <TableCellsIcon className="w-4 h-4" />
             Tabla
           </button>
         </div>
       </div>
 
       {proyectosFiltrados.length === 0 ? (
-        <div className="text-center py-12 border border-dashed border-gray-300 rounded-lg bg-gray-50">
-          <span className="material-symbols-outlined text-4xl text-gray-400">folder_open</span>
+        <div className="text-center py-12 border border-dashed border-gray-300 rounded-lg bg-gray-50 flex flex-col items-center justify-center">
+          <FolderOpenIcon className="w-10 h-10 text-gray-400" />
           <p className="mt-2 text-gray-600 font-medium">No se encontraron proyectos</p>
           <p className="text-xs text-gray-500">Pruebe ajustando el buscador o los filtros</p>
         </div>
@@ -249,7 +262,7 @@ export function ProyectosPage() {
         Object.entries(agrupadosPorMes).map(([mes, lista]) => (
           <div key={mes} className="space-y-3">
             <h2 className="text-xs font-bold uppercase tracking-wider text-gray-500 border-b border-gray-200 pb-1 flex items-center gap-1.5">
-              <span className="material-symbols-outlined text-sm">calendar_month</span>
+              <CalendarDaysIcon className="w-4 h-4" />
               {mes} <span className="text-gray-400 font-normal">({lista.length})</span>
             </h2>
 
@@ -276,7 +289,7 @@ export function ProyectosPage() {
                             }}
                             className="text-gray-400 hover:text-abb-red p-1 rounded hover:bg-gray-100"
                           >
-                            <span className="material-symbols-outlined text-base">edit</span>
+                            <PencilIcon className="w-4 h-4" />
                           </button>
                           <button
                             type="button"
@@ -288,7 +301,7 @@ export function ProyectosPage() {
                             }}
                             className="text-gray-400 hover:text-abb-red p-1 rounded hover:bg-gray-100"
                           >
-                            <span className="material-symbols-outlined text-base">delete</span>
+                            <TrashIcon className="w-4 h-4" />
                           </button>
                         </div>
                       </div>
@@ -300,19 +313,19 @@ export function ProyectosPage() {
                       <div className="space-y-1 text-xs text-gray-500 border-t border-gray-100 pt-2 mb-4">
                         {proyecto.codigo_obra && (
                           <div className="flex items-center gap-1.5">
-                            <span className="material-symbols-outlined text-xs">tag</span>
+                            <HashtagIcon className="w-3.5 h-3.5" />
                             Obra: <span className="font-mono bg-gray-100 px-1 rounded text-gray-700">{proyecto.codigo_obra}</span>
                           </div>
                         )}
                         {proyecto.analista_nombre && (
                           <div className="flex items-center gap-1.5">
-                            <span className="material-symbols-outlined text-xs">person</span>
+                            <UserIcon className="w-3.5 h-3.5" />
                             Diseñador: <span className="text-gray-700">{proyecto.analista_nombre}</span>
                           </div>
                         )}
                         {proyecto.fecha_inicio && (
                           <div className="flex items-center gap-1.5">
-                            <span className="material-symbols-outlined text-xs">event</span>
+                            <CalendarDaysIcon className="w-3.5 h-3.5" />
                             Inicio: <span className="text-gray-700">{new Date(proyecto.fecha_inicio).toLocaleDateString()}</span>
                           </div>
                         )}
@@ -336,7 +349,7 @@ export function ProyectosPage() {
                         className="text-xs font-semibold text-abb-red hover:underline flex items-center gap-1"
                       >
                         Abrir
-                        <span className="material-symbols-outlined text-sm">arrow_forward</span>
+                        <ArrowRightIcon className="w-3.5 h-3.5" />
                       </Link>
                     </div>
                   </div>
@@ -383,18 +396,18 @@ export function ProyectosPage() {
                           <button
                             type="button"
                             onClick={(e) => abrirEditar(proyecto, e.currentTarget)}
-                            className="text-gray-500 hover:text-abb-red"
+                            className="text-gray-500 hover:text-abb-red p-1"
                             title="Editar"
                           >
-                            <span className="material-symbols-outlined text-lg">edit</span>
+                            <PencilIcon className="w-4 h-4 inline" />
                           </button>
                           <button
                             type="button"
                             onClick={(e) => handlePedirBorrado(proyecto, e.currentTarget)}
-                            className="text-gray-500 hover:text-abb-red"
+                            className="text-gray-500 hover:text-abb-red p-1"
                             title="Borrar"
                           >
-                            <span className="material-symbols-outlined text-lg">delete</span>
+                            <TrashIcon className="w-4 h-4 inline" />
                           </button>
                         </td>
                       </tr>

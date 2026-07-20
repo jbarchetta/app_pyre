@@ -1,6 +1,13 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import {
+  ArrowLeftIcon,
+  PencilIcon,
+  TrashIcon,
+  PlusIcon,
+  BuildingOffice2Icon,
+} from "@heroicons/react/24/outline";
+import {
   actualizarTablero,
   crearTablero,
   eliminarTablero,
@@ -210,7 +217,7 @@ export function ProyectoWorkspacePage() {
           to="/proyectos"
           className="self-start sm:self-auto inline-flex items-center gap-1.5 px-3 py-1.5 border border-gray-300 rounded text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 hover:border-gray-400 transition"
         >
-          <span className="material-symbols-outlined text-base">arrow_back</span>
+          <ArrowLeftIcon className="w-4 h-4" />
           Volver a Proyectos
         </Link>
       </div>
@@ -250,7 +257,7 @@ export function ProyectoWorkspacePage() {
                 className="hover:text-abb-red p-1"
                 title="Renombrar tablero"
               >
-                <span className="material-symbols-outlined text-base">edit</span>
+                <PencilIcon className="w-4 h-4" />
               </button>
               <button
                 type="button"
@@ -262,7 +269,7 @@ export function ProyectoWorkspacePage() {
                 className="hover:text-abb-red p-1"
                 title="Borrar tablero"
               >
-                <span className="material-symbols-outlined text-base">delete</span>
+                <TrashIcon className="w-4 h-4" />
               </button>
             </>
           )}
@@ -275,7 +282,7 @@ export function ProyectoWorkspacePage() {
             }}
             className="inline-flex items-center gap-1 bg-abb-red hover:bg-red-700 text-white text-xs font-semibold px-3 py-1.5 rounded transition shadow-sm"
           >
-            <span className="material-symbols-outlined text-base">add</span>
+            <PlusIcon className="w-4 h-4" />
             Nuevo Tablero
           </button>
         </div>
@@ -284,7 +291,7 @@ export function ProyectoWorkspacePage() {
       {tableroActivo === null ? (
         <div className="my-12 text-center border-2 border-dashed border-gray-300 rounded-xl p-12 bg-white shadow-sm max-w-2xl mx-auto space-y-4">
           <div className="w-16 h-16 bg-red-50 text-abb-red rounded-full flex items-center justify-center mx-auto text-3xl font-bold">
-            <span className="material-symbols-outlined text-4xl">domain</span>
+            <BuildingOffice2Icon className="w-8 h-8" />
           </div>
           <div>
             <h2 className="text-xl font-bold text-gray-900">Este proyecto aún no tiene tableros</h2>
@@ -300,7 +307,7 @@ export function ProyectoWorkspacePage() {
             }}
             className="inline-flex items-center gap-2 bg-abb-red hover:bg-red-700 text-white font-semibold px-6 py-3 rounded-lg shadow-md transition transform hover:-translate-y-0.5"
           >
-            <span className="material-symbols-outlined text-xl">add</span>
+            <PlusIcon className="w-5 h-5" />
             Crear mi primer tablero
           </button>
         </div>
