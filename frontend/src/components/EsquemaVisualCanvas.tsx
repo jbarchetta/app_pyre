@@ -137,7 +137,7 @@ export function EsquemaVisualCanvas({
     <>
       <div className="border border-surface-stroke bg-white rounded-lg shadow-sm overflow-hidden flex flex-col">
         {/* Cabecera del Blueprint */}
-        <div className="flex items-center justify-between border-b border-surface-stroke bg-industrial-gray px-4 py-2.5">
+        <div className="flex items-center justify-between border-b border-surface-stroke bg-industrial-gray px-4 py-2.5 min-h-[42px]">
           <span className="font-mono text-xs font-bold uppercase tracking-wider text-gray-700 flex items-center gap-2">
             <span className="material-symbols-outlined text-base text-abb-red">schema</span>
             Vista Unifilar / Blueprint

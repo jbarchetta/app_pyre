@@ -551,21 +551,7 @@ export function DetalleTablero({
                 ))}
               </div>
               <div className="ml-auto flex items-center gap-1 text-gray-600">
-                {tabActivo === TAB_PRINCIPAL ? (
-                  <button
-                    type="button"
-                    aria-label="Renombrar tablero"
-                    onClick={(e) => {
-                      ultimoTriggerRef.current = e.currentTarget;
-                      setNombreTableroEdit(tablero.nombre);
-                      setModalRenombrarTablero(true);
-                    }}
-                    className="p-1.5 hover:text-abb-red hover:bg-gray-200 rounded transition"
-                    title="Renombrar tablero"
-                  >
-                    <span className="material-symbols-outlined text-lg">edit</span>
-                  </button>
-                ) : seccionSeleccionada ? (
+                {tabActivo !== TAB_PRINCIPAL && seccionSeleccionada && (
                   <>
                     <button
                       type="button"
@@ -593,7 +579,7 @@ export function DetalleTablero({
                       <span className="material-symbols-outlined text-lg">delete</span>
                     </button>
                   </>
-                ) : null}
+                )}
                 <button
                   type="button"
                   aria-label="Nueva fila"
@@ -613,24 +599,11 @@ export function DetalleTablero({
 
           {tabActivo === TAB_PRINCIPAL ? (
             <div className="mt-4 border border-surface-stroke bg-white rounded-lg shadow-sm overflow-hidden">
-              <div className="border-b border-surface-stroke bg-industrial-gray px-4 py-2.5 flex items-center justify-between">
+              <div className="border-b border-surface-stroke bg-industrial-gray px-4 py-2.5 flex items-center justify-between min-h-[42px]">
                 <h3 className="font-mono text-xs font-bold uppercase tracking-wider text-gray-700 flex items-center gap-2">
                   <span className="material-symbols-outlined text-base text-abb-red">shield</span>
                   Interruptor Principal — {tablero.nombre}
                 </h3>
-                <button
-                  type="button"
-                  aria-label="Renombrar tablero"
-                  onClick={(e) => {
-                    ultimoTriggerRef.current = e.currentTarget;
-                    setNombreTableroEdit(tablero.nombre);
-                    setModalRenombrarTablero(true);
-                  }}
-                  className="p-1.5 text-gray-600 hover:text-abb-red hover:bg-gray-200 rounded transition"
-                  title="Renombrar tablero"
-                >
-                  <span className="material-symbols-outlined text-lg">edit</span>
-                </button>
               </div>
 
               <div className="overflow-x-auto">
