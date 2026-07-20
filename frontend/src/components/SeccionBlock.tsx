@@ -422,11 +422,11 @@ export function SeccionBlock({
 
   return (
     <div className="mt-4 border border-surface-stroke bg-white rounded-lg shadow-sm overflow-hidden">
-      <div className="border-b border-surface-stroke bg-industrial-gray/60 px-4 py-3 flex items-center justify-between">
-        <h3 className="font-bold text-gray-900 uppercase tracking-widest text-sm flex items-center gap-2">
-          <span className="material-symbols-outlined text-abb-red text-lg">segment</span>
+      <div className="border-b border-surface-stroke bg-industrial-gray px-4 py-2.5 flex items-center justify-between">
+        <h3 className="font-mono text-xs font-bold uppercase tracking-wider text-gray-700 flex items-center gap-2">
+          <span className="material-symbols-outlined text-base text-abb-red">segment</span>
           {seccion.nombre}
-          <span className="text-xs text-gray-500 font-normal">({salidas.length} salidas)</span>
+          <span className="text-xs text-gray-500 font-normal lowercase font-sans">({salidas.length} salidas)</span>
         </h3>
       </div>
 

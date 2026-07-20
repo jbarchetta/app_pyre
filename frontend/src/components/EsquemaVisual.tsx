@@ -101,7 +101,7 @@ export function EsquemaVisual({
       role="img"
       aria-label="Esquema visual del tablero"
       viewBox={`${vX} ${vY} ${vWidth} ${vHeight}`}
-      className="w-full max-w-full h-auto min-h-[320px] max-h-[65vh] bg-white rounded-lg border border-gray-200 select-none shadow-sm transition-all duration-200"
+      className="w-full max-w-full h-auto min-h-[320px] max-h-[65vh] bg-slate-50/50 select-none transition-all duration-200"
     >
       <defs>
         <pattern id={patternId} patternUnits="userSpaceOnUse" width={6} height={6} patternTransform="rotate(45)">

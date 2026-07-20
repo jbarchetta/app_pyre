@@ -490,86 +490,91 @@ export function DetalleTablero({
           />
         </div>
         <div className="w-full min-w-0">
-          <div className="flex flex-wrap items-center gap-1 border-b border-surface-stroke">
-            <div role="tablist" aria-label="Filas del tablero" className="flex flex-wrap gap-1">
-              <button
-                role="tab"
-                type="button"
-                aria-selected={tabActivo === TAB_PRINCIPAL}
-                onClick={() => setTabSeleccionadoRaw(TAB_PRINCIPAL)}
-                className={`px-4 py-2 text-sm uppercase tracking-widest ${
-                  tabActivo === TAB_PRINCIPAL
-                    ? "border-b-2 border-abb-red text-abb-red"
-                    : "text-secondary hover:text-on-background"
-                }`}
-              >
-                Principal
-              </button>
-              {secciones.map(({ seccion }) => (
+          <div className="border border-surface-stroke bg-white rounded-t-lg overflow-hidden">
+            <div className="flex flex-wrap items-center justify-between border-b border-surface-stroke bg-industrial-gray px-4 py-2 gap-2">
+              <div role="tablist" aria-label="Filas del tablero" className="flex flex-wrap items-center gap-1">
                 <button
-                  key={seccion.id}
                   role="tab"
                   type="button"
-                  aria-selected={seccion.id === tabActivo}
-                  onClick={() => setTabSeleccionadoRaw(seccion.id)}
-                  className={`px-4 py-2 text-sm uppercase tracking-widest ${
-                    seccion.id === tabActivo
-                      ? "border-b-2 border-abb-red text-abb-red"
-                      : "text-secondary hover:text-on-background"
+                  aria-selected={tabActivo === TAB_PRINCIPAL}
+                  onClick={() => setTabSeleccionadoRaw(TAB_PRINCIPAL)}
+                  className={`px-3 py-1.5 font-mono text-xs font-bold uppercase tracking-wider rounded transition ${
+                    tabActivo === TAB_PRINCIPAL
+                      ? "bg-white text-abb-red shadow-sm border border-gray-200"
+                      : "text-gray-600 hover:text-gray-900 hover:bg-gray-200/60"
                   }`}
                 >
-                  {seccion.nombre}
+                  Principal
                 </button>
-              ))}
-            </div>
-            <div className="ml-auto flex gap-3 px-2 text-on-background">
-              {tabActivo !== TAB_PRINCIPAL && seccionSeleccionada && (
-                <>
+                {secciones.map(({ seccion }) => (
                   <button
+                    key={seccion.id}
+                    role="tab"
                     type="button"
-                    aria-label="Renombrar fila activa"
-                    onClick={(e) => {
-                      ultimoTriggerRef.current = e.currentTarget;
-                      setNombreFilaEdit(seccionSeleccionada.seccion.nombre);
-                      setFilaEnEdicion(seccionSeleccionada.seccion);
-                    }}
-                    className="hover:text-abb-red"
+                    aria-selected={seccion.id === tabActivo}
+                    onClick={() => setTabSeleccionadoRaw(seccion.id)}
+                    className={`px-3 py-1.5 font-mono text-xs font-bold uppercase tracking-wider rounded transition ${
+                      seccion.id === tabActivo
+                        ? "bg-white text-abb-red shadow-sm border border-gray-200"
+                        : "text-gray-600 hover:text-gray-900 hover:bg-gray-200/60"
+                    }`}
                   >
-                    <span className="material-symbols-outlined text-base">edit</span>
+                    {seccion.nombre}
                   </button>
-                  <button
-                    type="button"
-                    aria-label="Borrar fila activa"
-                    onClick={(e) => {
-                      ultimoTriggerRef.current = e.currentTarget;
-                      setFilaABorrar(seccionSeleccionada.seccion);
-                    }}
-                    className="hover:text-abb-red"
-                  >
-                    <span className="material-symbols-outlined text-base">delete</span>
-                  </button>
-                </>
-              )}
-              <button
-                type="button"
-                aria-label="Nueva fila"
-                onClick={(e) => {
-                  ultimoTriggerRef.current = e.currentTarget;
-                  setNombreNuevaFila("");
-                  setModalNuevaFila(true);
-                }}
-                className="hover:text-abb-red"
-              >
-                <span className="material-symbols-outlined text-base">add</span>
-              </button>
+                ))}
+              </div>
+              <div className="ml-auto flex items-center gap-1 text-gray-600">
+                {tabActivo !== TAB_PRINCIPAL && seccionSeleccionada && (
+                  <>
+                    <button
+                      type="button"
+                      aria-label="Renombrar fila activa"
+                      onClick={(e) => {
+                        ultimoTriggerRef.current = e.currentTarget;
+                        setNombreFilaEdit(seccionSeleccionada.seccion.nombre);
+                        setFilaEnEdicion(seccionSeleccionada.seccion);
+                      }}
+                      className="p-1.5 hover:text-abb-red hover:bg-gray-200 rounded transition"
+                      title="Renombrar fila"
+                    >
+                      <span className="material-symbols-outlined text-lg">edit</span>
+                    </button>
+                    <button
+                      type="button"
+                      aria-label="Borrar fila activa"
+                      onClick={(e) => {
+                        ultimoTriggerRef.current = e.currentTarget;
+                        setFilaABorrar(seccionSeleccionada.seccion);
+                      }}
+                      className="p-1.5 hover:text-abb-red hover:bg-gray-200 rounded transition"
+                      title="Eliminar fila"
+                    >
+                      <span className="material-symbols-outlined text-lg">delete</span>
+                    </button>
+                  </>
+                )}
+                <button
+                  type="button"
+                  aria-label="Nueva fila"
+                  onClick={(e) => {
+                    ultimoTriggerRef.current = e.currentTarget;
+                    setNombreNuevaFila("");
+                    setModalNuevaFila(true);
+                  }}
+                  className="p-1.5 hover:text-abb-red hover:bg-gray-200 rounded transition flex items-center gap-1 text-xs font-bold font-mono uppercase"
+                  title="Agregar nueva fila"
+                >
+                  <span className="material-symbols-outlined text-lg">add</span>
+                </button>
+              </div>
             </div>
           </div>
 
           {tabActivo === TAB_PRINCIPAL ? (
             <div className="mt-4 border border-surface-stroke bg-white rounded-lg shadow-sm overflow-hidden">
-              <div className="border-b border-surface-stroke bg-industrial-gray/60 px-4 py-3 flex items-center justify-between">
-                <h3 className="font-bold text-gray-900 uppercase tracking-widest text-sm flex items-center gap-2">
-                  <span className="material-symbols-outlined text-abb-red text-lg">shield</span>
+              <div className="border-b border-surface-stroke bg-industrial-gray px-4 py-2.5 flex items-center justify-between">
+                <h3 className="font-mono text-xs font-bold uppercase tracking-wider text-gray-700 flex items-center gap-2">
+                  <span className="material-symbols-outlined text-base text-abb-red">shield</span>
                   Interruptor Principal del Tablero
                 </h3>
                 <button

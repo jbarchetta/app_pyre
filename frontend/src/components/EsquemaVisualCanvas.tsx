@@ -137,8 +137,8 @@ export function EsquemaVisualCanvas({
     <>
       <div className="border border-surface-stroke bg-white rounded-lg shadow-sm overflow-hidden flex flex-col">
         {/* Cabecera del Blueprint */}
-        <div className="flex items-center justify-between border-b border-surface-stroke bg-industrial-gray p-3">
-          <span className="font-mono text-xs font-bold uppercase tracking-wider text-gray-700 flex items-center gap-1.5">
+        <div className="flex items-center justify-between border-b border-surface-stroke bg-industrial-gray px-4 py-2.5">
+          <span className="font-mono text-xs font-bold uppercase tracking-wider text-gray-700 flex items-center gap-2">
             <span className="material-symbols-outlined text-base text-abb-red">schema</span>
             Vista Unifilar / Blueprint
           </span>
@@ -147,7 +147,7 @@ export function EsquemaVisualCanvas({
 
         {/* Panel desplegable de capas */}
         {panelCapasAbierto && (
-          <div className="flex gap-4 border-b border-surface-stroke p-3 bg-gray-50 text-xs font-medium">
+          <div className="flex gap-4 border-b border-surface-stroke px-4 py-2.5 bg-gray-50 text-xs font-medium">
             <label className="flex items-center gap-1.5 cursor-pointer">
               <input
                 type="checkbox"
@@ -171,7 +171,7 @@ export function EsquemaVisualCanvas({
 
         {/* Área del Blueprint con Pan (arrastre de ratón) y Zoom con rueda de ratón */}
         <div
-          className={`flex min-h-[360px] max-h-[70vh] justify-center overflow-hidden p-4 bg-slate-50/70 ${
+          className={`flex min-h-[360px] max-h-[70vh] justify-center overflow-hidden bg-slate-50/50 ${
             isDragging ? "cursor-grabbing" : "cursor-grab"
           }`}
           onWheel={handleWheel}
