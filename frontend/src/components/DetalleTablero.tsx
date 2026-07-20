@@ -590,7 +590,7 @@ export function DetalleTablero({
                     </tr>
                   </thead>
                   <tbody>
-                    <tr className="border-b border-surface-stroke transition-all duration-200 hover:bg-gray-50/80">
+                    <tr className="border-b border-surface-stroke border-l-4 border-l-transparent transition-colors duration-150 hover:bg-gray-50/80 hover:border-l-abb-red">
                       <td className="p-2 text-center text-gray-400 font-mono text-xs font-bold w-8">P</td>
 
                       <td className="p-3 font-semibold text-gray-900 text-sm">

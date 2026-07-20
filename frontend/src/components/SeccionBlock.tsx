@@ -83,10 +83,10 @@ function FilaSalida({
       onDrop={(e) => onDrop(e, index)}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
-      className={`border-b border-surface-stroke transition-all duration-150 cursor-grab active:cursor-grabbing ${
+      className={`border-b border-surface-stroke border-l-4 transition-colors duration-150 cursor-grab active:cursor-grabbing ${
         isHovered
-          ? "bg-red-50 text-gray-900 border-l-4 border-l-abb-red font-medium"
-          : "odd:bg-gray-50/60 hover:bg-gray-100/80"
+          ? "bg-red-50 text-gray-900 border-l-abb-red font-medium"
+          : "border-l-transparent odd:bg-gray-50/60 hover:bg-gray-100/80"
       }`}
     >
       {/* Drag Handle */}
