@@ -4,7 +4,7 @@ import type { Salida, Seccion } from "../api/client";
 const ANCHO_CARD = 114;
 const ALTO_CARD = 48;
 const GAP_X = 14;
-const ALTO_SECCION = 125;
+const ALTO_SECCION = 130;
 
 const FORMATO_LABEL: Record<Salida["formato"], string> = {
   unipolar: "1P",
@@ -47,21 +47,24 @@ export function EsquemaVisual({
 
   // Calcular el número máximo de salidas para definir el ancho del viewBox
   const maxSalidas = Math.max(1, ...secciones.map((s) => s.salidas.length));
-  const anchoViewBox = Math.max(520, 50 + maxSalidas * (ANCHO_CARD + GAP_X));
+  const anchoViewBox = Math.max(540, 60 + maxSalidas * (ANCHO_CARD + GAP_X));
 
-  const offsetEmbarrado = capas.embarrado ? 45 : 10;
+  const offsetPrincipal = tieneInterruptorPrincipal ? 95 : 20;
   const numSecciones = Math.max(1, secciones.length);
-  const altoBase = 65 + offsetEmbarrado + numSecciones * ALTO_SECCION;
+  const altoBase = 40 + offsetPrincipal + numSecciones * ALTO_SECCION;
   const vWidth = anchoViewBox / zoom;
   const vHeight = altoBase / zoom;
   const vX = (anchoViewBox - vWidth) / 2 + panX;
   const vY = panY;
 
-  const mainBreakerX = anchoViewBox / 2 - 75;
+  const mainBreakerWidth = 134;
+  const mainBreakerX = anchoViewBox / 2 - mainBreakerWidth / 2;
   const mainBreakerY = 12;
-  const busbarY = 12 + offsetEmbarrado;
 
-  const ultimaSeccionY = busbarY + 30 + (numSecciones - 1) * ALTO_SECCION;
+  const fila1CardY = 12 + offsetPrincipal;
+  const fila1SubBusbarY = fila1CardY - 14;
+
+  const ultimaSeccionY = 12 + offsetPrincipal + (numSecciones - 1) * ALTO_SECCION;
   const ultimoSubBusbarY = ultimaSeccionY - 14;
 
   return (
@@ -78,78 +81,135 @@ export function EsquemaVisual({
         </pattern>
       </defs>
 
-      {/* Interruptor Principal Q1 (Top Center) */}
+      {/* Interruptor Principal Estandarizado (Top Center con Tono Rojo Especial) */}
       {tieneInterruptorPrincipal && (
         <g data-testid="interruptor-principal">
+          {/* Tarjeta del Main Breaker */}
           <rect
             x={mainBreakerX}
             y={mainBreakerY}
-            width={150}
-            height={32}
-            fill="#ffffff"
+            width={mainBreakerWidth}
+            height={ALTO_CARD}
+            fill="#fff5f5"
             stroke="#b91c1c"
             strokeWidth={2}
-            rx={3}
+            rx={2}
           />
+
+          {/* Cabecera del Main Breaker */}
           <text
-            x={anchoViewBox / 2}
-            y={mainBreakerY + 20}
+            x={mainBreakerX + 8}
+            y={mainBreakerY + 15}
+            fontFamily="sans-serif"
+            fontSize={11}
+            fontWeight="bold"
             fill="#b91c1c"
+          >
+            Q1
+          </text>
+
+          <text
+            x={mainBreakerX + mainBreakerWidth - 8}
+            y={mainBreakerY + 14}
+            fontFamily="sans-serif"
+            fontSize={9}
+            fill="#b91c1c"
+            fontWeight="bold"
+            textAnchor="end"
+          >
+            3P
+          </text>
+
+          {/* Línea divisoria de acento rojo bajo la cabecera */}
+          <line
+            x1={mainBreakerX + 6}
+            y1={mainBreakerY + 22}
+            x2={mainBreakerX + mainBreakerWidth - 6}
+            y2={mainBreakerY + 22}
+            stroke="#b91c1c"
+            strokeWidth={1.5}
+          />
+
+          {/* Texto principal en la tarjeta */}
+          <text
+            x={mainBreakerX + 8}
+            y={mainBreakerY + 38}
+            fontFamily="sans-serif"
             fontSize={10}
             fontWeight="bold"
-            textAnchor="middle"
-            fontFamily="sans-serif"
+            fill="#b91c1c"
           >
-            MAIN BREAKER Q1
+            MAIN BREAKER
           </text>
-          {/* Línea vertical desde el Principal hacia el embarrado */}
+
+          {/* Bajada vertical limpia directamente hacia el sub-embarrado de la Fila 1 */}
           {capas.embarrado && (
             <line
               x1={anchoViewBox / 2}
-              y1={mainBreakerY + 32}
+              y1={mainBreakerY + ALTO_CARD + 30}
               x2={anchoViewBox / 2}
-              y2={busbarY}
-              stroke="#374151"
+              y2={fila1SubBusbarY}
+              stroke="#b91c1c"
               strokeWidth={2}
             />
+          )}
+
+          {/* Badge Pill Ampliado de Corriente del Main Breaker */}
+          {capas.codigos && (
+            <g>
+              <line
+                x1={anchoViewBox / 2}
+                y1={mainBreakerY + ALTO_CARD}
+                x2={anchoViewBox / 2}
+                y2={mainBreakerY + ALTO_CARD + 10}
+                stroke="#b91c1c"
+                strokeWidth={1.5}
+              />
+              <rect
+                x={anchoViewBox / 2 - 42}
+                y={mainBreakerY + ALTO_CARD + 10}
+                width={84}
+                height={20}
+                rx={2}
+                fill="#b91c1c"
+              />
+              <text
+                x={anchoViewBox / 2}
+                y={mainBreakerY + ALTO_CARD + 23}
+                fontFamily="sans-serif"
+                fontSize={10.5}
+                fontWeight="bold"
+                fill="#ffffff"
+                textAnchor="middle"
+              >
+                MAIN / 3P
+              </text>
+            </g>
           )}
         </g>
       )}
 
-      {/* Busbar / Embarrado General */}
+      {/* Busbar / Troncal alimentador vertical lateral */}
       {capas.embarrado && (
         <g data-testid="embarrado">
-          {/* Línea horizontal principal del embarrado */}
-          <line
-            x1={12}
-            y1={busbarY}
-            x2={anchoViewBox - 20}
-            y2={busbarY}
-            stroke="#374151"
-            strokeWidth={2.5}
-          />
-          {/* Troncal alimentador vertical por el margen izquierdo hacia todas las filas */}
+          {/* Troncal alimentador vertical por el margen izquierdo (x = 12px) */}
           {numSecciones > 0 && (
             <line
               x1={12}
-              y1={busbarY}
+              y1={fila1SubBusbarY}
               x2={12}
               y2={ultimoSubBusbarY}
               stroke="#374151"
               strokeWidth={2.5}
             />
           )}
-          {/* Etiqueta del embarrado */}
-          <text x={24} y={busbarY - 6} fontSize={9} fontWeight="bold" fill="#4b5563" fontFamily="sans-serif">
-            L1, L2, L3 + N + PE
-          </text>
         </g>
       )}
 
       {/* Secciones y Salidas */}
       {secciones.map(({ seccion, salidas }, seccionIndex) => {
         const seccionNum = seccion.orden != null ? seccion.orden + 1 : seccionIndex + 1;
-        const cardY = busbarY + 30 + seccionIndex * ALTO_SECCION;
+        const cardY = 12 + offsetPrincipal + seccionIndex * ALTO_SECCION;
         const rowBusbarY = cardY - 14;
 
         const anchoFila = Math.max(100, 30 + salidas.length * (ANCHO_CARD + GAP_X) - GAP_X);
@@ -284,27 +344,27 @@ export function EsquemaVisual({
                     x1={cardX + ANCHO_CARD / 2}
                     y1={cardY + ALTO_CARD}
                     x2={cardX + ANCHO_CARD / 2}
-                    y2={cardY + ALTO_CARD + 14}
+                    y2={cardY + ALTO_CARD + 10}
                     stroke="#374151"
                     strokeWidth={1.5}
                   />
 
-                  {/* Badge de Amperios / Tipo (pill inferior) */}
+                  {/* Badge Pill Ampliado de Corriente / Tipo (pill inferior) */}
                   {capas.codigos && (
                     <g data-testid={`salida-${salida.id}-codigo`}>
                       <rect
-                        x={cardX + ANCHO_CARD / 2 - 34}
+                        x={cardX + ANCHO_CARD / 2 - 42}
                         y={cardY + ALTO_CARD + 10}
-                        width={68}
-                        height={16}
+                        width={84}
+                        height={20}
                         rx={2}
                         fill={salida.tipo_proteccion === "seccional_diferencial" ? "#b91c1c" : "#374151"}
                       />
                       <text
                         x={cardX + ANCHO_CARD / 2}
-                        y={cardY + ALTO_CARD + 21}
+                        y={cardY + ALTO_CARD + 23}
                         fontFamily="sans-serif"
-                        fontSize={9}
+                        fontSize={10.5}
                         fontWeight="bold"
                         fill="#ffffff"
                         textAnchor="middle"

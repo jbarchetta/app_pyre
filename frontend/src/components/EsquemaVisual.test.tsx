@@ -115,6 +115,6 @@ describe("EsquemaVisual", () => {
 
     const svg = screen.getByRole("img", { name: /esquema visual del tablero/i });
     const [, , viewBoxAncho] = svg.getAttribute("viewBox")!.split(" ").map(Number);
-    expect(viewBoxAncho).toBe(260);
+    expect(viewBoxAncho).toBe(270);
   });
 });

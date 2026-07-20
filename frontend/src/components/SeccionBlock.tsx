@@ -101,10 +101,13 @@ function FilaSalida({
         </div>
       </td>
 
-      {/* Etiqueta / Circuito */}
-      <td className="p-3 font-semibold text-gray-900 text-sm">
+      {/* Etiqueta / Circuito (Limitado para no expandir la tabla) */}
+      <td className="p-3 font-semibold text-gray-900 text-sm max-w-[120px]">
         {salida.etiqueta ? (
-          <span className="bg-gray-100 text-gray-800 px-2 py-0.5 rounded font-mono text-xs border border-gray-200">
+          <span
+            className="bg-gray-100 text-gray-800 px-2 py-0.5 rounded font-mono text-xs border border-gray-200 truncate inline-block max-w-[110px] align-middle"
+            title={salida.etiqueta}
+          >
             {salida.etiqueta}
           </span>
         ) : (
