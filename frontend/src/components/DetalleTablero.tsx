@@ -58,15 +58,20 @@ export function DetalleTablero({
   const [filaABorrar, setFilaABorrar] = useState<Seccion | null>(null);
   const [borrandoFila, setBorrandoFila] = useState(false);
   const [nivelFallaKaEdit, setNivelFallaKaEdit] = useState("");
+  const [modalRenombrarTablero, setModalRenombrarTablero] = useState(false);
+  const [nombreTableroEdit, setNombreTableroEdit] = useState("");
+  const [guardandoTablero, setGuardandoTablero] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [confirmandoDescarteEdicion, setConfirmandoDescarteEdicion] = useState(false);
   const [hoveredSalidaId, setHoveredSalidaId] = useState<string | null>(null);
   const ultimoTriggerRef = useRef<HTMLElement | null>(null);
   const nivelFallaInputRef = useRef<HTMLInputElement>(null);
   const nombreFilaInputRef = useRef<HTMLInputElement>(null);
+  const nombreTableroInputRef = useRef<HTMLInputElement>(null);
   const modalIccRef = useRef(false);
   const modalInterruptorRef = useRef(false);
   const modalNuevaFilaRef = useRef(false);
+  const modalRenombrarTableroRef = useRef(false);
   const filaEnEdicionIdRef = useRef<string | null>(null);
 
   function handleSalidaClickInBlueprint(salida: Salida) {
@@ -133,13 +138,16 @@ export function DetalleTablero({
     setNombreNuevaFila("");
     setFilaEnEdicion(null);
     filaEnEdicionIdRef.current = null;
+    setModalRenombrarTablero(false);
+    modalRenombrarTableroRef.current = false;
+    setNombreTableroEdit("");
     setFilaABorrar(null);
     setError(null);
     ultimoTriggerRef.current?.focus();
   }
 
   function esEdicionEnCurso() {
-    return modalIcc || filaEnEdicion !== null;
+    return modalIcc || filaEnEdicion !== null || modalRenombrarTablero;
   }
 
   function solicitarCierreModales() {
@@ -162,17 +170,36 @@ export function DetalleTablero({
   const { onMouseDown: onMouseDownModal, onClick: onClickModal } = useCerrarAlClickFuera(solicitarCierreModales);
 
   useEffect(() => {
-    const hayModalAbierto = modalIcc || modalInterruptor || modalNuevaFila || filaEnEdicion !== null;
+    const hayModalAbierto = modalIcc || modalInterruptor || modalNuevaFila || filaEnEdicion !== null || modalRenombrarTablero;
     if (!hayModalAbierto) return;
     if (modalIcc) nivelFallaInputRef.current?.focus();
     if (modalNuevaFila || filaEnEdicion) nombreFilaInputRef.current?.focus();
+    if (modalRenombrarTablero) nombreTableroInputRef.current?.focus();
     function handleKeyDown(e: KeyboardEvent) {
       if (e.key === "Escape") solicitarCierreModales();
     }
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [modalIcc, modalInterruptor, modalNuevaFila, filaEnEdicion]);
+  }, [modalIcc, modalInterruptor, modalNuevaFila, filaEnEdicion, modalRenombrarTablero]);
+
+  async function handleGuardarNombreTablero(event: FormEvent) {
+    event.preventDefault();
+    if (!nombreTableroEdit.trim()) return;
+    setGuardandoTablero(true);
+    setError(null);
+    try {
+      const actualizado = await actualizarTablero(tablero.id, { nombre: nombreTableroEdit.trim() });
+      onTableroActualizado(actualizado);
+      setModalRenombrarTablero(false);
+      setNombreTableroEdit("");
+      ultimoTriggerRef.current?.focus();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "No se pudo renombrar el tablero");
+    } finally {
+      setGuardandoTablero(false);
+    }
+  }
 
   async function handleGuardarNivelFalla(event: FormEvent) {
     event.preventDefault();
@@ -524,7 +551,21 @@ export function DetalleTablero({
                 ))}
               </div>
               <div className="ml-auto flex items-center gap-1 text-gray-600">
-                {tabActivo !== TAB_PRINCIPAL && seccionSeleccionada && (
+                {tabActivo === TAB_PRINCIPAL ? (
+                  <button
+                    type="button"
+                    aria-label="Renombrar tablero"
+                    onClick={(e) => {
+                      ultimoTriggerRef.current = e.currentTarget;
+                      setNombreTableroEdit(tablero.nombre);
+                      setModalRenombrarTablero(true);
+                    }}
+                    className="p-1.5 hover:text-abb-red hover:bg-gray-200 rounded transition"
+                    title="Renombrar tablero"
+                  >
+                    <span className="material-symbols-outlined text-lg">edit</span>
+                  </button>
+                ) : seccionSeleccionada ? (
                   <>
                     <button
                       type="button"
@@ -552,7 +593,7 @@ export function DetalleTablero({
                       <span className="material-symbols-outlined text-lg">delete</span>
                     </button>
                   </>
-                )}
+                ) : null}
                 <button
                   type="button"
                   aria-label="Nueva fila"
@@ -575,17 +616,18 @@ export function DetalleTablero({
               <div className="border-b border-surface-stroke bg-industrial-gray px-4 py-2.5 flex items-center justify-between">
                 <h3 className="font-mono text-xs font-bold uppercase tracking-wider text-gray-700 flex items-center gap-2">
                   <span className="material-symbols-outlined text-base text-abb-red">shield</span>
-                  Interruptor Principal del Tablero
+                  Interruptor Principal — {tablero.nombre}
                 </h3>
                 <button
                   type="button"
-                  aria-label="Cambiar interruptor principal"
+                  aria-label="Renombrar tablero"
                   onClick={(e) => {
                     ultimoTriggerRef.current = e.currentTarget;
-                    setModalInterruptor(true);
+                    setNombreTableroEdit(tablero.nombre);
+                    setModalRenombrarTablero(true);
                   }}
                   className="p-1.5 text-gray-600 hover:text-abb-red hover:bg-gray-200 rounded transition"
-                  title={tablero.interruptor_principal_id ? "Cambiar interruptor principal" : "Asignar interruptor principal"}
+                  title="Renombrar tablero"
                 >
                   <span className="material-symbols-outlined text-lg">edit</span>
                 </button>
@@ -714,6 +756,72 @@ export function DetalleTablero({
           )}
         </div>
       </div>
+
+      {/* Modal para renombrar el tablero */}
+      {modalRenombrarTablero && (
+        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 backdrop-blur-sm">
+          <div
+            onMouseDown={onMouseDownModal}
+            onClick={onClickModal}
+            className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 border border-gray-200"
+          >
+            <div className="flex items-center justify-between border-b border-gray-100 pb-3 mb-4">
+              <h2 className="text-base font-bold text-gray-900 flex items-center gap-2">
+                <span className="material-symbols-outlined text-abb-red">edit</span>
+                Renombrar Tablero
+              </h2>
+              <button
+                type="button"
+                onClick={solicitarCierreModales}
+                className="text-gray-400 hover:text-gray-600 p-1 rounded"
+              >
+                <span className="material-symbols-outlined text-lg">close</span>
+              </button>
+            </div>
+
+            {error && (
+              <div className="mb-4 p-3 bg-red-50 text-red-700 text-xs rounded border border-red-200">
+                {error}
+              </div>
+            )}
+
+            <form onSubmit={handleGuardarNombreTablero} className="space-y-4">
+              <div>
+                <label htmlFor="nombre-tablero-input" className="block text-xs font-semibold text-gray-700 mb-1">
+                  Nombre del Tablero
+                </label>
+                <input
+                  id="nombre-tablero-input"
+                  ref={nombreTableroInputRef}
+                  type="text"
+                  value={nombreTableroEdit}
+                  onChange={(e) => setNombreTableroEdit(e.target.value)}
+                  className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:border-abb-red"
+                  placeholder="ej. Tablero General T-01"
+                  required
+                />
+              </div>
+
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={solicitarCierreModales}
+                  className="px-4 py-2 text-xs font-semibold text-gray-600 hover:bg-gray-100 rounded"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={guardandoTablero || !nombreTableroEdit.trim()}
+                  className="px-4 py-2 text-xs font-semibold bg-abb-red hover:bg-red-700 text-white rounded transition disabled:opacity-50"
+                >
+                  {guardandoTablero ? "Guardando..." : "Guardar Nombre"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
