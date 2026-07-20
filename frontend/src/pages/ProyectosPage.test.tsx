@@ -192,4 +192,27 @@ describe("ProyectosPage", () => {
 
     expect(screen.getByRole("dialog")).toBeInTheDocument();
   });
+
+  it("shows a loading indicator before the projects list resolves", async () => {
+    let resolveFetch!: (value: { ok: boolean; json: () => Promise<unknown> }) => void;
+    const pending = new Promise<{ ok: boolean; json: () => Promise<unknown> }>((resolve) => {
+      resolveFetch = resolve;
+    });
+    vi.stubGlobal("fetch", vi.fn().mockReturnValue(pending));
+
+    render(
+      <MemoryRouter>
+        <ProyectosPage />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByText(/cargando/i)).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /nuevo proyecto/i })).not.toBeInTheDocument();
+
+    resolveFetch({
+      ok: true,
+      json: async () => [{ id: "p1", cliente: "Cliente A", nombre: "Proyecto Existente", analista_id: "a1", estado: "en_curso" }],
+    });
+    await screen.findByText(/Proyecto Existente/i);
+  });
 });

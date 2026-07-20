@@ -14,7 +14,7 @@ import { useCerrarAlClickFuera } from "../hooks/useCerrarAlClickFuera";
 type Modal = { tipo: "crear" } | { tipo: "editar"; proyecto: Proyecto } | null;
 
 export function ProyectosPage() {
-  const [proyectos, setProyectos] = useState<Proyecto[]>([]);
+  const [proyectos, setProyectos] = useState<Proyecto[] | null>(null);
   const [modal, setModal] = useState<Modal>(null);
   const [cliente, setCliente] = useState("");
   const [nombre, setNombre] = useState("");
@@ -68,10 +68,10 @@ export function ProyectosPage() {
     try {
       if (modal?.tipo === "editar") {
         const actualizado = await actualizarProyecto(modal.proyecto.id, { cliente, nombre });
-        setProyectos((actuales) => actuales.map((p) => (p.id === actualizado.id ? actualizado : p)));
+        setProyectos((actuales) => (actuales ?? []).map((p) => (p.id === actualizado.id ? actualizado : p)));
       } else {
         const proyecto = await crearProyecto(cliente, nombre);
-        setProyectos((actuales) => [...actuales, proyecto]);
+        setProyectos((actuales) => [...(actuales ?? []), proyecto]);
       }
       cerrarModal();
     } catch {
@@ -94,7 +94,7 @@ export function ProyectosPage() {
     setBorrando(true);
     try {
       await eliminarProyecto(aBorrar.proyecto.id);
-      setProyectos((actuales) => actuales.filter((p) => p.id !== aBorrar.proyecto.id));
+      setProyectos((actuales) => (actuales ?? []).filter((p) => p.id !== aBorrar.proyecto.id));
       cerrarModal();
     } catch {
       setError("No se pudo borrar el proyecto");
@@ -102,6 +102,8 @@ export function ProyectosPage() {
       setBorrando(false);
     }
   }
+
+  if (proyectos === null) return <p>Cargando...</p>;
 
   return (
     <div>

@@ -47,7 +47,7 @@ export function DetalleTablero({
   onZoomChange,
   onCapasChange,
 }: DetalleTableroProps) {
-  const [secciones, setSecciones] = useState<SeccionConSalidas[]>([]);
+  const [secciones, setSecciones] = useState<SeccionConSalidas[] | null>(null);
   const [tabSeleccionadoRaw, setTabSeleccionadoRaw] = useState<string | null>(null);
   const [modalIcc, setModalIcc] = useState(false);
   const [modalInterruptor, setModalInterruptor] = useState(false);
@@ -100,10 +100,10 @@ export function DetalleTablero({
   // ninguna fila real. "Principal" siempre puede elegirse a mano.
   const tabActivo =
     tabSeleccionadoRaw &&
-    (tabSeleccionadoRaw === TAB_PRINCIPAL || secciones.some((s) => s.seccion.id === tabSeleccionadoRaw))
+    (tabSeleccionadoRaw === TAB_PRINCIPAL || (secciones ?? []).some((s) => s.seccion.id === tabSeleccionadoRaw))
       ? tabSeleccionadoRaw
-      : (secciones[0]?.seccion.id ?? TAB_PRINCIPAL);
-  const seccionSeleccionada = secciones.find((s) => s.seccion.id === tabActivo) ?? null;
+      : ((secciones ?? [])[0]?.seccion.id ?? TAB_PRINCIPAL);
+  const seccionSeleccionada = (secciones ?? []).find((s) => s.seccion.id === tabActivo) ?? null;
 
   function cerrarModales() {
     setModalIcc(false);
@@ -166,9 +166,9 @@ export function DetalleTablero({
     event.preventDefault();
     setError(null);
     try {
-      const seccion = await crearSeccion(tablero.id, nombreNuevaFila, secciones.length);
+      const seccion = await crearSeccion(tablero.id, nombreNuevaFila, (secciones ?? []).length);
       if (!modalNuevaFilaRef.current) return;
-      setSecciones((actuales) => [...actuales, { seccion, salidas: [] }]);
+      setSecciones((actuales) => [...(actuales ?? []), { seccion, salidas: [] }]);
       setTabSeleccionadoRaw(seccion.id);
       cerrarModales();
     } catch {
@@ -186,7 +186,7 @@ export function DetalleTablero({
       const actualizada = await actualizarSeccion(idEditada, nombreFilaEdit);
       if (filaEnEdicionIdRef.current !== idEditada) return; // cancelled or a different rename started
       setSecciones((actuales) =>
-        actuales.map((s) => (s.seccion.id === actualizada.id ? { ...s, seccion: actualizada } : s)),
+        (actuales ?? []).map((s) => (s.seccion.id === actualizada.id ? { ...s, seccion: actualizada } : s)),
       );
       cerrarModales();
     } catch {
@@ -200,7 +200,7 @@ export function DetalleTablero({
     setBorrandoFila(true);
     try {
       await eliminarSeccion(filaABorrar.id);
-      setSecciones((actuales) => actuales.filter((s) => s.seccion.id !== filaABorrar.id));
+      setSecciones((actuales) => (actuales ?? []).filter((s) => s.seccion.id !== filaABorrar.id));
       if (tabActivo === filaABorrar.id) setTabSeleccionadoRaw(TAB_PRINCIPAL);
       cerrarModales();
     } catch {
@@ -212,13 +212,13 @@ export function DetalleTablero({
 
   function handleSalidaCreada(seccionId: string, salida: Salida) {
     setSecciones((actuales) =>
-      actuales.map((s) => (s.seccion.id === seccionId ? { ...s, salidas: [...s.salidas, salida] } : s)),
+      (actuales ?? []).map((s) => (s.seccion.id === seccionId ? { ...s, salidas: [...s.salidas, salida] } : s)),
     );
   }
 
   function handleSalidaActualizada(seccionId: string, salida: Salida) {
     setSecciones((actuales) =>
-      actuales.map((s) =>
+      (actuales ?? []).map((s) =>
         s.seccion.id === seccionId
           ? { ...s, salidas: s.salidas.map((sal) => (sal.id === salida.id ? salida : sal)) }
           : s,
@@ -228,15 +228,17 @@ export function DetalleTablero({
 
   function handleSalidaBorrada(seccionId: string, salidaId: string) {
     setSecciones((actuales) =>
-      actuales.map((s) =>
+      (actuales ?? []).map((s) =>
         s.seccion.id === seccionId ? { ...s, salidas: s.salidas.filter((sal) => sal.id !== salidaId) } : s,
       ),
     );
   }
 
   const filaABorrarCantidadElementos = filaABorrar
-    ? (secciones.find((s) => s.seccion.id === filaABorrar.id)?.salidas.length ?? 0)
+    ? ((secciones ?? []).find((s) => s.seccion.id === filaABorrar.id)?.salidas.length ?? 0)
     : 0;
+
+  if (secciones === null) return <p>Cargando...</p>;
 
   return (
     <div className="mt-8">

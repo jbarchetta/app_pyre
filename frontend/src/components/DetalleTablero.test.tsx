@@ -418,4 +418,20 @@ describe("DetalleTablero", () => {
 
     expect(screen.getByRole("dialog")).toBeInTheDocument();
   });
+
+  it("shows a loading indicator before the secciones list resolves", async () => {
+    let resolveFetch!: (value: { ok: boolean; json: () => Promise<unknown> }) => void;
+    const pending = new Promise<{ ok: boolean; json: () => Promise<unknown> }>((resolve) => {
+      resolveFetch = resolve;
+    });
+    vi.stubGlobal("fetch", vi.fn().mockReturnValue(pending));
+
+    renderDetalle();
+
+    expect(screen.getByText(/cargando/i)).toBeInTheDocument();
+    expect(screen.queryByRole("tab", { name: "Principal" })).not.toBeInTheDocument();
+
+    resolveFetch({ ok: true, json: async () => [] });
+    await screen.findByRole("tab", { name: "Principal" });
+  });
 });
