@@ -42,6 +42,7 @@ interface FilaSalidaProps {
   index: number;
   seccionOrden?: number;
   isHovered?: boolean;
+  hoveredSalidaId?: string | null;
   onAbrirEdicion: (salida: Salida, trigger: HTMLElement) => void;
   onAbrirLink: (salida: Salida, trigger: HTMLElement) => void;
   onDuplicar: (salida: Salida) => void;
@@ -58,6 +59,7 @@ function FilaSalida({
   index,
   seccionOrden = 0,
   isHovered,
+  hoveredSalidaId,
   onAbrirEdicion,
   onAbrirLink,
   onDuplicar,
@@ -88,6 +90,10 @@ function FilaSalida({
   };
 
   const codigoAuto = `F${seccionOrden + 1}.${index + 1}`;
+  const isDirectHover = isHovered;
+  const isAlimentadaPorHovered = !!(
+    hoveredSalidaId && salida.alimentado_por_salida_id === hoveredSalidaId
+  );
 
   return (
     <tr
@@ -99,8 +105,10 @@ function FilaSalida({
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
       className={`border-b border-surface-stroke border-l-4 transition-colors duration-150 cursor-grab active:cursor-grabbing ${
-        isHovered
+        isDirectHover
           ? "bg-red-50 text-gray-900 border-l-abb-red font-medium"
+          : isAlimentadaPorHovered
+          ? "bg-blue-50 text-gray-900 border-l-blue-600 font-medium"
           : "border-l-transparent odd:bg-gray-50/60 hover:bg-gray-100/80"
       }`}
     >
@@ -528,6 +536,7 @@ export function SeccionBlock({
                   index={idx}
                   seccionOrden={seccion.orden != null ? seccion.orden : 0}
                   isHovered={hoveredSalidaId === salida.id}
+                  hoveredSalidaId={hoveredSalidaId}
                   onAbrirEdicion={abrirEdicion}
                   onAbrirLink={abrirLink}
                   onDuplicar={handleDuplicar}

@@ -270,24 +270,33 @@ export function EsquemaVisual({
               const cardX = 30 + salidaIndex * (ANCHO_CARD + GAP_X);
 
               const asignada = !!salida.componente_id;
+              const isDirectHover = hoveredSalidaId === salida.id;
               const isAlimentadaPorHovered = !!(
                 hoveredSalidaId && salida.alimentado_por_salida_id === hoveredSalidaId
               );
-              const isHovered = hoveredSalidaId === salida.id || isAlimentadaPorHovered;
 
-              const fill = isHovered
+              const fill = isDirectHover
                 ? "#fff5f5"
+                : isAlimentadaPorHovered
+                ? "#eff6ff"
                 : !asignada
                 ? "#fffbe6"
                 : "#ffffff";
 
-              const strokeColor = isHovered
+              const strokeColor = isDirectHover
                 ? "#b91c1c"
+                : isAlimentadaPorHovered
+                ? "#2563eb"
                 : !asignada
                 ? "#d97706"
                 : "#374151";
 
-              const strokeWidth = isHovered ? 2.5 : 1.5;
+              const strokeWidth = isDirectHover || isAlimentadaPorHovered ? 2.5 : 1.5;
+              const strokeDash = isAlimentadaPorHovered
+                ? "4,3"
+                : !asignada
+                ? "3,2"
+                : undefined;
 
               const formatoText = FORMATO_LABEL[salida.formato] ?? "1P";
               const cargaTexto = `${salida.carga_unidad === "A" ? Math.round(Number(salida.carga_valor)) : salida.carga_valor}${salida.carga_unidad}`;
@@ -344,9 +353,19 @@ export function EsquemaVisual({
                     fill={fill}
                     stroke={strokeColor}
                     strokeWidth={strokeWidth}
-                    strokeDasharray={asignada ? undefined : "3,2"}
+                    strokeDasharray={strokeDash}
                     rx={2}
                   />
+
+                  {/* Badge de Hijo Enlazado al Hover del Padre */}
+                  {isAlimentadaPorHovered && (
+                    <g transform={`translate(${cardX + ANCHO_CARD - 34}, ${cardY + 3})`}>
+                      <rect width={31} height={11} rx={2} fill="#2563eb" />
+                      <text x={15.5} y={8.5} textAnchor="middle" fontSize={6.5} fontWeight="bold" fill="#ffffff" fontFamily="sans-serif">
+                        🔗 HIJO
+                      </text>
+                    </g>
+                  )}
 
                   {/* Código automático prefijado (ej. F1.1) */}
                   <text
