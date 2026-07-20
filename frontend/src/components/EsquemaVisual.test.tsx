@@ -110,12 +110,11 @@ describe("EsquemaVisual", () => {
     expect(screen.queryByTestId("embarrado")).not.toBeInTheDocument();
   });
 
-  it("scales the rendered width up when zoomed in, without clipping the viewBox", () => {
+  it("zooms into the viewBox when zoom increases without resizing outer DOM bounds", () => {
     render(<EsquemaVisual tieneInterruptorPrincipal={false} secciones={[]} zoom={2} />);
 
     const svg = screen.getByRole("img", { name: /esquema visual del tablero/i });
-    expect(svg).toHaveAttribute("width", "1040");
     const [, , viewBoxAncho] = svg.getAttribute("viewBox")!.split(" ").map(Number);
-    expect(viewBoxAncho).toBe(520);
+    expect(viewBoxAncho).toBe(260);
   });
 });

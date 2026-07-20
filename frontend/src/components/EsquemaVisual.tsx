@@ -48,9 +48,10 @@ export function EsquemaVisual({
   const offsetEmbarrado = capas.embarrado ? 45 : 10;
   const numSecciones = Math.max(1, secciones.length);
   const altoBase = 65 + offsetEmbarrado + numSecciones * ALTO_SECCION;
-
-  const anchoRenderizado = anchoViewBox * zoom;
-  const altoRenderizado = altoBase * zoom;
+  const vWidth = anchoViewBox / zoom;
+  const vHeight = altoBase / zoom;
+  const vX = (anchoViewBox - vWidth) / 2;
+  const vY = 0;
 
   const mainBreakerX = anchoViewBox / 2 - 75;
   const mainBreakerY = 12;
@@ -63,10 +64,8 @@ export function EsquemaVisual({
     <svg
       role="img"
       aria-label="Esquema visual del tablero"
-      width={anchoRenderizado}
-      height={altoRenderizado}
-      viewBox={`0 0 ${anchoViewBox} ${altoBase}`}
-      className="bg-white rounded border border-gray-200 select-none shadow-inner"
+      viewBox={`${vX} ${vY} ${vWidth} ${vHeight}`}
+      className="w-full max-w-full h-auto min-h-[320px] max-h-[65vh] bg-white rounded-lg border border-gray-200 select-none shadow-sm transition-all duration-200"
     >
       <defs>
         <pattern id={patternId} patternUnits="userSpaceOnUse" width={6} height={6} patternTransform="rotate(45)">
