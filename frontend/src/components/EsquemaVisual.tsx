@@ -24,6 +24,8 @@ interface EsquemaVisualProps {
   tieneInterruptorPrincipal: boolean;
   secciones: { seccion: Seccion; salidas: Salida[] }[];
   zoom?: number;
+  panX?: number;
+  panY?: number;
   capas?: Capas;
   hoveredSalidaId?: string | null;
   onSalidaHover?: (salidaId: string | null) => void;
@@ -34,6 +36,8 @@ export function EsquemaVisual({
   tieneInterruptorPrincipal,
   secciones,
   zoom = 1,
+  panX = 0,
+  panY = 0,
   capas = CAPAS_POR_DEFECTO,
   hoveredSalidaId,
   onSalidaHover,
@@ -50,8 +54,8 @@ export function EsquemaVisual({
   const altoBase = 65 + offsetEmbarrado + numSecciones * ALTO_SECCION;
   const vWidth = anchoViewBox / zoom;
   const vHeight = altoBase / zoom;
-  const vX = (anchoViewBox - vWidth) / 2;
-  const vY = 0;
+  const vX = (anchoViewBox - vWidth) / 2 + panX;
+  const vY = panY;
 
   const mainBreakerX = anchoViewBox / 2 - 75;
   const mainBreakerY = 12;

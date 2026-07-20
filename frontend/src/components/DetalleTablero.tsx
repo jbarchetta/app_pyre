@@ -467,8 +467,8 @@ export function DetalleTablero({
         />
       )}
 
-      <div className="mt-6 flex flex-col gap-6 lg:flex-row">
-        <div className="w-full lg:w-1/3">
+      <div className="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-6 items-start">
+        <div className="w-full">
           <EsquemaVisualCanvas
             tieneInterruptorPrincipal={!!tablero.interruptor_principal_id}
             secciones={secciones}
@@ -481,7 +481,7 @@ export function DetalleTablero({
             onSalidaClick={handleSalidaClickInBlueprint}
           />
         </div>
-        <div className="w-full lg:flex-1">
+        <div className="w-full min-w-0">
           <div className="flex flex-wrap items-center gap-1 border-b border-surface-stroke">
             <div role="tablist" aria-label="Filas del tablero" className="flex flex-wrap gap-1">
               <button

@@ -40,13 +40,13 @@ describe("EsquemaVisualCanvas", () => {
     expect(onZoomChange).toHaveBeenCalledWith(0.5);
   });
 
-  it("does not go above the 2.0 maximum when zooming in", async () => {
+  it("does not go above the 2.5 maximum when zooming in", async () => {
     const onZoomChange = vi.fn();
     render(
       <EsquemaVisualCanvas
         tieneInterruptorPrincipal={false}
         secciones={[]}
-        zoom={2}
+        zoom={2.5}
         onZoomChange={onZoomChange}
         capas={{ codigos: true, embarrado: true }}
         onCapasChange={vi.fn()}
@@ -55,7 +55,7 @@ describe("EsquemaVisualCanvas", () => {
 
     await userEvent.click(screen.getByRole("button", { name: /acercar/i }));
 
-    expect(onZoomChange).toHaveBeenCalledWith(2);
+    expect(onZoomChange).toHaveBeenCalledWith(2.5);
   });
 
   it("resets zoom to 100% when clicking the zoom label", async () => {
@@ -93,5 +93,22 @@ describe("EsquemaVisualCanvas", () => {
     await userEvent.click(screen.getByLabelText(/embarrado/i));
 
     expect(onCapasChange).toHaveBeenCalledWith({ codigos: true, embarrado: false });
+  });
+
+  it("opens full-screen modal when clicking fullscreen button", async () => {
+    render(
+      <EsquemaVisualCanvas
+        tieneInterruptorPrincipal={false}
+        secciones={[]}
+        zoom={1}
+        onZoomChange={vi.fn()}
+        capas={{ codigos: true, embarrado: true }}
+        onCapasChange={vi.fn()}
+      />,
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: /pantalla completa/i }));
+
+    expect(screen.getByText("Blueprint Unifilar (Pantalla Completa)")).toBeInTheDocument();
   });
 });
