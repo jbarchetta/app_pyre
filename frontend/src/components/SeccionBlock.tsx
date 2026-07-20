@@ -102,12 +102,15 @@ export function SeccionBlock({
   const [cargaUnidad, setCargaUnidad] = useState("A");
   const [formato, setFormato] = useState<FormatoPolos>("unipolar");
   const [tipoProteccion, setTipoProteccion] = useState<TipoProteccion>("seccional_termomagnetico");
+  const cargaInvalidaEntero = cargaUnidad === "A" && cargaValor.trim() !== "" && Number(cargaValor) % 1 !== 0;
   const [error, setError] = useState<string | null>(null);
   const [salidaEnEdicion, setSalidaEnEdicion] = useState<Salida | null>(null);
   const [editCargaValor, setEditCargaValor] = useState("");
   const [editCargaUnidad, setEditCargaUnidad] = useState("A");
   const [editFormato, setEditFormato] = useState<FormatoPolos>("unipolar");
   const [editTipoProteccion, setEditTipoProteccion] = useState<TipoProteccion>("seccional_termomagnetico");
+  const editCargaInvalidaEntero =
+    editCargaUnidad === "A" && editCargaValor.trim() !== "" && Number(editCargaValor) % 1 !== 0;
   const [pickerAbierto, setPickerAbierto] = useState(false);
   const [salidaABorrar, setSalidaABorrar] = useState<Salida | null>(null);
   const [borrando, setBorrando] = useState(false);
@@ -258,6 +261,9 @@ export function SeccionBlock({
           <div>
             <label htmlFor={`carga-${seccion.id}`}>Carga</label>
             <input id={`carga-${seccion.id}`} value={cargaValor} onChange={(e) => setCargaValor(e.target.value)} />
+            {cargaInvalidaEntero && (
+              <p className="text-error text-sm">Los amperios deben ser un valor entero</p>
+            )}
           </div>
           <div>
             <label htmlFor={`unidad-${seccion.id}`}>Unidad</label>
@@ -292,7 +298,11 @@ export function SeccionBlock({
           </div>
           {error && !salidaEnEdicion && !salidaABorrar && <p role="alert" className="text-error">{error}</p>}
           <div className="flex gap-2">
-            <button type="submit" className="bg-abb-red px-6 py-3 text-sm uppercase tracking-widest text-white">
+            <button
+              type="submit"
+              disabled={cargaInvalidaEntero}
+              className="bg-abb-red px-6 py-3 text-sm uppercase tracking-widest text-white disabled:opacity-50"
+            >
               Agregar salida
             </button>
             <button
@@ -341,6 +351,9 @@ export function SeccionBlock({
               value={editCargaValor}
               onChange={(e) => setEditCargaValor(e.target.value)}
             />
+            {editCargaInvalidaEntero && (
+              <p className="text-error text-sm">Los amperios deben ser un valor entero</p>
+            )}
             <label htmlFor="edit-carga-unidad">Unidad</label>
             <select id="edit-carga-unidad" value={editCargaUnidad} onChange={(e) => setEditCargaUnidad(e.target.value)}>
               <option value="A">A</option>
@@ -385,7 +398,11 @@ export function SeccionBlock({
               </p>
             )}
             <div className="mt-4 flex gap-2">
-              <button type="submit" className="bg-abb-red px-6 py-3 text-sm uppercase tracking-widest text-white">
+              <button
+                type="submit"
+                disabled={editCargaInvalidaEntero}
+                className="bg-abb-red px-6 py-3 text-sm uppercase tracking-widest text-white disabled:opacity-50"
+              >
                 Guardar
               </button>
               <button

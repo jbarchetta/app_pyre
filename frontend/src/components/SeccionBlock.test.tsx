@@ -320,4 +320,61 @@ describe("SeccionBlock", () => {
 
     expect(screen.getByRole("dialog")).toBeInTheDocument();
   });
+
+  it("shows an inline error and disables submit when carga en A has decimals (new salida form)", async () => {
+    render(
+      <SeccionBlock
+        seccion={seccion}
+        salidas={[]}
+        onSalidaCreada={vi.fn()}
+        onSalidaActualizada={vi.fn()}
+        onSalidaBorrada={vi.fn()}
+      />,
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: /nueva salida/i }));
+    await userEvent.type(screen.getByLabelText(/^carga$/i), "16.5");
+
+    expect(screen.getByText(/los amperios deben ser un valor entero/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /agregar salida/i })).toBeDisabled();
+  });
+
+  it("does not show the inline error for a decimal carga when the unit is kW", async () => {
+    render(
+      <SeccionBlock
+        seccion={seccion}
+        salidas={[]}
+        onSalidaCreada={vi.fn()}
+        onSalidaActualizada={vi.fn()}
+        onSalidaBorrada={vi.fn()}
+      />,
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: /nueva salida/i }));
+    await userEvent.selectOptions(screen.getByLabelText(/^unidad$/i), "kW");
+    await userEvent.type(screen.getByLabelText(/^carga$/i), "16.5");
+
+    expect(screen.queryByText(/los amperios deben ser un valor entero/i)).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /agregar salida/i })).not.toBeDisabled();
+  });
+
+  it("shows the inline error and disables Guardar when editing a salida's carga to a decimal in A", async () => {
+    render(
+      <SeccionBlock
+        seccion={seccion}
+        salidas={[salidaConMatch]}
+        onSalidaCreada={vi.fn()}
+        onSalidaActualizada={vi.fn()}
+        onSalidaBorrada={vi.fn()}
+      />,
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: /editar salida 20 a/i }));
+    const input = screen.getByLabelText(/^carga$/i);
+    await userEvent.clear(input);
+    await userEvent.type(input, "20.5");
+
+    expect(screen.getByText(/los amperios deben ser un valor entero/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^guardar$/i })).toBeDisabled();
+  });
 });
