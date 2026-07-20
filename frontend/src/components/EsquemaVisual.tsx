@@ -4,6 +4,7 @@ import type { Salida, Seccion } from "../api/client";
 const ANCHO_CARD = 114;
 const ALTO_CARD = 48;
 const GAP_X = 14;
+const ALTO_SECCION = 125;
 
 const FORMATO_LABEL: Record<Salida["formato"], string> = {
   unipolar: "1P",
@@ -42,11 +43,11 @@ export function EsquemaVisual({
 
   // Calcular el número máximo de salidas para definir el ancho del viewBox
   const maxSalidas = Math.max(1, ...secciones.map((s) => s.salidas.length));
-  const anchoViewBox = Math.max(520, 40 + maxSalidas * (ANCHO_CARD + GAP_X));
+  const anchoViewBox = Math.max(520, 50 + maxSalidas * (ANCHO_CARD + GAP_X));
 
   const offsetEmbarrado = capas.embarrado ? 45 : 10;
-  const ALTO_SECCION = 115;
-  const altoBase = 65 + offsetEmbarrado + Math.max(1, secciones.length) * ALTO_SECCION;
+  const numSecciones = Math.max(1, secciones.length);
+  const altoBase = 65 + offsetEmbarrado + numSecciones * ALTO_SECCION;
 
   const anchoRenderizado = anchoViewBox * zoom;
   const altoRenderizado = altoBase * zoom;
@@ -54,6 +55,9 @@ export function EsquemaVisual({
   const mainBreakerX = anchoViewBox / 2 - 75;
   const mainBreakerY = 12;
   const busbarY = 12 + offsetEmbarrado;
+
+  const ultimaSeccionY = busbarY + 30 + (numSecciones - 1) * ALTO_SECCION;
+  const ultimoSubBusbarY = ultimaSeccionY - 14;
 
   return (
     <svg
@@ -114,13 +118,24 @@ export function EsquemaVisual({
         <g data-testid="embarrado">
           {/* Línea horizontal principal del embarrado */}
           <line
-            x1={20}
+            x1={12}
             y1={busbarY}
             x2={anchoViewBox - 20}
             y2={busbarY}
             stroke="#374151"
             strokeWidth={2.5}
           />
+          {/* Troncal alimentador vertical por el margen izquierdo hacia todas las filas */}
+          {numSecciones > 0 && (
+            <line
+              x1={12}
+              y1={busbarY}
+              x2={12}
+              y2={ultimoSubBusbarY}
+              stroke="#374151"
+              strokeWidth={2.5}
+            />
+          )}
           {/* Etiqueta del embarrado */}
           <text x={24} y={busbarY - 6} fontSize={9} fontWeight="bold" fill="#4b5563" fontFamily="sans-serif">
             L1, L2, L3 + N + PE
@@ -131,20 +146,34 @@ export function EsquemaVisual({
       {/* Secciones y Salidas */}
       {secciones.map(({ seccion, salidas }, seccionIndex) => {
         const seccionNum = seccion.orden != null ? seccion.orden + 1 : seccionIndex + 1;
-        const seccionY = busbarY + 20 + seccionIndex * ALTO_SECCION;
+        const cardY = busbarY + 30 + seccionIndex * ALTO_SECCION;
+        const rowBusbarY = cardY - 14;
+
+        const anchoFila = Math.max(100, 30 + salidas.length * (ANCHO_CARD + GAP_X) - GAP_X);
 
         return (
           <g key={seccion.id}>
             {/* Nombre de la sección */}
-            <text x={20} y={seccionY - 6} fontSize={10} fontWeight="bold" fill="#6b7280" fontFamily="sans-serif">
+            <text x={30} y={cardY - 22} fontSize={10} fontWeight="bold" fill="#6b7280" fontFamily="sans-serif">
               FILA {seccionNum} — {seccion.nombre.toUpperCase()}
             </text>
+
+            {/* Sub-embarrado horizontal propio de esta fila */}
+            {capas.embarrado && (
+              <line
+                x1={12}
+                y1={rowBusbarY}
+                x2={anchoFila}
+                y2={rowBusbarY}
+                stroke="#374151"
+                strokeWidth={2}
+              />
+            )}
 
             {salidas.map((salida, salidaIndex) => {
               const salidaNum = salidaIndex + 1;
               const codigoAuto = `F${seccionNum}.${salidaNum}`;
-              const cardX = 20 + salidaIndex * (ANCHO_CARD + GAP_X);
-              const cardY = seccionY;
+              const cardX = 30 + salidaIndex * (ANCHO_CARD + GAP_X);
 
               const asignada = !!salida.componente_id;
               const isHovered = hoveredSalidaId === salida.id;
@@ -175,11 +204,11 @@ export function EsquemaVisual({
                   onMouseLeave={() => onSalidaHover?.(null)}
                   onClick={() => onSalidaClick?.(salida)}
                 >
-                  {/* Bajada vertical desde la línea del embarrado hasta la tarjeta del elemento */}
+                  {/* Bajada vertical corta (14px) desde el sub-embarrado de la fila hasta la tarjeta */}
                   {capas.embarrado && (
                     <line
                       x1={cardX + ANCHO_CARD / 2}
-                      y1={busbarY}
+                      y1={rowBusbarY}
                       x2={cardX + ANCHO_CARD / 2}
                       y2={cardY}
                       stroke="#374151"
