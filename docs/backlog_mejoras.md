@@ -43,7 +43,7 @@ Leyenda: ✅ hecho (con ciclo/commit) · 🟦 planeado (ciclo asignado) · ⬜ s
 | Estado | Hallazgo | Destino |
 |---|---|---|
 | ✅ | TODO `bcd6068`: guards de respuestas stale en `ProyectoWorkspacePage` son inertes (closures congelados — ya resuelto en `SeccionBlock` con refs, falta replicar) | Ciclo 9e — refs sincronizados, TODO eliminado (`fe25402`) |
-| 🟦 | Errores del backend se descartan en el frontend (`catch` genérico — el usuario no ve "La carga en amperios debe ser un número entero") | Ciclo 10 |
+| ✅ | Errores del backend se descartan en el frontend (`catch` genérico — el usuario no ve "La carga en amperios debe ser un número entero") | Ciclo 10a (`9f34c08`, `99b4ed8`) |
 | ✅ | 3 ramas obsoletas mergeadas + CLAUDE.md desactualizado (ciclo 7) | Housekeeping 2026-07-19 (`a1bd59d`) |
 | 🟦 | Migración `7c4084aba894` (enum TRIPOLAR) sin downgrade posible (limitación de Postgres) | Aceptado — documentado, no requiere acción |
 | 🟡 | Asignación manual inconsistente con carga no se valida ni advierte | 🟡 `docs/consultas_ingenieria.md` #3 — pendiente decisión del usuario |
@@ -52,15 +52,15 @@ Leyenda: ✅ hecho (con ciclo/commit) · 🟦 planeado (ciclo asignado) · ⬜ s
 
 | Estado | Hallazgo | Destino |
 |---|---|---|
-| 🟦 | Formularios numéricos sin validación inline (carga "16.5" A llega al backend y vuelve 400 genérico) | Ciclo 10 |
-| 🟦 | Carga masiva de salidas cuesta ~6 clicks por salida | Ciclo 10 — "Agregar y otra" + Enter submit |
-| 🟦 | `ComponentePicker` no recuerda búsqueda/filtros entre aperturas | Ciclo 10 |
-| 🟦 | `EsquemaVisual` pasivo (sin hover↔tabla ni click→editar) | Ciclo 10 — bidireccional |
-| 🟦 | Dashboard es un callejón sin salida (3 links, sin contenido) | Ciclo 10 |
-| 🟦 | Sin confirmación de "cambios sin guardar" al cerrar modales de edición | Ciclo 10 |
+| ✅ | Formularios numéricos sin validación inline (carga "16.5" A llega al backend y vuelve 400 genérico) | Ciclo 10a (`f64c105`) |
+| 🟦 | Carga masiva de salidas cuesta ~6 clicks por salida | Ciclo 10b — "Agregar y otra" + Enter submit |
+| ✅ | `ComponentePicker` no recuerda búsqueda/filtros entre aperturas | Ciclo 10a (`ef0f183`) |
+| 🟦 | `EsquemaVisual` pasivo (sin hover↔tabla ni click→editar) | Ciclo 10b — bidireccional |
+| 🟦 | Dashboard es un callejón sin salida (3 links, sin contenido) | Ciclo 10b |
+| ✅ | Sin confirmación de "cambios sin guardar" al cerrar modales de edición | Ciclo 10a (`ae1d485`, `6baace6`) |
 | ✅ | Íconos de estado sin leyenda (auto/manual/sin match requieren tooltip) | Resuelto incidentalmente junto al pedido de reemplazar el texto "propuesto:" por ícono (`714eb1d`) — `title` en cada ícono |
-| 🟦 | Tablas de salidas sin scroll horizontal en pantallas chicas | Ciclo 10 |
-| ⬜ | Indicadores de carga ausentes en la mayoría de los fetches | Ciclo 10 |
+| ✅ | Tablas de salidas sin scroll horizontal en pantallas chicas | Ciclo 10a (`e677d1e`) |
+| ✅ | Indicadores de carga ausentes en la mayoría de los fetches | Ciclo 10a (`3d48505`) |
 
 ## Funcionalidad pendiente de roadmap (no son hallazgos de auditoría)
 
