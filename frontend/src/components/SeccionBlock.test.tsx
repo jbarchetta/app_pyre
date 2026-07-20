@@ -480,4 +480,19 @@ describe("SeccionBlock", () => {
 
     expect(screen.getByText(/¿descartar cambios\?/i)).toBeInTheDocument();
   });
+
+  it("wraps the salidas table in a horizontally scrollable container", () => {
+    render(
+      <SeccionBlock
+        seccion={seccion}
+        salidas={[salidaConMatch]}
+        onSalidaCreada={vi.fn()}
+        onSalidaActualizada={vi.fn()}
+        onSalidaBorrada={vi.fn()}
+      />,
+    );
+
+    const tabla = screen.getByRole("table");
+    expect(tabla.parentElement).toHaveClass("overflow-x-auto");
+  });
 });

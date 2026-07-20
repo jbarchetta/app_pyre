@@ -245,31 +245,33 @@ export function SeccionBlock({
       <h3 className="border-b border-surface-stroke bg-industrial-gray p-4 font-bold uppercase tracking-widest">
         {seccion.nombre}
       </h3>
-      <table className="w-full text-left">
-        <thead>
-          <tr className="border-b border-surface-stroke text-xs uppercase tracking-widest text-secondary">
-            <th scope="col" className="p-3">Carga</th>
-            <th scope="col" className="p-3">Formato</th>
-            <th scope="col" className="p-3">Estado</th>
-            <th scope="col" className="p-3">Código SAP</th>
-            <th scope="col" className="p-3">Código Comercial</th>
-            <th scope="col" className="p-3">Acciones</th>
-          </tr>
-        </thead>
-        <tbody>
-          {salidas.map((salida) => (
-            <FilaSalida
-              key={salida.id}
-              salida={salida}
-              onAbrirEdicion={abrirEdicion}
-              onConfirmarBorrado={(sal, trigger) => {
-                ultimoTriggerRef.current = trigger;
-                setSalidaABorrar(sal);
-              }}
-            />
-          ))}
-        </tbody>
-      </table>
+      <div className="overflow-x-auto">
+        <table className="w-full text-left">
+          <thead>
+            <tr className="border-b border-surface-stroke text-xs uppercase tracking-widest text-secondary">
+              <th scope="col" className="p-3">Carga</th>
+              <th scope="col" className="p-3">Formato</th>
+              <th scope="col" className="p-3">Estado</th>
+              <th scope="col" className="p-3">Código SAP</th>
+              <th scope="col" className="p-3">Código Comercial</th>
+              <th scope="col" className="p-3">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            {salidas.map((salida) => (
+              <FilaSalida
+                key={salida.id}
+                salida={salida}
+                onAbrirEdicion={abrirEdicion}
+                onConfirmarBorrado={(sal, trigger) => {
+                  ultimoTriggerRef.current = trigger;
+                  setSalidaABorrar(sal);
+                }}
+              />
+            ))}
+          </tbody>
+        </table>
+      </div>
       {mostrarFormulario ? (
         <form onSubmit={handleSubmit} className="flex flex-wrap items-end gap-2 p-4 border-t border-surface-stroke">
           <div>
