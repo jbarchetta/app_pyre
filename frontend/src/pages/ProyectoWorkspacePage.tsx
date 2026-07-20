@@ -37,6 +37,7 @@ export function ProyectoWorkspacePage() {
   const [tableroABorrar, setTableroABorrar] = useState<Tablero | null>(null);
   const [borrandoTablero, setBorrandoTablero] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [confirmandoDescarteEdicion, setConfirmandoDescarteEdicion] = useState(false);
   const triggerRef = useRef<HTMLElement | null>(null);
   const modalNuevoTableroRef = useRef(false);
   const tableroEnEdicionIdRef = useRef<string | null>(null);
@@ -65,7 +66,7 @@ export function ProyectoWorkspacePage() {
   useEffect(() => {
     if (!modalNuevoTablero && !tableroEnEdicion) return;
     function handleKeyDown(e: KeyboardEvent) {
-      if (e.key === "Escape") cerrarModales();
+      if (e.key === "Escape") solicitarCierreModales();
     }
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
@@ -89,7 +90,24 @@ export function ProyectoWorkspacePage() {
     triggerRef.current?.focus();
   }
 
-  const { onMouseDown: onMouseDownModal, onClick: onClickModal } = useCerrarAlClickFuera(cerrarModales);
+  function solicitarCierreModales() {
+    if (tableroEnEdicion) {
+      setConfirmandoDescarteEdicion(true);
+    } else {
+      cerrarModales();
+    }
+  }
+
+  function confirmarDescarteEdicion() {
+    setConfirmandoDescarteEdicion(false);
+    cerrarModales();
+  }
+
+  function cancelarDescarteEdicion() {
+    setConfirmandoDescarteEdicion(false);
+  }
+
+  const { onMouseDown: onMouseDownModal, onClick: onClickModal } = useCerrarAlClickFuera(solicitarCierreModales);
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
@@ -297,7 +315,7 @@ export function ProyectoWorkspacePage() {
         />
       )}
 
-      {tableroEnEdicion && (
+      {tableroEnEdicion && !confirmandoDescarteEdicion && (
         <div className="fixed inset-0 z-20 flex items-center justify-center bg-black/40" onMouseDown={onMouseDownModal} onClick={onClickModal}>
           <form
             onSubmit={handleRenombrarTablero}
@@ -320,12 +338,22 @@ export function ProyectoWorkspacePage() {
               <button type="submit" className="bg-abb-red px-6 py-3 text-sm uppercase tracking-widest text-white">
                 Guardar
               </button>
-              <button type="button" onClick={cerrarModales} className="border border-surface-stroke px-6 py-3 text-sm uppercase tracking-widest">
+              <button type="button" onClick={solicitarCierreModales} className="border border-surface-stroke px-6 py-3 text-sm uppercase tracking-widest">
                 Cancelar
               </button>
             </div>
           </form>
         </div>
+      )}
+
+      {tableroEnEdicion && confirmandoDescarteEdicion && (
+        <ConfirmDialog
+          titulo="¿Descartar cambios?"
+          mensaje="Vas a perder los cambios que hiciste."
+          textoConfirmar="Descartar"
+          onConfirm={confirmarDescarteEdicion}
+          onCancel={cancelarDescarteEdicion}
+        />
       )}
 
       {tableroABorrar && (

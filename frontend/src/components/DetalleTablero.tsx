@@ -59,6 +59,7 @@ export function DetalleTablero({
   const [borrandoFila, setBorrandoFila] = useState(false);
   const [nivelFallaKaEdit, setNivelFallaKaEdit] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [confirmandoDescarteEdicion, setConfirmandoDescarteEdicion] = useState(false);
   const ultimoTriggerRef = useRef<HTMLElement | null>(null);
   const nivelFallaInputRef = useRef<HTMLInputElement>(null);
   const nombreFilaInputRef = useRef<HTMLInputElement>(null);
@@ -120,7 +121,28 @@ export function DetalleTablero({
     ultimoTriggerRef.current?.focus();
   }
 
-  const { onMouseDown: onMouseDownModal, onClick: onClickModal } = useCerrarAlClickFuera(cerrarModales);
+  function esEdicionEnCurso() {
+    return modalIcc || filaEnEdicion !== null;
+  }
+
+  function solicitarCierreModales() {
+    if (esEdicionEnCurso()) {
+      setConfirmandoDescarteEdicion(true);
+    } else {
+      cerrarModales();
+    }
+  }
+
+  function confirmarDescarteEdicion() {
+    setConfirmandoDescarteEdicion(false);
+    cerrarModales();
+  }
+
+  function cancelarDescarteEdicion() {
+    setConfirmandoDescarteEdicion(false);
+  }
+
+  const { onMouseDown: onMouseDownModal, onClick: onClickModal } = useCerrarAlClickFuera(solicitarCierreModales);
 
   useEffect(() => {
     const hayModalAbierto = modalIcc || modalInterruptor || modalNuevaFila || filaEnEdicion !== null;
@@ -128,7 +150,7 @@ export function DetalleTablero({
     if (modalIcc) nivelFallaInputRef.current?.focus();
     if (modalNuevaFila || filaEnEdicion) nombreFilaInputRef.current?.focus();
     function handleKeyDown(e: KeyboardEvent) {
-      if (e.key === "Escape") cerrarModales();
+      if (e.key === "Escape") solicitarCierreModales();
     }
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
@@ -258,7 +280,7 @@ export function DetalleTablero({
         </button>
       </p>
 
-      {modalIcc && (
+      {modalIcc && !confirmandoDescarteEdicion && (
         <div
           className="fixed inset-0 z-20 flex items-center justify-center bg-black/40"
           onMouseDown={onMouseDownModal}
@@ -293,7 +315,7 @@ export function DetalleTablero({
               </button>
               <button
                 type="button"
-                onClick={cerrarModales}
+                onClick={solicitarCierreModales}
                 className="border border-surface-stroke px-6 py-3 text-sm uppercase tracking-widest"
               >
                 Cancelar
@@ -301,6 +323,16 @@ export function DetalleTablero({
             </div>
           </form>
         </div>
+      )}
+
+      {(modalIcc || filaEnEdicion) && confirmandoDescarteEdicion && (
+        <ConfirmDialog
+          titulo="¿Descartar cambios?"
+          mensaje="Vas a perder los cambios que hiciste."
+          textoConfirmar="Descartar"
+          onConfirm={confirmarDescarteEdicion}
+          onCancel={cancelarDescarteEdicion}
+        />
       )}
 
       {modalInterruptor && (
@@ -357,7 +389,7 @@ export function DetalleTablero({
         </div>
       )}
 
-      {filaEnEdicion && (
+      {filaEnEdicion && !confirmandoDescarteEdicion && (
         <div
           className="fixed inset-0 z-20 flex items-center justify-center bg-black/40"
           onMouseDown={onMouseDownModal}
@@ -392,7 +424,7 @@ export function DetalleTablero({
               </button>
               <button
                 type="button"
-                onClick={cerrarModales}
+                onClick={solicitarCierreModales}
                 className="border border-surface-stroke px-6 py-3 text-sm uppercase tracking-widest"
               >
                 Cancelar

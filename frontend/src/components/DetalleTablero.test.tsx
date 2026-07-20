@@ -309,7 +309,7 @@ describe("DetalleTablero", () => {
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
-  it("closes the nivel de falla modal with Escape without saving", async () => {
+  it("closes the nivel de falla modal with Escape without saving, after confirming the discard", async () => {
     renderDetalle();
     await screen.findByRole("tab", { name: "Sección 1" });
 
@@ -317,11 +317,14 @@ describe("DetalleTablero", () => {
     expect(screen.getByRole("dialog")).toBeInTheDocument();
 
     await userEvent.keyboard("{Escape}");
+    // Escape now asks for confirmation before discarding rather than closing directly.
+    expect(screen.getByText(/¿descartar cambios\?/i)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: /^descartar$/i }));
 
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
-  it("closes the nivel de falla modal by clicking the backdrop without saving", async () => {
+  it("closes the nivel de falla modal by clicking the backdrop without saving, after confirming the discard", async () => {
     renderDetalle();
     await screen.findByRole("tab", { name: "Sección 1" });
 
@@ -330,6 +333,10 @@ describe("DetalleTablero", () => {
     expect(dialog).toBeInTheDocument();
 
     await userEvent.click(dialog.parentElement!);
+    // A genuine backdrop click now asks for confirmation before discarding
+    // rather than closing directly.
+    expect(screen.getByText(/¿descartar cambios\?/i)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: /^descartar$/i }));
 
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
@@ -463,5 +470,42 @@ describe("DetalleTablero", () => {
     await userEvent.click(screen.getByRole("button", { name: /^guardar$/i }));
 
     expect(await screen.findByText("Nivel de falla inválido")).toBeInTheDocument();
+  });
+
+  it("asks for confirmation before discarding the Icc edit when closing via Cancelar", async () => {
+    renderDetalle();
+    await screen.findByRole("tab", { name: "Principal" });
+
+    await userEvent.click(screen.getByRole("button", { name: /editar intensidad de cortocircuito/i }));
+    await userEvent.click(screen.getByRole("button", { name: /^cancelar$/i }));
+
+    expect(screen.getByText(/¿descartar cambios\?/i)).toBeInTheDocument();
+  });
+
+  it("closes the Icc modal without saving when confirming the discard", async () => {
+    renderDetalle();
+    await screen.findByRole("tab", { name: "Principal" });
+
+    await userEvent.click(screen.getByRole("button", { name: /editar intensidad de cortocircuito/i }));
+    await userEvent.click(screen.getByRole("button", { name: /^cancelar$/i }));
+    await userEvent.click(screen.getByRole("button", { name: /^descartar$/i }));
+
+    // "Nuevo nivel de falla" only exists inside the Icc modal itself, unlike
+    // the permanent "Intensidad de Cortocircuito (Icc): X kA" line on the
+    // page, which stays regardless of modal state and would make a text
+    // match on the heading's wording ambiguous.
+    expect(screen.queryByLabelText(/nuevo nivel de falla/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/¿descartar cambios\?/i)).not.toBeInTheDocument();
+  });
+
+  it("does not ask for confirmation when cancelling the create-fila modal", async () => {
+    renderDetalle();
+    await screen.findByRole("tab", { name: "Principal" });
+
+    await userEvent.click(screen.getByRole("button", { name: /^nueva fila$/i }));
+    await userEvent.click(screen.getByRole("button", { name: /^cancelar$/i }));
+
+    expect(screen.queryByText(/¿descartar cambios\?/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/^nueva fila$/i)).not.toBeInTheDocument();
   });
 });
