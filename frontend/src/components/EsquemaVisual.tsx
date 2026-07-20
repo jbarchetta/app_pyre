@@ -1,16 +1,15 @@
 import { useId } from "react";
 import type { Salida, Seccion } from "../api/client";
 
-const ANCHO_POR_POLO = 28;
-const ALTO = 30;
-const ANCHO_BASE = 520;
-const ALTO_EMBARRADO = 35;
+const ANCHO_CARD = 114;
+const ALTO_CARD = 48;
+const GAP_X = 14;
 
-const POLOS_POR_FORMATO: Record<Salida["formato"], number> = {
-  unipolar: 1,
-  bipolar: 2,
-  tripolar: 3,
-  tetrapolar: 4,
+const FORMATO_LABEL: Record<Salida["formato"], string> = {
+  unipolar: "1P",
+  bipolar: "2P",
+  tripolar: "3P",
+  tetrapolar: "4P",
 };
 
 export interface Capas {
@@ -40,10 +39,21 @@ export function EsquemaVisual({
   onSalidaClick,
 }: EsquemaVisualProps) {
   const patternId = useId();
-  const offsetEmbarrado = capas.embarrado ? ALTO_EMBARRADO : 0;
-  const altoBase = 60 + offsetEmbarrado + secciones.length * (ALTO + 32) + 20;
-  const anchoRenderizado = ANCHO_BASE * zoom;
+
+  // Calcular el número máximo de salidas para definir el ancho del viewBox
+  const maxSalidas = Math.max(1, ...secciones.map((s) => s.salidas.length));
+  const anchoViewBox = Math.max(520, 40 + maxSalidas * (ANCHO_CARD + GAP_X));
+
+  const offsetEmbarrado = capas.embarrado ? 45 : 10;
+  const ALTO_SECCION = 115;
+  const altoBase = 65 + offsetEmbarrado + Math.max(1, secciones.length) * ALTO_SECCION;
+
+  const anchoRenderizado = anchoViewBox * zoom;
   const altoRenderizado = altoBase * zoom;
+
+  const mainBreakerX = anchoViewBox / 2 - 75;
+  const mainBreakerY = 12;
+  const busbarY = 12 + offsetEmbarrado;
 
   return (
     <svg
@@ -51,93 +61,111 @@ export function EsquemaVisual({
       aria-label="Esquema visual del tablero"
       width={anchoRenderizado}
       height={altoRenderizado}
-      viewBox={`0 0 ${ANCHO_BASE} ${altoBase}`}
+      viewBox={`0 0 ${anchoViewBox} ${altoBase}`}
       className="bg-white rounded border border-gray-200 select-none shadow-inner"
     >
       <defs>
-        <pattern id={patternId} patternUnits="userSpaceOnUse" width={4} height={4} patternTransform="rotate(45)">
-          <rect width={4} height={4} fill="#ffffff" />
-          <line x1={0} y1={0} x2={0} y2={4} stroke="#1a1c1c" strokeWidth={2} />
+        <pattern id={patternId} patternUnits="userSpaceOnUse" width={6} height={6} patternTransform="rotate(45)">
+          <rect width={6} height={6} fill="#ffffff" />
+          <line x1={0} y1={0} x2={0} y2={6} stroke="#b91c1c" strokeWidth={2} />
         </pattern>
       </defs>
 
-      {/* Busbar / Embarrado */}
-      {capas.embarrado && (
-        <g data-testid="embarrado">
-          <rect
-            x={10}
-            y={8}
-            width={ANCHO_BASE - 20}
-            height={22}
-            fill="#f3f4f6"
-            stroke="#4b5563"
-            strokeDasharray="4,2"
-            rx={3}
-          />
-          <text x={20} y={23} fontSize={9} fontWeight="bold" fill="#374151" fontFamily="sans-serif">
-            BUSBAR GENERAL (R-S-T-N)
-          </text>
-        </g>
-      )}
-
-      {/* Interruptor Principal */}
+      {/* Interruptor Principal Q1 (Top Center) */}
       {tieneInterruptorPrincipal && (
         <g data-testid="interruptor-principal">
           <rect
-            x={20}
-            y={10 + offsetEmbarrado}
-            width={120}
-            height={ALTO}
-            fill="#e31f26"
-            rx={2}
+            x={mainBreakerX}
+            y={mainBreakerY}
+            width={150}
+            height={32}
+            fill="#ffffff"
+            stroke="#b91c1c"
+            strokeWidth={2}
+            rx={3}
           />
           <text
-            x={80}
-            y={10 + offsetEmbarrado + 18}
-            fill="#ffffff"
-            fontSize={9}
+            x={anchoViewBox / 2}
+            y={mainBreakerY + 20}
+            fill="#b91c1c"
+            fontSize={10}
             fontWeight="bold"
             textAnchor="middle"
             fontFamily="sans-serif"
           >
-            PRINCIPAL
+            MAIN BREAKER Q1
+          </text>
+          {/* Línea vertical desde el Principal hacia el embarrado */}
+          {capas.embarrado && (
+            <line
+              x1={anchoViewBox / 2}
+              y1={mainBreakerY + 32}
+              x2={anchoViewBox / 2}
+              y2={busbarY}
+              stroke="#374151"
+              strokeWidth={2}
+            />
+          )}
+        </g>
+      )}
+
+      {/* Busbar / Embarrado General */}
+      {capas.embarrado && (
+        <g data-testid="embarrado">
+          {/* Línea horizontal principal del embarrado */}
+          <line
+            x1={20}
+            y1={busbarY}
+            x2={anchoViewBox - 20}
+            y2={busbarY}
+            stroke="#374151"
+            strokeWidth={2.5}
+          />
+          {/* Etiqueta del embarrado */}
+          <text x={24} y={busbarY - 6} fontSize={9} fontWeight="bold" fill="#4b5563" fontFamily="sans-serif">
+            L1, L2, L3 + N + PE
           </text>
         </g>
       )}
 
       {/* Secciones y Salidas */}
       {secciones.map(({ seccion, salidas }, seccionIndex) => {
-        const y = 60 + offsetEmbarrado + seccionIndex * (ALTO + 32);
-        let x = 20;
+        const seccionNum = seccion.orden != null ? seccion.orden + 1 : seccionIndex + 1;
+        const seccionY = busbarY + 20 + seccionIndex * ALTO_SECCION;
 
         return (
           <g key={seccion.id}>
-            {/* Título de la sección */}
-            <text x={10} y={y - 8} fontSize={10} fontWeight="bold" fill="#6b7280" fontFamily="sans-serif">
-              {seccion.nombre.toUpperCase()}
+            {/* Nombre de la sección */}
+            <text x={20} y={seccionY - 6} fontSize={10} fontWeight="bold" fill="#6b7280" fontFamily="sans-serif">
+              FILA {seccionNum} — {seccion.nombre.toUpperCase()}
             </text>
 
-            {salidas.map((salida) => {
-              const ancho = ANCHO_POR_POLO * POLOS_POR_FORMATO[salida.formato];
-              const rectX = x;
-              x += ancho + 6;
+            {salidas.map((salida, salidaIndex) => {
+              const salidaNum = salidaIndex + 1;
+              const codigoAuto = `F${seccionNum}.${salidaNum}`;
+              const cardX = 20 + salidaIndex * (ANCHO_CARD + GAP_X);
+              const cardY = seccionY;
 
               const asignada = !!salida.componente_id;
               const isHovered = hoveredSalidaId === salida.id;
 
-              const fill = !asignada
+              const fill = isHovered
+                ? "#fff5f5"
+                : !asignada
                 ? "#fffbe6"
-                : salida.tipo_proteccion === "seccional_diferencial"
-                ? `url(#${patternId})`
-                : "#1f2937";
+                : "#ffffff";
 
               const strokeColor = isHovered
-                ? "#e31f26"
+                ? "#b91c1c"
                 : !asignada
-                ? "#f59e0b"
-                : "#111827";
+                ? "#d97706"
+                : "#374151";
 
-              const strokeWidth = isHovered ? 3 : 1;
+              const strokeWidth = isHovered ? 2.5 : 1.5;
+
+              const formatoText = FORMATO_LABEL[salida.formato] ?? "1P";
+              const cargaTexto = `${salida.carga_unidad === "A" ? Math.round(Number(salida.carga_valor)) : salida.carga_valor}${salida.carga_unidad}`;
+              const protecLabel = salida.tipo_proteccion === "seccional_diferencial" ? "Diff" : formatoText;
 
               return (
                 <g
@@ -147,13 +175,25 @@ export function EsquemaVisual({
                   onMouseLeave={() => onSalidaHover?.(null)}
                   onClick={() => onSalidaClick?.(salida)}
                 >
-                  {/* Bloque del Breaker */}
+                  {/* Bajada vertical desde la línea del embarrado hasta la tarjeta del elemento */}
+                  {capas.embarrado && (
+                    <line
+                      x1={cardX + ANCHO_CARD / 2}
+                      y1={busbarY}
+                      x2={cardX + ANCHO_CARD / 2}
+                      y2={cardY}
+                      stroke="#374151"
+                      strokeWidth={1.5}
+                    />
+                  )}
+
+                  {/* Tarjeta Rectangular del Elemento */}
                   <rect
                     data-testid={`salida-${salida.id}`}
-                    x={rectX}
-                    y={y}
-                    width={ancho}
-                    height={ALTO}
+                    x={cardX}
+                    y={cardY}
+                    width={ANCHO_CARD}
+                    height={ALTO_CARD}
                     fill={fill}
                     stroke={strokeColor}
                     strokeWidth={strokeWidth}
@@ -161,36 +201,85 @@ export function EsquemaVisual({
                     rx={2}
                   />
 
-                  {/* Tag/Etiqueta arriba del breaker */}
-                  {salida.etiqueta && (
-                    <text
-                      x={rectX + ancho / 2}
-                      y={y - 3}
-                      fontFamily="JetBrains Mono, monospace"
-                      fontSize={8}
-                      fontWeight="bold"
-                      fill="#e31f26"
-                      textAnchor="middle"
-                    >
-                      {salida.etiqueta}
-                    </text>
-                  )}
+                  {/* Código automático prefijado (ej. F1.1) */}
+                  <text
+                    x={cardX + 8}
+                    y={cardY + 15}
+                    fontFamily="sans-serif"
+                    fontSize={11}
+                    fontWeight="bold"
+                    fill="#111827"
+                  >
+                    {codigoAuto}
+                  </text>
 
-                  {/* Texto de Carga/Polos */}
+                  {/* Formato de Polos (ej. 3P, 1P) */}
+                  <text
+                    x={cardX + ANCHO_CARD - 8}
+                    y={cardY + 14}
+                    fontFamily="sans-serif"
+                    fontSize={9}
+                    fill="#6b7280"
+                    textAnchor="end"
+                  >
+                    {formatoText}
+                  </text>
+
+                  {/* Línea divisoria de acento rojo bajo la cabecera */}
+                  <line
+                    x1={cardX + 6}
+                    y1={cardY + 22}
+                    x2={cardX + ANCHO_CARD - 6}
+                    y2={cardY + 22}
+                    stroke="#b91c1c"
+                    strokeWidth={1.5}
+                  />
+
+                  {/* Tag / Nombre asignado por el analista */}
+                  <text
+                    x={cardX + 8}
+                    y={cardY + 38}
+                    fontFamily="sans-serif"
+                    fontSize={10}
+                    fontWeight={salida.etiqueta ? "bold" : "600"}
+                    fill={salida.etiqueta ? "#b91c1c" : "#6b7280"}
+                  >
+                    {salida.etiqueta ? salida.etiqueta.toUpperCase() : (salida.componente_codigo ?? "SIN MATCH")}
+                  </text>
+
+                  {/* Bajada vertical desde la tarjeta hacia la etiqueta de amperios */}
+                  <line
+                    x1={cardX + ANCHO_CARD / 2}
+                    y1={cardY + ALTO_CARD}
+                    x2={cardX + ANCHO_CARD / 2}
+                    y2={cardY + ALTO_CARD + 14}
+                    stroke="#374151"
+                    strokeWidth={1.5}
+                  />
+
+                  {/* Badge de Amperios / Tipo (pill inferior) */}
                   {capas.codigos && (
-                    <text
-                      data-testid={`salida-${salida.id}-codigo`}
-                      x={rectX + ancho / 2}
-                      y={y + ALTO + 12}
-                      fontFamily="JetBrains Mono, monospace"
-                      fontSize={8}
-                      fontWeight={isHovered ? "bold" : "normal"}
-                      fill={isHovered ? "#e31f26" : "#374151"}
-                      textAnchor="middle"
-                    >
-                      {salida.carga_unidad === "A" ? Math.round(Number(salida.carga_valor)) : salida.carga_valor}
-                      {salida.carga_unidad}
-                    </text>
+                    <g data-testid={`salida-${salida.id}-codigo`}>
+                      <rect
+                        x={cardX + ANCHO_CARD / 2 - 34}
+                        y={cardY + ALTO_CARD + 10}
+                        width={68}
+                        height={16}
+                        rx={2}
+                        fill={salida.tipo_proteccion === "seccional_diferencial" ? "#b91c1c" : "#374151"}
+                      />
+                      <text
+                        x={cardX + ANCHO_CARD / 2}
+                        y={cardY + ALTO_CARD + 21}
+                        fontFamily="sans-serif"
+                        fontSize={9}
+                        fontWeight="bold"
+                        fill="#ffffff"
+                        textAnchor="middle"
+                      >
+                        {cargaTexto} / {protecLabel}
+                      </text>
+                    </g>
                   )}
                 </g>
               );

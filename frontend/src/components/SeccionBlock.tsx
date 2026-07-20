@@ -31,6 +31,7 @@ interface SeccionBlockProps {
 interface FilaSalidaProps {
   salida: Salida;
   index: number;
+  seccionOrden?: number;
   isHovered?: boolean;
   onAbrirEdicion: (salida: Salida, trigger: HTMLElement) => void;
   onDuplicar: (salida: Salida) => void;
@@ -45,6 +46,7 @@ interface FilaSalidaProps {
 function FilaSalida({
   salida,
   index,
+  seccionOrden = 0,
   isHovered,
   onAbrirEdicion,
   onDuplicar,
@@ -74,6 +76,8 @@ function FilaSalida({
     tetrapolar: "4P",
   };
 
+  const codigoAuto = `F${seccionOrden + 1}.${index + 1}`;
+
   return (
     <tr
       id={`salida-fila-${salida.id}`}
@@ -89,9 +93,12 @@ function FilaSalida({
           : "border-l-transparent odd:bg-gray-50/60 hover:bg-gray-100/80"
       }`}
     >
-      {/* Drag Handle */}
-      <td className="p-2 text-center text-gray-400 w-8">
-        <span className="material-symbols-outlined text-base select-none">drag_indicator</span>
+      {/* Drag Handle & Auto-Code F1.1 */}
+      <td className="p-2 text-center text-gray-500 w-16">
+        <div className="flex items-center justify-center gap-1 font-mono text-xs font-bold text-gray-700">
+          <span className="material-symbols-outlined text-xs text-gray-400 select-none cursor-grab" title="Arrastrar para reordenar">drag_indicator</span>
+          <span>{codigoAuto}</span>
+        </div>
       </td>
 
       {/* Etiqueta / Circuito */}
@@ -429,6 +436,7 @@ export function SeccionBlock({
                   key={salida.id}
                   salida={salida}
                   index={idx}
+                  seccionOrden={seccion.orden != null ? seccion.orden : 0}
                   isHovered={hoveredSalidaId === salida.id}
                   onAbrirEdicion={abrirEdicion}
                   onDuplicar={handleDuplicar}

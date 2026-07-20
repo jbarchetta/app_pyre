@@ -22,29 +22,31 @@ function salida(overrides: Partial<Salida>): Salida {
 }
 
 describe("EsquemaVisual", () => {
-  it("draws a wider rectangle for more poles", () => {
+  it("renders breaker card with fixed width and height", () => {
     render(
       <EsquemaVisual
         tieneInterruptorPrincipal={false}
-        secciones={[{ seccion, salidas: [salida({ id: "sal-tetra", formato: "tetrapolar" })] }]}
+        secciones={[{ seccion, salidas: [salida({ id: "sal-1" })] }]}
       />,
     );
 
-    expect(screen.getByTestId("salida-sal-tetra")).toHaveAttribute("width", "112");
+    const rect = screen.getByTestId("salida-sal-1");
+    expect(rect).toHaveAttribute("width", "114");
+    expect(rect).toHaveAttribute("height", "48");
   });
 
-  it("draws a tripolar rectangle three poles wide", () => {
+  it("renders system auto-code F1.1 in top-left of card", () => {
     render(
       <EsquemaVisual
         tieneInterruptorPrincipal={false}
-        secciones={[{ seccion, salidas: [salida({ id: "sal-tri", formato: "tripolar" })] }]}
+        secciones={[{ seccion, salidas: [salida({ id: "sal-auto" })] }]}
       />,
     );
 
-    expect(screen.getByTestId("salida-sal-tri")).toHaveAttribute("width", "84");
+    expect(screen.getByText("F1.1")).toBeInTheDocument();
   });
 
-  it("fills a termomagnetico salida solid", () => {
+  it("fills a white card for an assigned salida", () => {
     render(
       <EsquemaVisual
         tieneInterruptorPrincipal={false}
@@ -52,19 +54,7 @@ describe("EsquemaVisual", () => {
       />,
     );
 
-    expect(screen.getByTestId("salida-sal-term")).toHaveAttribute("fill", "#1f2937");
-  });
-
-  it("fills a diferencial salida with the diagonal-stripe pattern", () => {
-    render(
-      <EsquemaVisual
-        tieneInterruptorPrincipal={false}
-        secciones={[{ seccion, salidas: [salida({ id: "sal-dif", tipo_proteccion: "seccional_diferencial" })] }]}
-      />,
-    );
-
-    const fill = screen.getByTestId("salida-sal-dif").getAttribute("fill");
-    expect(fill).toMatch(/^url\(#.+\)$/);
+    expect(screen.getByTestId("salida-sal-term")).toHaveAttribute("fill", "#ffffff");
   });
 
   it("draws a warning outline with amber background when there is no matched component", () => {
@@ -88,7 +78,7 @@ describe("EsquemaVisual", () => {
     expect(screen.getByTestId("interruptor-principal")).toBeInTheDocument();
   });
 
-  it("shows the componente code label when the codigos layer is on and hides it when off", () => {
+  it("shows the rating pill badge when the codigos layer is on and hides it when off", () => {
     const { rerender } = render(
       <EsquemaVisual
         tieneInterruptorPrincipal={false}
@@ -108,7 +98,7 @@ describe("EsquemaVisual", () => {
     expect(screen.queryByTestId("salida-sal-label-codigo")).not.toBeInTheDocument();
   });
 
-  it("shows the embarrado band when the embarrado layer is on and hides it when off", () => {
+  it("shows the embarrado line when the embarrado layer is on and hides it when off", () => {
     const { rerender } = render(
       <EsquemaVisual tieneInterruptorPrincipal={false} secciones={[]} capas={{ codigos: true, embarrado: true }} />,
     );
