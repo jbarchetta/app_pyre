@@ -605,16 +605,27 @@ export function DetalleTablero({
                           : "Calculado"}
                       </td>
 
-                      <td className="p-3 text-xs text-gray-700">
-                        <span className="font-semibold text-gray-900 mr-1.5">
-                          {tablero.interruptor_principal_polos != null
-                            ? `${tablero.interruptor_principal_polos}P`
-                            : "3P"}
+                      <td className="p-3 text-xs text-gray-700 whitespace-nowrap w-24">
+                        <span className="inline-flex items-center gap-1 bg-gray-100 px-2 py-0.5 rounded text-[11px] font-medium text-gray-800 border border-gray-200">
+                          <span className="font-bold text-gray-900">
+                            {tablero.interruptor_principal_polos != null
+                              ? `${tablero.interruptor_principal_polos}P`
+                              : "3P"}
+                          </span>
+                          <span className="text-gray-500">(TM)</span>
                         </span>
-                        <span className="text-gray-500">(Principal TM)</span>
                       </td>
 
-                      <td className="p-3 font-mono text-xs">
+                      <td
+                        className="p-3 font-mono text-xs"
+                        title={
+                          tablero.interruptor_principal_descripcion
+                            ? `${tablero.interruptor_principal_codigo ?? ""} - ${tablero.interruptor_principal_descripcion}`
+                            : tablero.interruptor_principal_codigo_comercial
+                            ? `${tablero.interruptor_principal_codigo ?? ""} (${tablero.interruptor_principal_codigo_comercial})`
+                            : undefined
+                        }
+                      >
                         <div className="flex items-center gap-2">
                           {tablero.interruptor_principal_id ? (
                             <>
@@ -624,15 +635,19 @@ export function DetalleTablero({
                               >
                                 edit_note
                               </span>
-                              <div className="flex flex-col">
+                              <div className="flex flex-col min-w-0">
                                 <span className="font-semibold text-gray-900">
                                   {tablero.interruptor_principal_codigo ?? tablero.interruptor_principal_id}
                                 </span>
-                                {tablero.interruptor_principal_codigo_comercial && (
-                                  <span className="text-gray-500 text-[11px]">
+                                {tablero.interruptor_principal_descripcion ? (
+                                  <span className="text-gray-500 text-[11px] truncate max-w-[240px]">
+                                    {tablero.interruptor_principal_descripcion}
+                                  </span>
+                                ) : tablero.interruptor_principal_codigo_comercial ? (
+                                  <span className="text-gray-500 text-[11px] truncate max-w-[240px]">
                                     {tablero.interruptor_principal_codigo_comercial}
                                   </span>
-                                )}
+                                ) : null}
                               </div>
                             </>
                           ) : (

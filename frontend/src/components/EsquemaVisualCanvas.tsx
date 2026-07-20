@@ -42,6 +42,12 @@ export function EsquemaVisualCanvas({
   const [isDragging, setIsDragging] = useState(false);
   const dragStartRef = useRef<{ x: number; y: number; panX: number; panY: number } | null>(null);
 
+  const handleWheel = (e: React.WheelEvent) => {
+    e.preventDefault();
+    const paso = e.deltaY < 0 ? ZOOM_PASO : -ZOOM_PASO;
+    onZoomChange(limitar(zoom + paso));
+  };
+
   const handleMouseDown = (e: React.MouseEvent) => {
     // Solo arrastrar con el botón principal (izquierdo)
     if (e.button !== 0) return;
@@ -161,16 +167,17 @@ export function EsquemaVisualCanvas({
           </div>
         )}
 
-        {/* Área del Blueprint con Pan (arrastre de ratón) */}
+        {/* Área del Blueprint con Pan (arrastre de ratón) y Zoom con rueda de ratón */}
         <div
-          className={`blueprint-grid flex min-h-[360px] max-h-[70vh] justify-center overflow-hidden p-4 bg-gray-50/50 ${
+          className={`flex min-h-[360px] max-h-[70vh] justify-center overflow-hidden p-4 bg-slate-50/70 ${
             isDragging ? "cursor-grabbing" : "cursor-grab"
           }`}
+          onWheel={handleWheel}
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
           onMouseLeave={handleMouseUp}
-          title="Mantené presionado el ratón para desplazar la vista (Pan)"
+          title="Mantené presionado el ratón para desplazar (Pan) o usá la rueda para hacer Zoom"
         >
           <EsquemaVisual
             tieneInterruptorPrincipal={tieneInterruptorPrincipal}
@@ -209,9 +216,10 @@ export function EsquemaVisualCanvas({
           </div>
 
           <div
-            className={`flex-1 bg-white rounded-b-xl shadow-2xl p-6 overflow-hidden flex items-center justify-center ${
+            className={`flex-1 bg-slate-50/70 rounded-b-xl shadow-2xl p-6 overflow-hidden flex items-center justify-center ${
               isDragging ? "cursor-grabbing" : "cursor-grab"
             }`}
+            onWheel={handleWheel}
             onMouseDown={handleMouseDown}
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}

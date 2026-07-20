@@ -117,16 +117,27 @@ function FilaSalida({
         {salida.carga_unidad === "A" ? `${formatearCorriente(salida.carga_valor)} A` : `${salida.carga_valor} ${salida.carga_unidad}`}
       </td>
 
-      {/* Formato & Protección */}
-      <td className="p-3 text-xs text-gray-700">
-        <span className="font-semibold text-gray-900 mr-1.5">{formatoLabel[salida.formato]}</span>
-        <span className="text-gray-500">
-          ({salida.tipo_proteccion === "seccional_termomagnetico" ? "TM" : "Diff"})
+      {/* Formato & Protección (Compacto) */}
+      <td className="p-3 text-xs text-gray-700 whitespace-nowrap w-24">
+        <span className="inline-flex items-center gap-1 bg-gray-100 px-2 py-0.5 rounded text-[11px] font-medium text-gray-800 border border-gray-200">
+          <span className="font-bold text-gray-900">{formatoLabel[salida.formato]}</span>
+          <span className="text-gray-500">({salida.tipo_proteccion === "seccional_diferencial" ? "Diff" : "TM"})</span>
         </span>
       </td>
 
-      {/* Código SAP / Comercial + Ícono de Estado Integrado */}
-      <td className={`p-3 font-mono text-xs ${animar ? "animate-flash" : ""}`}>
+      {/* Código SAP / Comercial + Ícono de Estado Integrado + Tooltip de Descripción */}
+      <td
+        className={`p-3 font-mono text-xs ${animar ? "animate-flash" : ""}`}
+        title={
+          salida.motivo_sin_match
+            ? `Sin match: ${salida.motivo_sin_match}`
+            : salida.componente_descripcion
+            ? `${salida.componente_codigo ?? ""} - ${salida.componente_descripcion}`
+            : salida.componente_codigo_comercial
+            ? `${salida.componente_codigo ?? ""} (${salida.componente_codigo_comercial})`
+            : undefined
+        }
+      >
         <div className="flex items-center gap-2">
           {salida.componente_id ? (
             salida.asignado_manualmente ? (
@@ -153,16 +164,21 @@ function FilaSalida({
             </span>
           )}
 
-          <div className="flex flex-col">
+          <div className="flex flex-col min-w-0">
             <span
               className={`font-semibold ${salida.componente_id ? "text-gray-900" : "text-amber-700 italic"}`}
-              title={salida.componente_descripcion ?? salida.motivo_sin_match ?? undefined}
             >
               {salida.componente_id ? (salida.componente_codigo ?? salida.componente_id) : "Sin match"}
             </span>
-            {salida.componente_codigo_comercial && (
-              <span className="text-gray-500 text-[11px]">{salida.componente_codigo_comercial}</span>
-            )}
+            {salida.componente_descripcion ? (
+              <span className="text-gray-500 text-[11px] truncate max-w-[240px]">
+                {salida.componente_descripcion}
+              </span>
+            ) : salida.componente_codigo_comercial ? (
+              <span className="text-gray-500 text-[11px] truncate max-w-[240px]">
+                {salida.componente_codigo_comercial}
+              </span>
+            ) : null}
           </div>
         </div>
       </td>
