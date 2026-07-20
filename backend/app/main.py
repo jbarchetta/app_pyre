@@ -1,8 +1,23 @@
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import text
 
 from app.config import settings
+from app.database import engine
 from app.routers import auth, catalogo, health, parametros_calculo, proyectos, salidas, tableros
+
+
+def _ejecutar_migraciones_ligeras():
+    try:
+        with engine.begin() as conn:
+            conn.execute(
+                text(
+                    "ALTER TABLE salida ADD COLUMN IF NOT EXISTS alimentado_por_salida_id UUID REFERENCES salida(id) ON DELETE SET NULL;"
+                )
+            )
+    except Exception:
+        pass
+
+
+_ejecutar_migraciones_ligeras()
 
 app = FastAPI(title="Configurador de Tableros PYRE")
 
