@@ -315,6 +315,105 @@ describe("ProyectoWorkspacePage", () => {
     expect(screen.getByRole("tab", { name: "TG1" })).toBeInTheDocument();
   });
 
+  it("ignores a create-tablero response that resolves after the modal was cancelled", async () => {
+    let resolvePost!: (value: { ok: boolean; json: () => Promise<unknown> }) => void;
+    const postPromise = new Promise<{ ok: boolean; json: () => Promise<unknown> }>((resolve) => {
+      resolvePost = resolve;
+    });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockImplementation((url: string, init?: RequestInit) => {
+        if (init?.method === "POST") return postPromise;
+        if (url.includes("/proyectos/p1/tableros")) {
+          return Promise.resolve({
+            ok: true,
+            json: async () => [
+              { id: "t1", proyecto_id: "p1", nombre: "TG1", nivel_falla_ka: "10.00", interruptor_principal_id: null },
+            ],
+          });
+        }
+        if (url.includes("/secciones")) return Promise.resolve({ ok: true, json: async () => [] });
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({ id: "p1", cliente: "Cliente A", nombre: "Proyecto A", analista_id: "a1", estado: "en_curso" }),
+        });
+      }),
+    );
+    renderPage();
+    await screen.findByRole("tab", { name: "TG1" });
+
+    await userEvent.click(screen.getByRole("button", { name: /^nuevo tablero$/i }));
+    await userEvent.type(screen.getByLabelText(/^nombre$/i), "TG3");
+    await userEvent.click(screen.getByRole("button", { name: /crear tablero/i }));
+    await userEvent.keyboard("{Escape}");
+
+    resolvePost({
+      ok: true,
+      json: async () => ({
+        id: "t3",
+        proyecto_id: "p1",
+        nombre: "TG3",
+        nivel_falla_ka: "10.00",
+        interruptor_principal_id: null,
+      }),
+    });
+    await postPromise;
+
+    expect(screen.queryByRole("tab", { name: "TG3" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
+  it("ignores a rename-tablero response that resolves after the modal was cancelled", async () => {
+    let resolvePatch!: (value: { ok: boolean; json: () => Promise<unknown> }) => void;
+    const patchPromise = new Promise<{ ok: boolean; json: () => Promise<unknown> }>((resolve) => {
+      resolvePatch = resolve;
+    });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockImplementation((url: string, init?: RequestInit) => {
+        if (init?.method === "PATCH") return patchPromise;
+        if (url.includes("/proyectos/p1/tableros")) {
+          return Promise.resolve({
+            ok: true,
+            json: async () => [
+              { id: "t1", proyecto_id: "p1", nombre: "TG1", nivel_falla_ka: "10.00", interruptor_principal_id: null },
+            ],
+          });
+        }
+        if (url.includes("/secciones")) return Promise.resolve({ ok: true, json: async () => [] });
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({ id: "p1", cliente: "Cliente A", nombre: "Proyecto A", analista_id: "a1", estado: "en_curso" }),
+        });
+      }),
+    );
+    renderPage();
+    await screen.findByRole("tab", { name: "TG1" });
+
+    await userEvent.click(screen.getByRole("button", { name: /renombrar tablero activo/i }));
+    const input = screen.getByLabelText(/^nombre$/i) as HTMLInputElement;
+    await userEvent.clear(input);
+    await userEvent.type(input, "TG1 renombrado");
+    await userEvent.click(screen.getByRole("button", { name: /^guardar$/i }));
+    await userEvent.keyboard("{Escape}");
+
+    resolvePatch({
+      ok: true,
+      json: async () => ({
+        id: "t1",
+        proyecto_id: "p1",
+        nombre: "TG1 renombrado",
+        nivel_falla_ka: "10.00",
+        interruptor_principal_id: null,
+      }),
+    });
+    await patchPromise;
+
+    expect(screen.getByRole("tab", { name: "TG1" })).toBeInTheDocument();
+    expect(screen.queryByRole("tab", { name: "TG1 renombrado" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
   it("does not close the Nuevo tablero modal when a mousedown starts inside it but the click resolves on the backdrop", async () => {
     mockFetchConDosTableros();
     renderPage();

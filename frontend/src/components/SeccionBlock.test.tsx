@@ -15,6 +15,7 @@ const salidaSinMatch = {
   tipo_proteccion: "seccional_termomagnetico" as const,
   componente_id: null,
   origen: "manual",
+  asignado_manualmente: false,
 };
 
 const salidaConMatch = {
@@ -28,6 +29,7 @@ const salidaConMatch = {
   componente_codigo: "1SDA067004R1",
   componente_codigo_comercial: "XT2N 160 TMD 160-1600",
   origen: "manual",
+  asignado_manualmente: false,
 };
 
 describe("SeccionBlock", () => {

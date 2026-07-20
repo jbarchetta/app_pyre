@@ -15,6 +15,7 @@ function salida(overrides: Partial<Salida>): Salida {
     tipo_proteccion: "seccional_termomagnetico",
     componente_id: "c1",
     origen: "manual",
+    asignado_manualmente: false,
     ...overrides,
   };
 }
