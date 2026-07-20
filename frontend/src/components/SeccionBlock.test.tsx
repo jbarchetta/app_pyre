@@ -139,7 +139,7 @@ describe("SeccionBlock", () => {
     expect(onSalidaActualizada).toHaveBeenCalledWith(expect.objectContaining({ carga_valor: "30.00" }));
   });
 
-  it("closes the edit modal with Escape without saving", async () => {
+  it("closes the edit modal with Escape without saving, after confirming the discard", async () => {
     render(
       <SeccionBlock
         seccion={seccion}
@@ -154,6 +154,10 @@ describe("SeccionBlock", () => {
     expect(screen.getByRole("dialog")).toBeInTheDocument();
 
     await userEvent.keyboard("{Escape}");
+    // Escape now asks for confirmation before discarding (see the dedicated
+    // discard-confirmation tests below) rather than closing directly.
+    expect(screen.getByText(/¿descartar cambios\?/i)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: /^descartar$/i }));
 
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
@@ -401,5 +405,79 @@ describe("SeccionBlock", () => {
     await userEvent.click(screen.getByRole("button", { name: /agregar salida/i }));
 
     expect(await screen.findByText("La carga en amperios debe ser un número entero")).toBeInTheDocument();
+  });
+
+  it("asks for confirmation before discarding an edit when closing via Cancelar", async () => {
+    render(
+      <SeccionBlock
+        seccion={seccion}
+        salidas={[salidaConMatch]}
+        onSalidaCreada={vi.fn()}
+        onSalidaActualizada={vi.fn()}
+        onSalidaBorrada={vi.fn()}
+      />,
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: /editar salida 20 a/i }));
+    await userEvent.click(screen.getByRole("button", { name: /^cancelar$/i }));
+
+    expect(screen.getByText(/¿descartar cambios\?/i)).toBeInTheDocument();
+    // The edit form itself is no longer shown while the discard confirmation is up.
+    expect(screen.queryByText(/^editar salida$/i)).not.toBeInTheDocument();
+  });
+
+  it("returns to the edit modal when cancelling the discard confirmation", async () => {
+    render(
+      <SeccionBlock
+        seccion={seccion}
+        salidas={[salidaConMatch]}
+        onSalidaCreada={vi.fn()}
+        onSalidaActualizada={vi.fn()}
+        onSalidaBorrada={vi.fn()}
+      />,
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: /editar salida 20 a/i }));
+    await userEvent.click(screen.getByRole("button", { name: /^cancelar$/i }));
+    await userEvent.click(screen.getByRole("button", { name: /^cancelar$/i }));
+
+    expect(screen.getByText(/editar salida/i)).toBeInTheDocument();
+    expect(screen.queryByText(/¿descartar cambios\?/i)).not.toBeInTheDocument();
+  });
+
+  it("closes the edit modal without saving when confirming the discard", async () => {
+    render(
+      <SeccionBlock
+        seccion={seccion}
+        salidas={[salidaConMatch]}
+        onSalidaCreada={vi.fn()}
+        onSalidaActualizada={vi.fn()}
+        onSalidaBorrada={vi.fn()}
+      />,
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: /editar salida 20 a/i }));
+    await userEvent.click(screen.getByRole("button", { name: /^cancelar$/i }));
+    await userEvent.click(screen.getByRole("button", { name: /^descartar$/i }));
+
+    expect(screen.queryByText(/editar salida/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/¿descartar cambios\?/i)).not.toBeInTheDocument();
+  });
+
+  it("asks for confirmation before discarding when pressing Escape in the edit modal", async () => {
+    render(
+      <SeccionBlock
+        seccion={seccion}
+        salidas={[salidaConMatch]}
+        onSalidaCreada={vi.fn()}
+        onSalidaActualizada={vi.fn()}
+        onSalidaBorrada={vi.fn()}
+      />,
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: /editar salida 20 a/i }));
+    await userEvent.keyboard("{Escape}");
+
+    expect(screen.getByText(/¿descartar cambios\?/i)).toBeInTheDocument();
   });
 });

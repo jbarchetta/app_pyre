@@ -8,6 +8,7 @@ interface ConfirmDialogProps {
   onCancel: () => void;
   confirmando?: boolean;
   error?: string | null;
+  textoConfirmar?: string;
 }
 
 export function ConfirmDialog({
@@ -17,6 +18,7 @@ export function ConfirmDialog({
   onCancel,
   confirmando = false,
   error = null,
+  textoConfirmar = "Borrar",
 }: ConfirmDialogProps) {
   const dialogRef = useRef<HTMLDivElement>(null);
   const { onMouseDown, onClick } = useCerrarAlClickFuera(onCancel);
@@ -57,7 +59,7 @@ export function ConfirmDialog({
             disabled={confirmando}
             className="bg-abb-red px-6 py-3 text-sm uppercase tracking-widest text-white disabled:opacity-50"
           >
-            Borrar
+            {textoConfirmar}
           </button>
           <button
             type="button"

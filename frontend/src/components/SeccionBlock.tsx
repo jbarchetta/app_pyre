@@ -105,6 +105,7 @@ export function SeccionBlock({
   const cargaInvalidaEntero = cargaUnidad === "A" && cargaValor.trim() !== "" && Number(cargaValor) % 1 !== 0;
   const [error, setError] = useState<string | null>(null);
   const [salidaEnEdicion, setSalidaEnEdicion] = useState<Salida | null>(null);
+  const [confirmandoDescarteEdicion, setConfirmandoDescarteEdicion] = useState(false);
   const [editCargaValor, setEditCargaValor] = useState("");
   const [editCargaUnidad, setEditCargaUnidad] = useState("A");
   const [editFormato, setEditFormato] = useState<FormatoPolos>("unipolar");
@@ -156,13 +157,26 @@ export function SeccionBlock({
     ultimoTriggerRef.current?.focus();
   }
 
-  const { onMouseDown: onMouseDownModal, onClick: onClickModal } = useCerrarAlClickFuera(cerrarEdicion);
+  function solicitarCierreEdicion() {
+    setConfirmandoDescarteEdicion(true);
+  }
+
+  function confirmarDescarteEdicion() {
+    setConfirmandoDescarteEdicion(false);
+    cerrarEdicion();
+  }
+
+  function cancelarDescarteEdicion() {
+    setConfirmandoDescarteEdicion(false);
+  }
+
+  const { onMouseDown: onMouseDownModal, onClick: onClickModal } = useCerrarAlClickFuera(solicitarCierreEdicion);
 
   useEffect(() => {
     if (!salidaEnEdicion || pickerAbierto) return;
     editCargaInputRef.current?.focus();
     function handleKeyDown(e: KeyboardEvent) {
-      if (e.key === "Escape") cerrarEdicion();
+      if (e.key === "Escape") solicitarCierreEdicion();
     }
     document.addEventListener("keydown", handleKeyDown);
     return () => document.removeEventListener("keydown", handleKeyDown);
@@ -327,7 +341,7 @@ export function SeccionBlock({
         </div>
       )}
 
-      {salidaEnEdicion && !pickerAbierto && (
+      {salidaEnEdicion && !pickerAbierto && !confirmandoDescarteEdicion && (
         <div
           className="fixed inset-0 z-20 flex items-center justify-center bg-black/40"
           onMouseDown={onMouseDownModal}
@@ -407,7 +421,7 @@ export function SeccionBlock({
               </button>
               <button
                 type="button"
-                onClick={cerrarEdicion}
+                onClick={solicitarCierreEdicion}
                 className="border border-surface-stroke px-6 py-3 text-sm uppercase tracking-widest"
               >
                 Cancelar
@@ -415,6 +429,16 @@ export function SeccionBlock({
             </div>
           </form>
         </div>
+      )}
+
+      {salidaEnEdicion && confirmandoDescarteEdicion && (
+        <ConfirmDialog
+          titulo="¿Descartar cambios?"
+          mensaje="Vas a perder los cambios que hiciste en esta salida."
+          textoConfirmar="Descartar"
+          onConfirm={confirmarDescarteEdicion}
+          onCancel={cancelarDescarteEdicion}
+        />
       )}
 
       {salidaEnEdicion && pickerAbierto && (
