@@ -21,8 +21,8 @@ export function ParametrosCalculoPage() {
       const actualizados = await actualizarParametrosCalculo(parametros);
       setParametros(actualizados);
       setGuardado(true);
-    } catch {
-      setError("No se pudieron guardar los parámetros");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "No se pudieron guardar los parámetros");
     }
   }
 

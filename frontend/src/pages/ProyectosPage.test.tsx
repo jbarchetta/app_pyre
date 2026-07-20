@@ -215,4 +215,32 @@ describe("ProyectosPage", () => {
     });
     await screen.findByText(/Proyecto Existente/i);
   });
+
+  it("shows the backend's actual error message when creating a proyecto fails", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockImplementation((_url: string, init?: RequestInit) => {
+        if (init?.method === "POST") {
+          return Promise.resolve({ ok: false, json: async () => ({ detail: "El cliente es obligatorio" }) });
+        }
+        return Promise.resolve({
+          ok: true,
+          json: async () => [{ id: "p1", cliente: "Cliente A", nombre: "Proyecto Existente", analista_id: "a1", estado: "en_curso" }],
+        });
+      }),
+    );
+
+    render(
+      <MemoryRouter>
+        <ProyectosPage />
+      </MemoryRouter>,
+    );
+    await screen.findByText(/Proyecto Existente/i);
+
+    await userEvent.click(screen.getByRole("button", { name: /nuevo proyecto/i }));
+    await userEvent.type(screen.getByLabelText(/nombre/i), "Proyecto Nuevo");
+    await userEvent.click(screen.getByRole("button", { name: /crear proyecto/i }));
+
+    expect(await screen.findByText("El cliente es obligatorio")).toBeInTheDocument();
+  });
 });

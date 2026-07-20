@@ -266,7 +266,12 @@ describe("DetalleTablero", () => {
     await userEvent.click(screen.getByRole("button", { name: /borrar fila activa/i }));
     await userEvent.click(screen.getByRole("button", { name: /^borrar$/i }));
 
-    expect(await screen.findByRole("alert")).toHaveTextContent(/no se pudo borrar la fila/i);
+    // Backend delete failure with no `detail` in the response body (a raw
+    // network-level failure, not a validation error) -- surfaces client.ts's
+    // own generic fallback for eliminarSeccion now, instead of the fixed
+    // "no se pudo borrar la fila" string DetalleTablero used to hardcode
+    // regardless of what actually failed.
+    expect(await screen.findByRole("alert")).toHaveTextContent(/no se pudo borrar la sección/i);
     expect(screen.getByRole("tab", { name: "Sección 1" })).toBeInTheDocument();
   });
 
@@ -433,5 +438,30 @@ describe("DetalleTablero", () => {
 
     resolveFetch({ ok: true, json: async () => [] });
     await screen.findByRole("tab", { name: "Principal" });
+  });
+
+  it("shows the backend's actual error message when saving the Icc fails", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockImplementation((url: string, init?: RequestInit) => {
+        if (init?.method === "PATCH") {
+          return Promise.resolve({ ok: false, json: async () => ({ detail: "Nivel de falla inválido" }) });
+        }
+        if (url.includes("/secciones") && url.includes("/salidas")) {
+          return Promise.resolve({ ok: true, json: async () => [] });
+        }
+        if (url.includes("/secciones")) {
+          return Promise.resolve({ ok: true, json: async () => [] });
+        }
+        return Promise.resolve({ ok: true, json: async () => [] });
+      }),
+    );
+    renderDetalle();
+    await screen.findByRole("tab", { name: "Principal" });
+
+    await userEvent.click(screen.getByRole("button", { name: /editar intensidad de cortocircuito/i }));
+    await userEvent.click(screen.getByRole("button", { name: /^guardar$/i }));
+
+    expect(await screen.findByText("Nivel de falla inválido")).toBeInTheDocument();
   });
 });

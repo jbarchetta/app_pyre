@@ -143,9 +143,9 @@ export function DetalleTablero({
       if (!modalIccRef.current) return; // cancelled while the request was in flight
       onTableroActualizado(actualizado);
       cerrarModales();
-    } catch {
+    } catch (err) {
       if (!modalIccRef.current) return;
-      setError("No se pudo actualizar la intensidad de cortocircuito");
+      setError(err instanceof Error ? err.message : "No se pudo actualizar la intensidad de cortocircuito");
     }
   }
 
@@ -156,9 +156,9 @@ export function DetalleTablero({
       if (!modalInterruptorRef.current) return;
       onTableroActualizado(actualizado);
       cerrarModales();
-    } catch {
+    } catch (err) {
       if (!modalInterruptorRef.current) return;
-      setError("No se pudo actualizar el interruptor principal");
+      setError(err instanceof Error ? err.message : "No se pudo actualizar el interruptor principal");
     }
   }
 
@@ -171,9 +171,9 @@ export function DetalleTablero({
       setSecciones((actuales) => [...(actuales ?? []), { seccion, salidas: [] }]);
       setTabSeleccionadoRaw(seccion.id);
       cerrarModales();
-    } catch {
+    } catch (err) {
       if (!modalNuevaFilaRef.current) return;
-      setError("No se pudo crear la fila");
+      setError(err instanceof Error ? err.message : "No se pudo crear la fila");
     }
   }
 
@@ -189,9 +189,9 @@ export function DetalleTablero({
         (actuales ?? []).map((s) => (s.seccion.id === actualizada.id ? { ...s, seccion: actualizada } : s)),
       );
       cerrarModales();
-    } catch {
+    } catch (err) {
       if (filaEnEdicionIdRef.current !== idEditada) return;
-      setError("No se pudo renombrar la fila");
+      setError(err instanceof Error ? err.message : "No se pudo renombrar la fila");
     }
   }
 
@@ -203,8 +203,8 @@ export function DetalleTablero({
       setSecciones((actuales) => (actuales ?? []).filter((s) => s.seccion.id !== filaABorrar.id));
       if (tabActivo === filaABorrar.id) setTabSeleccionadoRaw(TAB_PRINCIPAL);
       cerrarModales();
-    } catch {
-      setError("No se pudo borrar la fila");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "No se pudo borrar la fila");
     } finally {
       setBorrandoFila(false);
     }

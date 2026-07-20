@@ -101,9 +101,9 @@ export function ProyectoWorkspacePage() {
       setTableros((actuales) => [...(actuales ?? []), tablero]);
       cerrarModales();
       setSearchParams({ tablero: tablero.id });
-    } catch {
+    } catch (err) {
       if (!modalNuevoTableroRef.current) return;
-      setError("No se pudo crear el tablero");
+      setError(err instanceof Error ? err.message : "No se pudo crear el tablero");
     }
   }
 
@@ -117,9 +117,9 @@ export function ProyectoWorkspacePage() {
       if (tableroEnEdicionIdRef.current !== idEditado) return; // cancelado o se inició otra edición
       setTableros((actuales) => (actuales ?? []).map((t) => (t.id === actualizado.id ? actualizado : t)));
       cerrarModales();
-    } catch {
+    } catch (err) {
       if (tableroEnEdicionIdRef.current !== idEditado) return;
-      setError("No se pudo renombrar el tablero");
+      setError(err instanceof Error ? err.message : "No se pudo renombrar el tablero");
     }
   }
 
@@ -134,8 +134,8 @@ export function ProyectoWorkspacePage() {
         setSearchParams(restantes[0] ? { tablero: restantes[0].id } : {});
       }
       cerrarModales();
-    } catch {
-      setError("No se pudo borrar el tablero");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "No se pudo borrar el tablero");
     } finally {
       setBorrandoTablero(false);
     }

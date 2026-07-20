@@ -377,4 +377,29 @@ describe("SeccionBlock", () => {
     expect(screen.getByText(/los amperios deben ser un valor entero/i)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /^guardar$/i })).toBeDisabled();
   });
+
+  it("shows the backend's actual error message when creating a salida fails", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({
+        ok: false,
+        json: async () => ({ detail: "La carga en amperios debe ser un número entero" }),
+      }),
+    );
+    render(
+      <SeccionBlock
+        seccion={seccion}
+        salidas={[]}
+        onSalidaCreada={vi.fn()}
+        onSalidaActualizada={vi.fn()}
+        onSalidaBorrada={vi.fn()}
+      />,
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: /nueva salida/i }));
+    await userEvent.type(screen.getByLabelText(/^carga$/i), "16");
+    await userEvent.click(screen.getByRole("button", { name: /agregar salida/i }));
+
+    expect(await screen.findByText("La carga en amperios debe ser un número entero")).toBeInTheDocument();
+  });
 });

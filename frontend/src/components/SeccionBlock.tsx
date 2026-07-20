@@ -132,8 +132,8 @@ export function SeccionBlock({
       onSalidaCreada(salida);
       setCargaValor("");
       setMostrarFormulario(false);
-    } catch {
-      setError("No se pudo crear la salida");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "No se pudo crear la salida");
     }
   }
 
@@ -184,9 +184,9 @@ export function SeccionBlock({
       if (idSalidaEnEdicionRef.current !== idEditada) return; // ref reflects live state, unlike the closed-over salidaEnEdicion
       onSalidaActualizada(actualizada);
       cerrarEdicion();
-    } catch {
+    } catch (err) {
       if (idSalidaEnEdicionRef.current !== idEditada) return;
-      setError("No se pudo actualizar la salida");
+      setError(err instanceof Error ? err.message : "No se pudo actualizar la salida");
     }
   }
 
@@ -199,9 +199,9 @@ export function SeccionBlock({
       onSalidaActualizada(actualizada);
       setSalidaEnEdicion(actualizada);
       setPickerAbierto(false);
-    } catch {
+    } catch (err) {
       if (idSalidaEnEdicionRef.current !== idEditada) return;
-      setError("No se pudo reasignar el componente");
+      setError(err instanceof Error ? err.message : "No se pudo reasignar el componente");
     }
   }
 
@@ -213,8 +213,8 @@ export function SeccionBlock({
       onSalidaBorrada(salidaABorrar.id);
       setSalidaABorrar(null);
       ultimoTriggerRef.current?.focus();
-    } catch {
-      setError("No se pudo borrar la salida");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "No se pudo borrar la salida");
     } finally {
       setBorrando(false);
     }

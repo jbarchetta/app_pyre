@@ -74,8 +74,9 @@ export function ProyectosPage() {
         setProyectos((actuales) => [...(actuales ?? []), proyecto]);
       }
       cerrarModal();
-    } catch {
-      setError(modal?.tipo === "editar" ? "No se pudo actualizar el proyecto" : "No se pudo crear el proyecto");
+    } catch (err) {
+      const mensajePorDefecto = modal?.tipo === "editar" ? "No se pudo actualizar el proyecto" : "No se pudo crear el proyecto";
+      setError(err instanceof Error ? err.message : mensajePorDefecto);
     }
   }
 
@@ -96,8 +97,8 @@ export function ProyectosPage() {
       await eliminarProyecto(aBorrar.proyecto.id);
       setProyectos((actuales) => (actuales ?? []).filter((p) => p.id !== aBorrar.proyecto.id));
       cerrarModal();
-    } catch {
-      setError("No se pudo borrar el proyecto");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "No se pudo borrar el proyecto");
     } finally {
       setBorrando(false);
     }

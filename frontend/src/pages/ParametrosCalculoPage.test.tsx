@@ -35,4 +35,25 @@ describe("ParametrosCalculoPage", () => {
     );
     expect(await screen.findByText(/guardado/i)).toBeInTheDocument();
   });
+
+  it("shows the backend's actual error message when saving parametros fails", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockImplementation((_url: string, init?: RequestInit) => {
+        if (init?.method === "PUT") {
+          return Promise.resolve({ ok: false, json: async () => ({ detail: "cos_phi debe estar entre 0 y 1" }) });
+        }
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({ tension_mono_v: "220", tension_tri_v: "380", cos_phi: "0.9", ratio_selectividad: "1.6" }),
+        });
+      }),
+    );
+    render(<ParametrosCalculoPage />);
+    await screen.findByRole("button", { name: /^guardar$/i });
+
+    await userEvent.click(screen.getByRole("button", { name: /^guardar$/i }));
+
+    expect(await screen.findByText("cos_phi debe estar entre 0 y 1")).toBeInTheDocument();
+  });
 });

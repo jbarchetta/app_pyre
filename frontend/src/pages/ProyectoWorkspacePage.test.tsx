@@ -427,4 +427,36 @@ describe("ProyectoWorkspacePage", () => {
 
     expect(screen.getByRole("dialog")).toBeInTheDocument();
   });
+
+  it("shows the backend's actual error message when creating a tablero fails", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockImplementation((url: string, init?: RequestInit) => {
+        if (init?.method === "POST") {
+          return Promise.resolve({ ok: false, json: async () => ({ detail: "Nombre de tablero duplicado" }) });
+        }
+        if (url.includes("/proyectos/p1/tableros")) {
+          return Promise.resolve({
+            ok: true,
+            json: async () => [
+              { id: "t1", proyecto_id: "p1", nombre: "TG1", nivel_falla_ka: "10.00", interruptor_principal_id: null },
+            ],
+          });
+        }
+        if (url.includes("/secciones")) return Promise.resolve({ ok: true, json: async () => [] });
+        return Promise.resolve({
+          ok: true,
+          json: async () => ({ id: "p1", cliente: "Cliente A", nombre: "Proyecto A", analista_id: "a1", estado: "en_curso" }),
+        });
+      }),
+    );
+    renderPage();
+    await screen.findByRole("tab", { name: "TG1" });
+
+    await userEvent.click(screen.getByRole("button", { name: /^nuevo tablero$/i }));
+    await userEvent.type(screen.getByLabelText(/^nombre$/i), "TG1");
+    await userEvent.click(screen.getByRole("button", { name: /crear tablero/i }));
+
+    expect(await screen.findByText("Nombre de tablero duplicado")).toBeInTheDocument();
+  });
 });
