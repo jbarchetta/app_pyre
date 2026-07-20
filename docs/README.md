@@ -13,7 +13,14 @@ cd backend && source venv/Scripts/activate && pytest -v
 cd frontend && npm run dev -- --port 5180
 ```
 
-## Levantar el stack completo (integración)
+## Levantar el stack completo (integración, production-like)
+
+Desde el ciclo 9, `docker compose up` ya no corre el dev server de Vite: el
+servicio `frontend` compila un build de producción (`frontend/Dockerfile`,
+multi-stage) y lo sirve con nginx (`frontend/nginx.conf`, fallback de SPA +
+cache largo para `/assets/`). Para iterar día a día con hot reload seguí
+usando `npm run dev` local (sección anterior) — este stack es para probar el
+sistema integrado tal como se desplegaría.
 
 ```bash
 docker compose up -d --build
