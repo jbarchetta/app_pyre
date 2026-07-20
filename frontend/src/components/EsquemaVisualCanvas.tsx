@@ -1,4 +1,13 @@
 import { useState, useRef } from "react";
+import {
+  MagnifyingGlassMinusIcon,
+  MagnifyingGlassPlusIcon,
+  Square3Stack3DIcon,
+  ArrowsPointingOutIcon,
+  ArrowsPointingInIcon,
+  CpuChipIcon,
+  XMarkIcon,
+} from "@heroicons/react/24/outline";
 import type { Salida, Seccion } from "../api/client";
 import { EsquemaVisual, type Capas, type InterruptorPrincipalInfo } from "./EsquemaVisual";
 
@@ -90,7 +99,7 @@ export function EsquemaVisualCanvas({
         className="p-1.5 text-gray-600 hover:text-abb-red rounded hover:bg-gray-200 transition"
         title="Alejar (-)"
       >
-        <span className="material-symbols-outlined text-lg">zoom_out</span>
+        <MagnifyingGlassMinusIcon className="w-4 h-4" />
       </button>
       <button
         type="button"
@@ -108,7 +117,7 @@ export function EsquemaVisualCanvas({
         className="p-1.5 text-gray-600 hover:text-abb-red rounded hover:bg-gray-200 transition"
         title="Acercar (+)"
       >
-        <span className="material-symbols-outlined text-lg">zoom_in</span>
+        <MagnifyingGlassPlusIcon className="w-4 h-4" />
       </button>
       <button
         type="button"
@@ -117,7 +126,7 @@ export function EsquemaVisualCanvas({
         className="p-1.5 text-gray-600 hover:text-abb-red rounded hover:bg-gray-200 transition"
         title="Capas del esquema"
       >
-        <span className="material-symbols-outlined text-lg">layers</span>
+        <Square3Stack3DIcon className="w-4 h-4" />
       </button>
       <button
         type="button"
@@ -126,9 +135,11 @@ export function EsquemaVisualCanvas({
         className="p-1.5 text-gray-600 hover:text-abb-red rounded hover:bg-gray-200 transition ml-1"
         title={esModal ? "Salir de pantalla completa (Esc)" : "Ampliar a pantalla completa"}
       >
-        <span className="material-symbols-outlined text-lg">
-          {esModal ? "fullscreen_exit" : "fullscreen"}
-        </span>
+        {esModal ? (
+          <ArrowsPointingInIcon className="w-4 h-4" />
+        ) : (
+          <ArrowsPointingOutIcon className="w-4 h-4" />
+        )}
       </button>
     </div>
   );
@@ -139,7 +150,7 @@ export function EsquemaVisualCanvas({
         {/* Cabecera del Blueprint */}
         <div className="flex items-center justify-between border-b border-surface-stroke bg-industrial-gray px-4 py-2.5 min-h-[42px]">
           <span className="font-mono text-xs font-bold uppercase tracking-wider text-gray-700 flex items-center gap-2">
-            <span className="material-symbols-outlined text-base text-abb-red">schema</span>
+            <CpuChipIcon className="w-4 h-4 text-abb-red" />
             Vista Unifilar / Blueprint
           </span>
           {renderControles(false)}
@@ -202,7 +213,7 @@ export function EsquemaVisualCanvas({
           <div className="w-full max-w-7xl max-h-[92vh] bg-white rounded-xl shadow-2xl overflow-hidden flex flex-col border border-gray-300">
             <div className="flex items-center justify-between bg-industrial-gray px-4 py-3 border-b border-surface-stroke">
               <span className="font-mono text-sm font-bold uppercase tracking-wider text-gray-800 flex items-center gap-2">
-                <span className="material-symbols-outlined text-abb-red text-xl">schema</span>
+                <CpuChipIcon className="w-5 h-5 text-abb-red" />
                 Blueprint Unifilar (Pantalla Completa)
               </span>
               <div className="flex items-center gap-2">
@@ -214,7 +225,7 @@ export function EsquemaVisualCanvas({
                   className="p-1.5 text-gray-600 hover:text-abb-red rounded hover:bg-gray-200 transition ml-2"
                   title="Cerrar (Esc)"
                 >
-                  <span className="material-symbols-outlined text-xl">close</span>
+                  <XMarkIcon className="w-5 h-5" />
                 </button>
               </div>
             </div>

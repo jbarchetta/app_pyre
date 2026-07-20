@@ -13,6 +13,19 @@ import {
   type TipoProteccion,
   formatearCorriente,
 } from "../api/client";
+import {
+  Bars3Icon,
+  LinkIcon,
+  PencilIcon,
+  TrashIcon,
+  DocumentDuplicateIcon,
+  PlusCircleIcon,
+  XMarkIcon,
+  ExclamationTriangleIcon,
+  PencilSquareIcon,
+  Cog6ToothIcon,
+  QueueListIcon,
+} from "@heroicons/react/24/outline";
 import { ComponentePicker } from "./ComponentePicker";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { useCerrarAlClickFuera } from "../hooks/useCerrarAlClickFuera";
@@ -115,7 +128,7 @@ function FilaSalida({
       {/* Drag Handle & Auto-Code F1.1 */}
       <td className="p-2 text-center text-gray-500 w-16">
         <div className="flex items-center justify-center gap-1 font-mono text-xs font-bold text-gray-700">
-          <span className="material-symbols-outlined text-xs text-gray-400 select-none cursor-grab" title="Arrastrar para reordenar">drag_indicator</span>
+          <Bars3Icon className="w-3.5 h-3.5 text-gray-400 select-none cursor-grab" title="Arrastrar para reordenar" />
           <span>{codigoAuto}</span>
         </div>
       </td>
@@ -139,7 +152,7 @@ function FilaSalida({
               className="bg-red-50 text-abb-red px-1.5 py-0.5 rounded font-mono text-[11px] font-bold border border-red-200 inline-flex items-center gap-0.5"
               title={`Alimentado por ${salida.alimentado_por_codigo}`}
             >
-              <span className="material-symbols-outlined text-[12px]">link</span>
+              <LinkIcon className="w-3 h-3" />
               {salida.alimentado_por_codigo}
             </span>
           )}
@@ -175,27 +188,21 @@ function FilaSalida({
         <div className="flex items-center gap-2">
           {salida.componente_id ? (
             salida.asignado_manualmente ? (
-              <span
-                className="material-symbols-outlined text-abb-red text-base shrink-0"
+              <PencilSquareIcon
+                className="w-4 h-4 text-abb-red shrink-0"
                 title="Asignado manualmente por el analista"
-              >
-                edit_note
-              </span>
+              />
             ) : (
-              <span
-                className="material-symbols-outlined text-blue-600 text-base shrink-0"
+              <Cog6ToothIcon
+                className="w-4 h-4 text-blue-600 shrink-0"
                 title="Propuesta automática calculada"
-              >
-                settings_suggest
-              </span>
+              />
             )
           ) : (
-            <span
-              className="material-symbols-outlined text-amber-500 text-base shrink-0 cursor-help"
+            <ExclamationTriangleIcon
+              className="w-4 h-4 text-amber-500 shrink-0 cursor-help"
               title={salida.motivo_sin_match ?? "Sin propuesta automática para esta carga"}
-            >
-              warning
-            </span>
+            />
           )}
 
           <div className="flex flex-col min-w-0">
@@ -231,7 +238,7 @@ function FilaSalida({
             }`}
             title={salida.alimentado_por_codigo ? `Alimentado por ${salida.alimentado_por_codigo}` : "Linkear alimentación a otro elemento"}
           >
-            <span className="material-symbols-outlined text-base">link</span>
+            <LinkIcon className="w-4 h-4" />
           </button>
           <button
             type="button"
@@ -240,7 +247,7 @@ function FilaSalida({
             className="hover:text-abb-red p-1 rounded hover:bg-gray-100"
             title="Duplicar salida"
           >
-            <span className="material-symbols-outlined text-base">content_copy</span>
+            <DocumentDuplicateIcon className="w-4 h-4" />
           </button>
           <button
             type="button"
@@ -249,7 +256,7 @@ function FilaSalida({
             className="hover:text-abb-red p-1 rounded hover:bg-gray-100"
             title="Editar salida"
           >
-            <span className="material-symbols-outlined text-base">edit</span>
+            <PencilIcon className="w-4 h-4" />
           </button>
           <button
             type="button"
@@ -258,7 +265,7 @@ function FilaSalida({
             className="hover:text-abb-red p-1 rounded hover:bg-gray-100"
             title="Borrar salida"
           >
-            <span className="material-symbols-outlined text-base">delete</span>
+            <TrashIcon className="w-4 h-4" />
           </button>
         </div>
       </td>
@@ -503,7 +510,7 @@ export function SeccionBlock({
     <div className="mt-4 border border-surface-stroke bg-white rounded-lg shadow-sm overflow-hidden">
       <div className="border-b border-surface-stroke bg-industrial-gray px-4 py-2.5 flex items-center justify-between min-h-[42px]">
         <h3 className="font-mono text-xs font-bold uppercase tracking-wider text-gray-700 flex items-center gap-2">
-          <span className="material-symbols-outlined text-base text-abb-red">segment</span>
+          <QueueListIcon className="w-4 h-4 text-abb-red" />
           {seccion.nombre}
           <span className="text-xs text-gray-500 font-normal lowercase font-sans">({salidas.length} salidas)</span>
         </h3>
@@ -666,7 +673,7 @@ export function SeccionBlock({
             onClick={() => setMostrarFormulario(true)}
             className="flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-abb-red hover:underline"
           >
-            <span className="material-symbols-outlined text-base">add_circle</span>
+            <PlusCircleIcon className="w-4 h-4" />
             Nueva salida
           </button>
         </div>
@@ -827,7 +834,7 @@ export function SeccionBlock({
           <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 border border-gray-200 space-y-4">
             <div className="flex items-center justify-between border-b border-gray-100 pb-3">
               <h2 className="text-base font-bold text-gray-900 flex items-center gap-2">
-                <span className="material-symbols-outlined text-abb-red">link</span>
+                <LinkIcon className="w-5 h-5 text-abb-red" />
                 Linkear Fuente de Alimentación
               </h2>
               <button
@@ -835,7 +842,7 @@ export function SeccionBlock({
                 onClick={() => setSalidaEnLink(null)}
                 className="text-gray-400 hover:text-gray-600 p-1 rounded"
               >
-                <span className="material-symbols-outlined text-lg">close</span>
+                <XMarkIcon className="w-5 h-5" />
               </button>
             </div>
 
