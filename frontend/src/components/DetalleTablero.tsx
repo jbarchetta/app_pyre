@@ -579,14 +579,15 @@ export function DetalleTablero({
                 </h3>
                 <button
                   type="button"
+                  aria-label="Cambiar interruptor principal"
                   onClick={(e) => {
                     ultimoTriggerRef.current = e.currentTarget;
                     setModalInterruptor(true);
                   }}
-                  className="inline-flex items-center gap-1.5 bg-abb-red hover:bg-red-700 text-white font-semibold text-xs px-3 py-1.5 rounded transition shadow-sm"
+                  className="p-1.5 text-gray-600 hover:text-abb-red hover:bg-gray-200 rounded transition"
+                  title={tablero.interruptor_principal_id ? "Cambiar interruptor principal" : "Asignar interruptor principal"}
                 >
-                  <span className="material-symbols-outlined text-sm">edit</span>
-                  {tablero.interruptor_principal_id ? "Cambiar interruptor principal" : "Asignar interruptor principal"}
+                  <span className="material-symbols-outlined text-lg">edit</span>
                 </button>
               </div>
 
