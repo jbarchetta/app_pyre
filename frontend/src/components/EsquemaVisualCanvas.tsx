@@ -1,6 +1,6 @@
 import { useState, useRef } from "react";
 import type { Salida, Seccion } from "../api/client";
-import { EsquemaVisual, type Capas } from "./EsquemaVisual";
+import { EsquemaVisual, type Capas, type InterruptorPrincipalInfo } from "./EsquemaVisual";
 
 const ZOOM_PASO = 0.25;
 const ZOOM_MIN = 0.5;
@@ -8,6 +8,7 @@ const ZOOM_MAX = 2.5;
 
 interface EsquemaVisualCanvasProps {
   tieneInterruptorPrincipal: boolean;
+  interruptorPrincipal?: InterruptorPrincipalInfo | null;
   secciones: { seccion: Seccion; salidas: Salida[] }[];
   zoom: number;
   onZoomChange: (zoom: number) => void;
@@ -24,6 +25,7 @@ function limitar(valor: number): number {
 
 export function EsquemaVisualCanvas({
   tieneInterruptorPrincipal,
+  interruptorPrincipal,
   secciones,
   zoom,
   onZoomChange,
@@ -138,7 +140,7 @@ export function EsquemaVisualCanvas({
         <div className="flex items-center justify-between border-b border-surface-stroke bg-industrial-gray p-3">
           <span className="font-mono text-xs font-bold uppercase tracking-wider text-gray-700 flex items-center gap-1.5">
             <span className="material-symbols-outlined text-base text-abb-red">schema</span>
-            Blueprint (50% Ancho)
+            Vista Unifilar / Blueprint
           </span>
           {renderControles(false)}
         </div>
@@ -181,6 +183,7 @@ export function EsquemaVisualCanvas({
         >
           <EsquemaVisual
             tieneInterruptorPrincipal={tieneInterruptorPrincipal}
+            interruptorPrincipal={interruptorPrincipal}
             secciones={secciones}
             zoom={zoom}
             panX={panX}
@@ -193,52 +196,55 @@ export function EsquemaVisualCanvas({
         </div>
       </div>
 
-      {/* Modal Ampliado (Pantalla Completa) */}
+      {/* Modal Ampliado (Pantalla Completa Adaptativo) */}
       {modalAmpliado && (
-        <div className="fixed inset-0 z-50 bg-black/80 flex flex-col p-4 backdrop-blur-sm">
-          <div className="flex items-center justify-between bg-industrial-gray px-4 py-3 rounded-t-xl border-b border-surface-stroke">
-            <span className="font-mono text-sm font-bold uppercase tracking-wider text-gray-800 flex items-center gap-2">
-              <span className="material-symbols-outlined text-abb-red text-xl">schema</span>
-              Blueprint Unifilar (Pantalla Completa)
-            </span>
-            <div className="flex items-center gap-2">
-              {renderControles(true)}
-              <button
-                type="button"
-                aria-label="Cerrar modal de pantalla completa"
-                onClick={() => setModalAmpliado(false)}
-                className="p-1.5 text-gray-600 hover:text-abb-red rounded hover:bg-gray-200 transition ml-2"
-                title="Cerrar (Esc)"
-              >
-                <span className="material-symbols-outlined text-xl">close</span>
-              </button>
+        <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4 backdrop-blur-sm">
+          <div className="w-full max-w-7xl max-h-[92vh] bg-white rounded-xl shadow-2xl overflow-hidden flex flex-col border border-gray-300">
+            <div className="flex items-center justify-between bg-industrial-gray px-4 py-3 border-b border-surface-stroke">
+              <span className="font-mono text-sm font-bold uppercase tracking-wider text-gray-800 flex items-center gap-2">
+                <span className="material-symbols-outlined text-abb-red text-xl">schema</span>
+                Blueprint Unifilar (Pantalla Completa)
+              </span>
+              <div className="flex items-center gap-2">
+                {renderControles(true)}
+                <button
+                  type="button"
+                  aria-label="Cerrar modal de pantalla completa"
+                  onClick={() => setModalAmpliado(false)}
+                  className="p-1.5 text-gray-600 hover:text-abb-red rounded hover:bg-gray-200 transition ml-2"
+                  title="Cerrar (Esc)"
+                >
+                  <span className="material-symbols-outlined text-xl">close</span>
+                </button>
+              </div>
             </div>
-          </div>
 
-          <div
-            className={`flex-1 bg-slate-50/70 rounded-b-xl shadow-2xl p-6 overflow-hidden flex items-center justify-center ${
-              isDragging ? "cursor-grabbing" : "cursor-grab"
-            }`}
-            onWheel={handleWheel}
-            onMouseDown={handleMouseDown}
-            onMouseMove={handleMouseMove}
-            onMouseUp={handleMouseUp}
-            onMouseLeave={handleMouseUp}
-          >
-            <EsquemaVisual
-              tieneInterruptorPrincipal={tieneInterruptorPrincipal}
-              secciones={secciones}
-              zoom={zoom}
-              panX={panX}
-              panY={panY}
-              capas={capas}
-              hoveredSalidaId={hoveredSalidaId}
-              onSalidaHover={onSalidaHover}
-              onSalidaClick={(salida) => {
-                onSalidaClick?.(salida);
-                setModalAmpliado(false);
-              }}
-            />
+            <div
+              className={`flex-1 min-h-[480px] max-h-[82vh] bg-slate-50/80 p-6 overflow-hidden flex items-center justify-center ${
+                isDragging ? "cursor-grabbing" : "cursor-grab"
+              }`}
+              onWheel={handleWheel}
+              onMouseDown={handleMouseDown}
+              onMouseMove={handleMouseMove}
+              onMouseUp={handleMouseUp}
+              onMouseLeave={handleMouseUp}
+            >
+              <EsquemaVisual
+                tieneInterruptorPrincipal={tieneInterruptorPrincipal}
+                interruptorPrincipal={interruptorPrincipal}
+                secciones={secciones}
+                zoom={zoom}
+                panX={panX}
+                panY={panY}
+                capas={capas}
+                hoveredSalidaId={hoveredSalidaId}
+                onSalidaHover={onSalidaHover}
+                onSalidaClick={(salida) => {
+                  onSalidaClick?.(salida);
+                  setModalAmpliado(false);
+                }}
+              />
+            </div>
           </div>
         </div>
       )}

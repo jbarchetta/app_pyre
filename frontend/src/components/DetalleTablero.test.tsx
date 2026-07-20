@@ -400,7 +400,7 @@ describe("DetalleTablero", () => {
     await screen.findByRole("tab", { name: "Sección 1" });
     await userEvent.click(screen.getByRole("tab", { name: /principal/i }));
 
-    expect(screen.getByText(/1SDA067004R1/)).toBeInTheDocument();
+    expect(screen.getAllByText(/1SDA067004R1/)[0]).toBeInTheDocument();
     expect(screen.queryByText(/^c1$/)).not.toBeInTheDocument();
   });
 

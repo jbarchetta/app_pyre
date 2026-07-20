@@ -18,10 +18,20 @@ export interface Capas {
   embarrado: boolean;
 }
 
+export interface InterruptorPrincipalInfo {
+  id?: string | null;
+  codigo?: string | null;
+  codigo_comercial?: string | null;
+  descripcion?: string | null;
+  corriente_nominal_a?: number | string | null;
+  polos?: number | null;
+}
+
 const CAPAS_POR_DEFECTO: Capas = { codigos: true, embarrado: true };
 
 interface EsquemaVisualProps {
   tieneInterruptorPrincipal: boolean;
+  interruptorPrincipal?: InterruptorPrincipalInfo | null;
   secciones: { seccion: Seccion; salidas: Salida[] }[];
   zoom?: number;
   panX?: number;
@@ -34,6 +44,7 @@ interface EsquemaVisualProps {
 
 export function EsquemaVisual({
   tieneInterruptorPrincipal,
+  interruptorPrincipal,
   secciones,
   zoom = 1,
   panX = 0,
@@ -49,7 +60,7 @@ export function EsquemaVisual({
   const maxSalidas = Math.max(1, ...secciones.map((s) => s.salidas.length));
   const anchoViewBox = Math.max(540, 60 + maxSalidas * (ANCHO_CARD + GAP_X));
 
-  const offsetPrincipal = tieneInterruptorPrincipal ? 95 : 20;
+  const offsetPrincipal = tieneInterruptorPrincipal ? 115 : 20;
   const numSecciones = Math.max(1, secciones.length);
   const altoBase = 40 + offsetPrincipal + numSecciones * ALTO_SECCION;
   const vWidth = anchoViewBox / zoom;
@@ -67,6 +78,24 @@ export function EsquemaVisual({
   const ultimaSeccionY = 12 + offsetPrincipal + (numSecciones - 1) * ALTO_SECCION;
   const ultimoSubBusbarY = ultimaSeccionY - 14;
 
+  // Datos reales del interruptor principal
+  const mainPolosText = `${interruptorPrincipal?.polos ?? 3}P`;
+  const mainAmperajeText = interruptorPrincipal?.corriente_nominal_a
+    ? `${Math.round(Number(interruptorPrincipal.corriente_nominal_a))}A`
+    : "MAIN";
+  const mainCodigoText = interruptorPrincipal?.codigo ?? interruptorPrincipal?.codigo_comercial ?? "MAIN BREAKER";
+  const mainCodigoAcortado = mainCodigoText.length > 12 ? `${mainCodigoText.slice(0, 11)}…` : mainCodigoText;
+
+  const mainTooltipInfo = [
+    `MAIN BREAKER Q1`,
+    `Carga Principal: ${mainAmperajeText}`,
+    `Polos: ${mainPolosText}`,
+    interruptorPrincipal?.codigo ? `Código SAP: ${interruptorPrincipal.codigo}` : undefined,
+    interruptorPrincipal?.descripcion ? `Descripción: ${interruptorPrincipal.descripcion}` : undefined,
+  ]
+    .filter(Boolean)
+    .join("\n");
+
   return (
     <svg
       role="img"
@@ -81,9 +110,11 @@ export function EsquemaVisual({
         </pattern>
       </defs>
 
-      {/* Interruptor Principal Estandarizado (Top Center con Tono Rojo Especial) */}
+      {/* Interruptor Principal Q1 (Estandarizado con datos reales y tooltip enriquecido) */}
       {tieneInterruptorPrincipal && (
         <g data-testid="interruptor-principal">
+          <title>{mainTooltipInfo}</title>
+
           {/* Tarjeta del Main Breaker */}
           <rect
             x={mainBreakerX}
@@ -117,7 +148,7 @@ export function EsquemaVisual({
             fontWeight="bold"
             textAnchor="end"
           >
-            3P
+            {mainPolosText}
           </text>
 
           {/* Línea divisoria de acento rojo bajo la cabecera */}
@@ -130,7 +161,7 @@ export function EsquemaVisual({
             strokeWidth={1.5}
           />
 
-          {/* Texto principal en la tarjeta */}
+          {/* Texto principal en la tarjeta (código o nombre acortado) */}
           <text
             x={mainBreakerX + 8}
             y={mainBreakerY + 38}
@@ -139,10 +170,10 @@ export function EsquemaVisual({
             fontWeight="bold"
             fill="#b91c1c"
           >
-            MAIN BREAKER
+            {mainCodigoAcortado}
           </text>
 
-          {/* Bajada vertical limpia directamente hacia el sub-embarrado de la Fila 1 */}
+          {/* Bajada vertical limpia con holgura hacia el sub-embarrado de la Fila 1 */}
           {capas.embarrado && (
             <line
               x1={anchoViewBox / 2}
@@ -182,7 +213,7 @@ export function EsquemaVisual({
                 fill="#ffffff"
                 textAnchor="middle"
               >
-                MAIN / 3P
+                {mainAmperajeText} / {mainPolosText}
               </text>
             </g>
           )}
@@ -259,6 +290,23 @@ export function EsquemaVisual({
               const cargaTexto = `${salida.carga_unidad === "A" ? Math.round(Number(salida.carga_valor)) : salida.carga_valor}${salida.carga_unidad}`;
               const protecLabel = salida.tipo_proteccion === "seccional_diferencial" ? "Diff" : formatoText;
 
+              const tagTextoCompleto = salida.etiqueta
+                ? salida.etiqueta.toUpperCase()
+                : (salida.componente_codigo ?? "SIN MATCH");
+
+              const tagTextoAcortado = tagTextoCompleto.length > 11
+                ? `${tagTextoCompleto.slice(0, 10)}…`
+                : tagTextoCompleto;
+
+              const tooltipInfo = [
+                `Circuito: ${codigoAuto}${salida.etiqueta ? ` (${salida.etiqueta})` : ""}`,
+                `Carga: ${cargaTexto}`,
+                `Formato: ${formatoText} (${salida.tipo_proteccion === "seccional_diferencial" ? "Diferencial" : "Termomagnético"})`,
+                salida.componente_id
+                  ? `Componente ABB: ${salida.componente_codigo ?? salida.componente_id}${salida.componente_descripcion ? ` - ${salida.componente_descripcion}` : ""}`
+                  : `Estado: ${salida.motivo_sin_match ?? "Sin propuesta automática"}`,
+              ].join("\n");
+
               return (
                 <g
                   key={salida.id}
@@ -267,6 +315,9 @@ export function EsquemaVisual({
                   onMouseLeave={() => onSalidaHover?.(null)}
                   onClick={() => onSalidaClick?.(salida)}
                 >
+                  {/* Tooltip nativo enriquecido al pasar el ratón */}
+                  <title>{tooltipInfo}</title>
+
                   {/* Bajada vertical corta (14px) desde el sub-embarrado de la fila hasta la tarjeta */}
                   {capas.embarrado && (
                     <line
@@ -327,7 +378,7 @@ export function EsquemaVisual({
                     strokeWidth={1.5}
                   />
 
-                  {/* Tag / Nombre asignado por el analista */}
+                  {/* Tag / Nombre acortado asignado por el analista */}
                   <text
                     x={cardX + 8}
                     y={cardY + 38}
@@ -336,7 +387,7 @@ export function EsquemaVisual({
                     fontWeight={salida.etiqueta ? "bold" : "600"}
                     fill={salida.etiqueta ? "#b91c1c" : "#6b7280"}
                   >
-                    {salida.etiqueta ? salida.etiqueta.toUpperCase() : (salida.componente_codigo ?? "SIN MATCH")}
+                    {tagTextoAcortado}
                   </text>
 
                   {/* Bajada vertical desde la tarjeta hacia la etiqueta de amperios */}

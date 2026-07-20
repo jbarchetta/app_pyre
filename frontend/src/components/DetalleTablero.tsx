@@ -471,6 +471,14 @@ export function DetalleTablero({
         <div className="w-full">
           <EsquemaVisualCanvas
             tieneInterruptorPrincipal={!!tablero.interruptor_principal_id}
+            interruptorPrincipal={{
+              id: tablero.interruptor_principal_id,
+              codigo: tablero.interruptor_principal_codigo,
+              codigo_comercial: tablero.interruptor_principal_codigo_comercial,
+              descripcion: tablero.interruptor_principal_descripcion,
+              corriente_nominal_a: tablero.interruptor_principal_corriente_nominal_a,
+              polos: tablero.interruptor_principal_polos,
+            }}
             secciones={secciones}
             zoom={vista.zoom}
             onZoomChange={onZoomChange}
