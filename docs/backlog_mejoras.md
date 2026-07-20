@@ -15,12 +15,12 @@ Leyenda: ✅ hecho (con ciclo/commit) · 🟦 planeado (ciclo asignado) · ⬜ s
 | ✅ | Secretos default de desarrollo sin guard-rail de producción | Ciclo 8 — validator en `Settings` (`3594d6b`) |
 | ✅ | Upload de Excel sin límite de tamaño ni validación de tipo | Ciclo 8 — 20 MB + magic bytes ZIP (`f6ba20d`) |
 | ✅ | Sin autorización por propiedad (analista podía operar proyectos ajenos) | Ciclo 8 — `ownership.py` + reasignación solo-supervisor (`393581d`) |
-| 🟦 | CORS con `allow_methods=["*"]`/`allow_headers=["*"]` + credentials | Ciclo 9 — lista explícita |
-| 🟦 | Sin rate limiting en login (brute-force ilimitado) | Ciclo 9 o Fase E — re-evaluar si el sistema se expone fuera de la red interna |
-| 🟦 | Sin headers de seguridad HTTP (`X-Frame-Options`, `CSP`, etc.) | Ciclo 9 |
-| 🟦 | Sin logging de eventos de seguridad (logins fallidos, 403 por propiedad) — hay `audit_log` de negocio pero no de acceso | Ciclo 9 — mismo mecanismo `audit_log` o logging estándar |
+| ✅ | CORS con `allow_methods=["*"]`/`allow_headers=["*"]` + credentials | Ciclo 9c — lista explícita (`e2461d9`) |
+| 🟡 | Sin rate limiting en login (brute-force ilimitado) | Fuera de alcance ciclo 9 (justificado: red interna, logins fallidos ya auditados) — re-evaluar en Fase E si hay exposición externa |
+| ✅ | Sin headers de seguridad HTTP (`X-Frame-Options`, `CSP`, etc.) | Ciclo 9c (`e2461d9`) |
+| ✅ | Sin logging de eventos de seguridad (logins fallidos, 403 por propiedad) — hay `audit_log` de negocio pero no de acceso | Ciclo 9d — `login_exitoso`/`login_fallido`/`acceso_denegado_propiedad` en `audit_log` (`7207f90`) |
 | ⬜ | JWT sin refresh ni revocación (8h de validez, logout solo borra cookie del cliente) | Evaluar en Fase E si hay exposición externa |
-| ⬜ | Sin política de contraseñas (`create_user` acepta `"a"`) | Ciclo 9 o junto a gestión de usuarios |
+| ✅ | Sin política de contraseñas (`create_user` acepta `"a"`) | Ciclo 9d — mínimo 8 caracteres (`7207f90`) |
 | ⬜ | Upgrade `bcrypt>=4.1` (desbloqueado tras eliminar passlib) | Próximo mantenimiento de dependencias |
 
 ## Estabilidad / performance
@@ -28,21 +28,21 @@ Leyenda: ✅ hecho (con ciclo/commit) · 🟦 planeado (ciclo asignado) · ⬜ s
 | Estado | Hallazgo | Destino |
 |---|---|---|
 | ✅ | Tests solo pasaban por orden alfabético de archivos (tabla `catalogo_componente` compartida) | Ciclo 8 — truncate por test en `conftest.py` (`8a84909`) |
-| 🟦 | N+1 en `_salida_response`/`_tablero_response` (1 query extra por fila) | Ciclo 9 — `joinedload`/`selectinload` |
-| 🟦 | Listados sin paginación defensiva (`GET /proyectos`, tableros, secciones, salidas) | Ciclo 9 |
-| 🟦 | Frontend Dockerfile corre dev server (sin build optimizado) | Ciclo 9 — multi-stage build + nginx |
-| 🟦 | Sin CI — las 2 suites dependen de disciplina manual | Ciclo 9 — GitHub Actions mínimo |
-| ⬜ | Sin tests de carga/estrés (motor de propuesta y búsqueda de catálogo a escala real) | Ciclo 9 o cuando el catálogo crezca 3-5x |
+| ✅ | N+1 en `_salida_response`/`_tablero_response` (1 query extra por fila) | Ciclo 9a — batch fetch con dict, no `relationship()` (`cd71dd6`) |
+| ✅ | Listados sin paginación defensiva (`GET /proyectos`, tableros, secciones, salidas) | Ciclo 9b — `limit`/`offset` defensivos, orden estable (`07c3c25`) |
+| ✅ | Frontend Dockerfile corre dev server (sin build optimizado) | Ciclo 9g — multi-stage build + nginx (`8c6f65b`) |
+| ✅ | Sin CI — las 2 suites dependen de disciplina manual | Ciclo 9f — GitHub Actions mínimo (`ed09047`) |
+| ✅ | Sin tests de carga/estrés (motor de propuesta y búsqueda de catálogo a escala real) | Ciclo 9h — seed de 5.000 componentes, conteo de queries (`3cc3756`) |
 | 🟦 | Sin capa de servicios: lógica de negocio en routers (va a crecer con BOM) | Evaluar al diseñar ciclo 11 (BOM) |
 | ⬜ | `client.ts` monolítico (400+ líneas, todos los dominios) — separar por dominio cuando crezca | Evaluar en ciclo 11 o antes del cotizador |
 | ⬜ | Estado del workspace por prop drilling (15+ `useState` en `DetalleTablero`) — evaluar React Query/Zustand | Evaluar antes del cotizador/BOM UI |
-| ⬜ | Responses construidas a mano (`_salida_response`/`_tablero_response`): cada campo nuevo toca 5 archivos | Con el N+1 del ciclo 9, evaluar helper/serializer |
+| 🟡 | Responses construidas a mano (`_salida_response`/`_tablero_response`): cada campo nuevo toca 5 archivos | Evaluado en ciclo 9a — se mantiene deliberadamente (contrato explícito campo-a-campo); re-evaluar si el BOM duplica campos |
 
 ## Deuda técnica conocida
 
 | Estado | Hallazgo | Destino |
 |---|---|---|
-| 🟦 | TODO `bcd6068`: guards de respuestas stale en `ProyectoWorkspacePage` son inertes (closures congelados — ya resuelto en `SeccionBlock` con refs, falta replicar) | Ciclo 9 o 10 |
+| ✅ | TODO `bcd6068`: guards de respuestas stale en `ProyectoWorkspacePage` son inertes (closures congelados — ya resuelto en `SeccionBlock` con refs, falta replicar) | Ciclo 9e — refs sincronizados, TODO eliminado (`fe25402`) |
 | 🟦 | Errores del backend se descartan en el frontend (`catch` genérico — el usuario no ve "La carga en amperios debe ser un número entero") | Ciclo 10 |
 | ✅ | 3 ramas obsoletas mergeadas + CLAUDE.md desactualizado (ciclo 7) | Housekeeping 2026-07-19 (`a1bd59d`) |
 | 🟦 | Migración `7c4084aba894` (enum TRIPOLAR) sin downgrade posible (limitación de Postgres) | Aceptado — documentado, no requiere acción |
@@ -58,7 +58,7 @@ Leyenda: ✅ hecho (con ciclo/commit) · 🟦 planeado (ciclo asignado) · ⬜ s
 | 🟦 | `EsquemaVisual` pasivo (sin hover↔tabla ni click→editar) | Ciclo 10 — bidireccional |
 | 🟦 | Dashboard es un callejón sin salida (3 links, sin contenido) | Ciclo 10 |
 | 🟦 | Sin confirmación de "cambios sin guardar" al cerrar modales de edición | Ciclo 10 |
-| 🟦 | Íconos de estado sin leyenda (auto/manual/sin match requieren tooltip) | Ciclo 10 |
+| ✅ | Íconos de estado sin leyenda (auto/manual/sin match requieren tooltip) | Resuelto incidentalmente junto al pedido de reemplazar el texto "propuesto:" por ícono (`714eb1d`) — `title` en cada ícono |
 | 🟦 | Tablas de salidas sin scroll horizontal en pantallas chicas | Ciclo 10 |
 | ⬜ | Indicadores de carga ausentes en la mayoría de los fetches | Ciclo 10 |
 
@@ -78,6 +78,6 @@ Leyenda: ✅ hecho (con ciclo/commit) · 🟦 planeado (ciclo asignado) · ⬜ s
 ## Ciclos propuestos (orden acordado con el usuario 2026-07-19)
 
 1. **Ciclo 8 — Hardening** ✅ mergeado (spec/plan en `docs/superpowers/`).
-2. **Ciclo 9 — Calidad y deuda técnica**: ítems 🟦 de seguridad/estabilidad/deuda de la tabla.
+2. **Ciclo 9 — Calidad y deuda técnica** ✅ implementado en la rama `feat/fase-c-calidad-infra`, pendiente de merge (spec/plan en `docs/superpowers/`).
 3. **Ciclo 10 — UX del analista**: ítems 🟦 de UI/UX.
 4. **Ciclo 11 — BOM**: cierra Fase C. Prerequisito: revisar con el usuario la estructura del Excel de costeo (`MAT`/`MO IT`) que el usuario habilitó para esta fase.

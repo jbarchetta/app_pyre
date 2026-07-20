@@ -48,6 +48,12 @@ La regla "el analista opera **sus propios** proyectos" está enforceada en el ba
 - Cualquier `GET`/`PATCH`/`POST`/`DELETE` sobre un proyecto ajeno — o sobre un recurso anidado de un proyecto ajeno (tablero → sección → salida, resuelto por cadena de padres) — devuelve **403** al analista; el supervisor accede sin restricción.
 - La **reasignación** se hace con `PATCH /proyectos/{id}` + `analista_id` y es **exclusiva del supervisor** (un analista no puede ceder su proyecto ni tomar uno ajeno). El `analista_id` destino debe ser un usuario existente con rol `analista` (400 si no).
 
+### Contraseñas y eventos de seguridad (enforced desde ciclo 9)
+
+- `create_user` rechaza contraseñas de menos de 8 caracteres (`ValueError`) — sin requisito de complejidad (mayúsculas/números/símbolos): sistema interno, usuarios creados solo por supervisión. Único punto de entrada de contraseñas hoy (no hay endpoint de cambio de password).
+- Cada login exitoso o fallido queda auditado en `audit_log` (`accion="login_exitoso"`/`"login_fallido"`, `entidad="usuario"`, `entidad_id=email intentado`). La contraseña intentada nunca se persiste. Un login fallido **no distingue** "el email no existe" de "la password es incorrecta" (mismo evento genérico, `usuario_id` null cuando el email no corresponde a ningún usuario) — evita filtrar qué cuentas existen.
+- Cada acceso denegado por propiedad (403 de `ownership.py`) queda auditado como `acceso_denegado_propiedad`, con `entidad="proyecto"` y el id del proyecto — el evento se commitea antes de levantar el 403, así que la request sigue devolviendo 403 aunque el commit del log falle por otra razón.
+
 ## Importación de catálogo
 
 - Cualquiera de los dos roles (analista o supervisor) puede subir un archivo de catálogo.
