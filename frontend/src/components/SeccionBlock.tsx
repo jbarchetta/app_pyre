@@ -444,6 +444,7 @@ export function SeccionBlock({
       {salidaEnEdicion && pickerAbierto && (
         <ComponentePicker
           categorias={CATEGORIAS_INTERRUPTORES}
+          contextKey="salida-componente"
           titulo="Cambiar componente"
           onSelect={handleReasignarComponente}
           onCancel={() => setPickerAbierto(false)}

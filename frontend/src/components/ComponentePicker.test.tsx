@@ -1,15 +1,19 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ComponentePicker } from "./ComponentePicker";
+import { guardarMemoria, obtenerMemoria, limpiarMemoriaParaTests } from "./componentePickerMemoria";
 
 const CATEGORIAS = ["Interruptores Termomagneticos"];
 
 describe("ComponentePicker", () => {
+  beforeEach(() => {
+    limpiarMemoriaParaTests();
+  });
   it("renders as a dialog and calls onCancel when Cancelar is clicked", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, json: async () => ({}) }));
     const onCancel = vi.fn();
-    render(<ComponentePicker categorias={CATEGORIAS} onSelect={vi.fn()} onCancel={onCancel} />);
+    render(<ComponentePicker contextKey="test" categorias={CATEGORIAS} onSelect={vi.fn()} onCancel={onCancel} />);
 
     expect(screen.getByRole("dialog")).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: /cancelar/i }));
@@ -20,7 +24,7 @@ describe("ComponentePicker", () => {
   it("calls onCancel on Escape", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, json: async () => ({}) }));
     const onCancel = vi.fn();
-    render(<ComponentePicker categorias={CATEGORIAS} onSelect={vi.fn()} onCancel={onCancel} />);
+    render(<ComponentePicker contextKey="test" categorias={CATEGORIAS} onSelect={vi.fn()} onCancel={onCancel} />);
 
     await userEvent.keyboard("{Escape}");
 
@@ -40,7 +44,7 @@ describe("ComponentePicker", () => {
         return Promise.resolve({ ok: true, json: async () => ({ resultados: [], total: 0 }) });
       }),
     );
-    render(<ComponentePicker categorias={CATEGORIAS} onSelect={vi.fn()} onCancel={vi.fn()} />);
+    render(<ComponentePicker contextKey="test" categorias={CATEGORIAS} onSelect={vi.fn()} onCancel={vi.fn()} />);
 
     vi.mocked(fetch).mockClear();
 
@@ -54,7 +58,7 @@ describe("ComponentePicker", () => {
       "fetch",
       vi.fn().mockResolvedValue({ ok: true, json: async () => ({ resultados: [], total: 0 }) }),
     );
-    render(<ComponentePicker categorias={CATEGORIAS} onSelect={vi.fn()} onCancel={vi.fn()} />);
+    render(<ComponentePicker contextKey="test" categorias={CATEGORIAS} onSelect={vi.fn()} onCancel={vi.fn()} />);
 
     await userEvent.type(screen.getByLabelText(/buscar código/i), "SH201");
 
@@ -69,7 +73,7 @@ describe("ComponentePicker", () => {
       "fetch",
       vi.fn().mockResolvedValue({ ok: true, json: async () => ({ resultados: [], total: 0 }) }),
     );
-    render(<ComponentePicker categorias={[]} onSelect={vi.fn()} onCancel={vi.fn()} />);
+    render(<ComponentePicker contextKey="test" categorias={[]} onSelect={vi.fn()} onCancel={vi.fn()} />);
 
     await userEvent.type(screen.getByLabelText(/buscar código/i), "SH201");
 
@@ -91,7 +95,7 @@ describe("ComponentePicker", () => {
       }),
     );
     const onSelect = vi.fn();
-    render(<ComponentePicker categorias={CATEGORIAS} onSelect={onSelect} onCancel={vi.fn()} />);
+    render(<ComponentePicker contextKey="test" categorias={CATEGORIAS} onSelect={onSelect} onCancel={vi.fn()} />);
 
     await userEvent.type(screen.getByLabelText(/buscar código/i), "SH201");
     await userEvent.click(await screen.findByRole("button", { name: /SH201-C16/i }));
@@ -104,7 +108,7 @@ describe("ComponentePicker", () => {
       "fetch",
       vi.fn().mockResolvedValue({ ok: true, json: async () => ({ resultados: [], total: 0 }) }),
     );
-    render(<ComponentePicker categorias={CATEGORIAS} onSelect={vi.fn()} onCancel={vi.fn()} />);
+    render(<ComponentePicker contextKey="test" categorias={CATEGORIAS} onSelect={vi.fn()} onCancel={vi.fn()} />);
 
     await userEvent.type(screen.getByLabelText(/buscar código/i), "zzzz");
 
@@ -122,7 +126,7 @@ describe("ComponentePicker", () => {
         }),
       }),
     );
-    render(<ComponentePicker categorias={CATEGORIAS} onSelect={vi.fn()} onCancel={vi.fn()} />);
+    render(<ComponentePicker contextKey="test" categorias={CATEGORIAS} onSelect={vi.fn()} onCancel={vi.fn()} />);
 
     await userEvent.type(screen.getByLabelText(/buscar código/i), "SH201");
 
@@ -150,7 +154,7 @@ describe("ComponentePicker", () => {
         });
       }),
     );
-    render(<ComponentePicker categorias={CATEGORIAS} onSelect={vi.fn()} onCancel={vi.fn()} />);
+    render(<ComponentePicker contextKey="test" categorias={CATEGORIAS} onSelect={vi.fn()} onCancel={vi.fn()} />);
 
     await userEvent.type(screen.getByLabelText(/buscar código/i), "SH201");
     await screen.findByText(/mostrando 1 de 2 resultados/i);
@@ -187,7 +191,7 @@ describe("ComponentePicker", () => {
         });
       }),
     );
-    render(<ComponentePicker categorias={CATEGORIAS} onSelect={vi.fn()} onCancel={vi.fn()} />);
+    render(<ComponentePicker contextKey="test" categorias={CATEGORIAS} onSelect={vi.fn()} onCancel={vi.fn()} />);
 
     await userEvent.type(screen.getByLabelText(/buscar código/i), "SH201");
     resolverPrimeraPagina({
@@ -237,7 +241,7 @@ describe("ComponentePicker", () => {
         });
       }),
     );
-    render(<ComponentePicker categorias={CATEGORIAS} onSelect={vi.fn()} onCancel={vi.fn()} />);
+    render(<ComponentePicker contextKey="test" categorias={CATEGORIAS} onSelect={vi.fn()} onCancel={vi.fn()} />);
 
     await userEvent.type(screen.getByLabelText(/buscar código/i), "SH201");
     await screen.findByRole("button", { name: /SH201-C16/i });
@@ -290,7 +294,7 @@ describe("ComponentePicker", () => {
         });
       }),
     );
-    render(<ComponentePicker categorias={CATEGORIAS} onSelect={vi.fn()} onCancel={vi.fn()} />);
+    render(<ComponentePicker contextKey="test" categorias={CATEGORIAS} onSelect={vi.fn()} onCancel={vi.fn()} />);
 
     await userEvent.type(screen.getByLabelText(/buscar código/i), "SH201");
     await screen.findByRole("button", { name: /SH201-C16/i });
@@ -315,7 +319,7 @@ describe("ComponentePicker", () => {
   it("does not close when a mousedown starts inside the dialog but the click resolves on the backdrop", async () => {
     vi.stubGlobal("fetch", vi.fn().mockResolvedValue({ ok: true, json: async () => ({}) }));
     const onCancel = vi.fn();
-    render(<ComponentePicker categorias={CATEGORIAS} onSelect={vi.fn()} onCancel={onCancel} />);
+    render(<ComponentePicker contextKey="test" categorias={CATEGORIAS} onSelect={vi.fn()} onCancel={onCancel} />);
 
     const dialog = screen.getByRole("dialog");
     const backdrop = dialog.parentElement!;
@@ -342,7 +346,7 @@ describe("ComponentePicker", () => {
         return Promise.resolve({ ok: true, json: async () => ({ resultados: [], total: 0 }) });
       }),
     );
-    render(<ComponentePicker categorias={CATEGORIAS} onSelect={vi.fn()} onCancel={vi.fn()} />);
+    render(<ComponentePicker contextKey="test" categorias={CATEGORIAS} onSelect={vi.fn()} onCancel={vi.fn()} />);
 
     await userEvent.click(await screen.findByRole("button", { name: /filtros/i }));
 
@@ -364,7 +368,7 @@ describe("ComponentePicker", () => {
         return Promise.resolve({ ok: true, json: async () => ({ resultados: [], total: 0 }) });
       }),
     );
-    render(<ComponentePicker categorias={CATEGORIAS} onSelect={vi.fn()} onCancel={vi.fn()} />);
+    render(<ComponentePicker contextKey="test" categorias={CATEGORIAS} onSelect={vi.fn()} onCancel={vi.fn()} />);
 
     await userEvent.type(screen.getByLabelText(/buscar código/i), "XT");
 
@@ -384,7 +388,7 @@ describe("ComponentePicker", () => {
         return Promise.resolve({ ok: true, json: async () => ({ resultados: [], total: 0 }) });
       }),
     );
-    render(<ComponentePicker categorias={CATEGORIAS} onSelect={vi.fn()} onCancel={vi.fn()} />);
+    render(<ComponentePicker contextKey="test" categorias={CATEGORIAS} onSelect={vi.fn()} onCancel={vi.fn()} />);
 
     await userEvent.type(screen.getByLabelText(/buscar código/i), "XT");
     await userEvent.click(await screen.findByRole("button", { name: /filtros/i }));
@@ -406,7 +410,7 @@ describe("ComponentePicker", () => {
         return Promise.resolve({ ok: true, json: async () => ({ resultados: [], total: 0 }) });
       }),
     );
-    render(<ComponentePicker categorias={CATEGORIAS} onSelect={vi.fn()} onCancel={vi.fn()} />);
+    render(<ComponentePicker contextKey="test" categorias={CATEGORIAS} onSelect={vi.fn()} onCancel={vi.fn()} />);
 
     await userEvent.type(screen.getByLabelText(/buscar código/i), "XT");
     await userEvent.click(await screen.findByRole("button", { name: /filtros/i }));
@@ -415,5 +419,87 @@ describe("ComponentePicker", () => {
 
     expect(fetch).toHaveBeenLastCalledWith(expect.not.stringContaining("polos=3"), expect.anything());
     expect(screen.queryByRole("button", { name: /3 polos/i })).not.toBeInTheDocument();
+  });
+
+  it("prefills the query and filters from a previous search in the same context", async () => {
+    guardarMemoria("test-contexto-recordado", {
+      query: "XT2N",
+      filtroPolos: 3,
+      filtroCorriente: null,
+      filtroCapacidad: null,
+    });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockImplementation((url: string) => {
+        if (url.includes("/catalogo/opciones-filtro")) {
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({ polos: [3], corrientes_nominales_a: [], capacidades_corte_ka: [] }),
+          });
+        }
+        return Promise.resolve({ ok: true, json: async () => ({ resultados: [], total: 0 }) });
+      }),
+    );
+
+    render(
+      <ComponentePicker
+        categorias={CATEGORIAS}
+        contextKey="test-contexto-recordado"
+        onSelect={vi.fn()}
+        onCancel={vi.fn()}
+      />,
+    );
+
+    expect(await screen.findByLabelText(/buscar código/i)).toHaveValue("XT2N");
+    expect(fetch).toHaveBeenCalledWith(expect.stringContaining("q=XT2N"), expect.anything());
+  });
+
+  it("does not prefill from a different context", async () => {
+    guardarMemoria("otro-contexto", { query: "S200", filtroPolos: null, filtroCorriente: null, filtroCapacidad: null });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockImplementation((url: string) => {
+        if (url.includes("/catalogo/opciones-filtro")) {
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({ polos: [], corrientes_nominales_a: [], capacidades_corte_ka: [] }),
+          });
+        }
+        return Promise.resolve({ ok: true, json: async () => ({ resultados: [], total: 0 }) });
+      }),
+    );
+
+    render(
+      <ComponentePicker
+        categorias={CATEGORIAS}
+        contextKey="un-contexto-nuevo-sin-memoria"
+        onSelect={vi.fn()}
+        onCancel={vi.fn()}
+      />,
+    );
+
+    expect(await screen.findByLabelText(/buscar código/i)).toHaveValue("");
+  });
+
+  it("remembers the query for its context after typing", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockImplementation((url: string) => {
+        if (url.includes("/catalogo/opciones-filtro")) {
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({ polos: [], corrientes_nominales_a: [], capacidades_corte_ka: [] }),
+          });
+        }
+        return Promise.resolve({ ok: true, json: async () => ({ resultados: [], total: 0 }) });
+      }),
+    );
+
+    render(
+      <ComponentePicker categorias={CATEGORIAS} contextKey="test-contexto-guardar" onSelect={vi.fn()} onCancel={vi.fn()} />,
+    );
+    await userEvent.type(screen.getByLabelText(/buscar código/i), "XT2N");
+
+    expect(obtenerMemoria("test-contexto-guardar")?.query).toBe("XT2N");
   });
 });

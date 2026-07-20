@@ -306,6 +306,7 @@ export function ProyectoWorkspacePage() {
       {modalNuevoTablero && pickerAbierto && (
         <ComponentePicker
           categorias={CATEGORIAS_INTERRUPTORES}
+          contextKey="interruptor-principal"
           titulo="Interruptor principal"
           onSelect={(componente) => {
             setInterruptorPrincipal(componente);

@@ -338,6 +338,7 @@ export function DetalleTablero({
       {modalInterruptor && (
         <ComponentePicker
           categorias={CATEGORIAS_INTERRUPTORES}
+          contextKey="interruptor-principal"
           titulo="Interruptor principal"
           onSelect={handleSeleccionarInterruptorPrincipal}
           onCancel={cerrarModales}

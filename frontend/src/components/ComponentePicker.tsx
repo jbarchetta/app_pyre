@@ -1,11 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import { buscarCatalogo, obtenerOpcionesFiltro, type ComponenteBusqueda, type OpcionesFiltro } from "../api/client";
 import { useCerrarAlClickFuera } from "../hooks/useCerrarAlClickFuera";
+import { guardarMemoria, obtenerMemoria, type MemoriaBusqueda } from "./componentePickerMemoria";
 
 const RESULTADOS_POR_PAGINA = 20;
 
 interface ComponentePickerProps {
   categorias: string[];
+  contextKey: string;
   onSelect: (componente: ComponenteBusqueda) => void;
   onCancel: () => void;
   titulo?: string;
@@ -63,19 +65,21 @@ function FiltroChip({ label, onRemove }: FiltroChipProps) {
 
 export function ComponentePicker({
   categorias,
+  contextKey,
   onSelect,
   onCancel,
   titulo = "Buscar componente",
 }: ComponentePickerProps) {
-  const [query, setQuery] = useState("");
+  const memoriaInicial = obtenerMemoria(contextKey);
+  const [query, setQuery] = useState(memoriaInicial?.query ?? "");
   const [resultados, setResultados] = useState<ComponenteBusqueda[] | null>(null);
   const [total, setTotal] = useState(0);
   const [cargandoMas, setCargandoMas] = useState(false);
   const [filtrosAbiertos, setFiltrosAbiertos] = useState(false);
   const [opciones, setOpciones] = useState<OpcionesFiltro | null>(null);
-  const [filtroPolos, setFiltroPolos] = useState<number | null>(null);
-  const [filtroCorriente, setFiltroCorriente] = useState<string | null>(null);
-  const [filtroCapacidad, setFiltroCapacidad] = useState<string | null>(null);
+  const [filtroPolos, setFiltroPolos] = useState<number | null>(memoriaInicial?.filtroPolos ?? null);
+  const [filtroCorriente, setFiltroCorriente] = useState<string | null>(memoriaInicial?.filtroCorriente ?? null);
+  const [filtroCapacidad, setFiltroCapacidad] = useState<string | null>(memoriaInicial?.filtroCapacidad ?? null);
   const solicitudActualRef = useRef(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const { onMouseDown, onClick } = useCerrarAlClickFuera(onCancel);
@@ -91,9 +95,14 @@ export function ComponentePicker({
 
   useEffect(() => {
     obtenerOpcionesFiltro(categorias).then(setOpciones).catch(() => {});
-    buscar("", 0);
+    buscar(query, 0);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    const valor: MemoriaBusqueda = { query, filtroPolos, filtroCorriente, filtroCapacidad };
+    guardarMemoria(contextKey, valor);
+  }, [contextKey, query, filtroPolos, filtroCorriente, filtroCapacidad]);
 
   interface FiltrosOverride {
     polos?: number | null;
