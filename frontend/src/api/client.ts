@@ -1,5 +1,23 @@
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8000";
 
+// Lee el body de una respuesta de error y usa el campo `detail` que devuelve
+// FastAPI (`HTTPException(detail=...)`) en vez de un mensaje genérico
+// hardcodeado, para que el analista vea el motivo real (ej. "La carga en
+// amperios debe ser un número entero") en vez de "No se pudo crear la salida".
+// Si el body no es JSON válido (error de red, 500 sin body, etc.) se usa el
+// mensaje de fallback.
+async function lanzarSiNoOk(response: Response, mensajePorDefecto: string): Promise<void> {
+  if (response.ok) return;
+  let detalle: string | undefined;
+  try {
+    const body = await response.json();
+    detalle = typeof body?.detail === "string" ? body.detail : undefined;
+  } catch {
+    // body no es JSON válido -- se usa el fallback
+  }
+  throw new Error(detalle ?? mensajePorDefecto);
+}
+
 export interface Usuario {
   id: string;
   email: string;
@@ -15,9 +33,7 @@ export async function login(email: string, password: string): Promise<Usuario> {
     body: JSON.stringify({ email, password }),
   });
 
-  if (!response.ok) {
-    throw new Error("Credenciales inválidas");
-  }
+  await lanzarSiNoOk(response, "Credenciales inválidas");
 
   return response.json();
 }
@@ -54,9 +70,7 @@ export async function importarCatalogo(proveedor: string, archivo: File): Promis
     body: formData,
   });
 
-  if (!response.ok) {
-    throw new Error("No se pudo importar el catálogo");
-  }
+  await lanzarSiNoOk(response, "No se pudo importar el catálogo");
 
   return response.json();
 }
@@ -71,7 +85,7 @@ export interface Proyecto {
 
 export async function listarProyectos(): Promise<Proyecto[]> {
   const response = await fetch(`${API_BASE_URL}/proyectos`, { credentials: "include" });
-  if (!response.ok) throw new Error("No se pudieron listar los proyectos");
+  await lanzarSiNoOk(response, "No se pudieron listar los proyectos");
   return response.json();
 }
 
@@ -82,13 +96,13 @@ export async function crearProyecto(cliente: string, nombre: string): Promise<Pr
     credentials: "include",
     body: JSON.stringify({ cliente, nombre }),
   });
-  if (!response.ok) throw new Error("No se pudo crear el proyecto");
+  await lanzarSiNoOk(response, "No se pudo crear el proyecto");
   return response.json();
 }
 
 export async function obtenerProyecto(id: string): Promise<Proyecto> {
   const response = await fetch(`${API_BASE_URL}/proyectos/${id}`, { credentials: "include" });
-  if (!response.ok) throw new Error("No se pudo obtener el proyecto");
+  await lanzarSiNoOk(response, "No se pudo obtener el proyecto");
   return response.json();
 }
 
@@ -104,13 +118,13 @@ export async function actualizarProyecto(id: string, cambios: ProyectoUpdate): P
     credentials: "include",
     body: JSON.stringify(cambios),
   });
-  if (!response.ok) throw new Error("No se pudo actualizar el proyecto");
+  await lanzarSiNoOk(response, "No se pudo actualizar el proyecto");
   return response.json();
 }
 
 export async function eliminarProyecto(id: string): Promise<void> {
   const response = await fetch(`${API_BASE_URL}/proyectos/${id}`, { method: "DELETE", credentials: "include" });
-  if (!response.ok) throw new Error("No se pudo borrar el proyecto");
+  await lanzarSiNoOk(response, "No se pudo borrar el proyecto");
 }
 
 export interface Tablero {
@@ -129,7 +143,7 @@ export interface Tablero {
 
 export async function listarTableros(proyectoId: string): Promise<Tablero[]> {
   const response = await fetch(`${API_BASE_URL}/proyectos/${proyectoId}/tableros`, { credentials: "include" });
-  if (!response.ok) throw new Error("No se pudieron listar los tableros");
+  await lanzarSiNoOk(response, "No se pudieron listar los tableros");
   return response.json();
 }
 
@@ -149,13 +163,13 @@ export async function crearTablero(
       interruptor_principal_id: interruptorPrincipalId,
     }),
   });
-  if (!response.ok) throw new Error("No se pudo crear el tablero");
+  await lanzarSiNoOk(response, "No se pudo crear el tablero");
   return response.json();
 }
 
 export async function obtenerTablero(id: string): Promise<Tablero> {
   const response = await fetch(`${API_BASE_URL}/tableros/${id}`, { credentials: "include" });
-  if (!response.ok) throw new Error("No se pudo obtener el tablero");
+  await lanzarSiNoOk(response, "No se pudo obtener el tablero");
   return response.json();
 }
 
@@ -172,13 +186,13 @@ export async function actualizarTablero(id: string, cambios: TableroUpdate): Pro
     credentials: "include",
     body: JSON.stringify(cambios),
   });
-  if (!response.ok) throw new Error("No se pudo actualizar el tablero");
+  await lanzarSiNoOk(response, "No se pudo actualizar el tablero");
   return response.json();
 }
 
 export async function eliminarTablero(id: string): Promise<void> {
   const response = await fetch(`${API_BASE_URL}/tableros/${id}`, { method: "DELETE", credentials: "include" });
-  if (!response.ok) throw new Error("No se pudo borrar el tablero");
+  await lanzarSiNoOk(response, "No se pudo borrar el tablero");
 }
 
 export interface Seccion {
@@ -190,7 +204,7 @@ export interface Seccion {
 
 export async function listarSecciones(tableroId: string): Promise<Seccion[]> {
   const response = await fetch(`${API_BASE_URL}/tableros/${tableroId}/secciones`, { credentials: "include" });
-  if (!response.ok) throw new Error("No se pudieron listar las secciones");
+  await lanzarSiNoOk(response, "No se pudieron listar las secciones");
   return response.json();
 }
 
@@ -201,7 +215,7 @@ export async function crearSeccion(tableroId: string, nombre: string, orden: num
     credentials: "include",
     body: JSON.stringify({ nombre, orden }),
   });
-  if (!response.ok) throw new Error("No se pudo crear la sección");
+  await lanzarSiNoOk(response, "No se pudo crear la sección");
   return response.json();
 }
 
@@ -216,13 +230,13 @@ export async function actualizarSeccion(id: string, nombre: string): Promise<Sec
     credentials: "include",
     body: JSON.stringify({ nombre }),
   });
-  if (!response.ok) throw new Error("No se pudo actualizar la sección");
+  await lanzarSiNoOk(response, "No se pudo actualizar la sección");
   return response.json();
 }
 
 export async function eliminarSeccion(id: string): Promise<void> {
   const response = await fetch(`${API_BASE_URL}/secciones/${id}`, { method: "DELETE", credentials: "include" });
-  if (!response.ok) throw new Error("No se pudo borrar la sección");
+  await lanzarSiNoOk(response, "No se pudo borrar la sección");
 }
 
 export type FormatoPolos = "unipolar" | "bipolar" | "tripolar" | "tetrapolar";
@@ -252,7 +266,7 @@ export interface SalidaInput {
 
 export async function listarSalidas(seccionId: string): Promise<Salida[]> {
   const response = await fetch(`${API_BASE_URL}/secciones/${seccionId}/salidas`, { credentials: "include" });
-  if (!response.ok) throw new Error("No se pudieron listar las salidas");
+  await lanzarSiNoOk(response, "No se pudieron listar las salidas");
   return response.json();
 }
 
@@ -263,7 +277,7 @@ export async function crearSalida(seccionId: string, datos: SalidaInput): Promis
     credentials: "include",
     body: JSON.stringify(datos),
   });
-  if (!response.ok) throw new Error("No se pudo crear la salida");
+  await lanzarSiNoOk(response, "No se pudo crear la salida");
   return response.json();
 }
 
@@ -282,13 +296,13 @@ export async function actualizarSalida(salidaId: string, cambios: SalidaUpdateIn
     credentials: "include",
     body: JSON.stringify(cambios),
   });
-  if (!response.ok) throw new Error("No se pudo actualizar la salida");
+  await lanzarSiNoOk(response, "No se pudo actualizar la salida");
   return response.json();
 }
 
 export async function eliminarSalida(id: string): Promise<void> {
   const response = await fetch(`${API_BASE_URL}/salidas/${id}`, { method: "DELETE", credentials: "include" });
-  if (!response.ok) throw new Error("No se pudo borrar la salida");
+  await lanzarSiNoOk(response, "No se pudo borrar la salida");
 }
 
 export interface ComponenteBusqueda {
@@ -327,7 +341,7 @@ export async function buscarCatalogo(
   const response = await fetch(`${API_BASE_URL}/catalogo/buscar?${params.toString()}`, {
     credentials: "include",
   });
-  if (!response.ok) throw new Error("No se pudo buscar en el catálogo");
+  await lanzarSiNoOk(response, "No se pudo buscar en el catálogo");
   return response.json();
 }
 
@@ -343,7 +357,7 @@ export async function obtenerOpcionesFiltro(categorias: string[]): Promise<Opcio
   const response = await fetch(`${API_BASE_URL}/catalogo/opciones-filtro?${params.toString()}`, {
     credentials: "include",
   });
-  if (!response.ok) throw new Error("No se pudieron obtener las opciones de filtro");
+  await lanzarSiNoOk(response, "No se pudieron obtener las opciones de filtro");
   return response.json();
 }
 
@@ -370,7 +384,7 @@ export interface ParametroCalculo {
 
 export async function obtenerParametrosCalculo(): Promise<ParametroCalculo> {
   const response = await fetch(`${API_BASE_URL}/parametros-calculo`, { credentials: "include" });
-  if (!response.ok) throw new Error("No se pudieron obtener los parámetros de cálculo");
+  await lanzarSiNoOk(response, "No se pudieron obtener los parámetros de cálculo");
   return response.json();
 }
 
@@ -381,7 +395,7 @@ export async function actualizarParametrosCalculo(parametros: ParametroCalculo):
     credentials: "include",
     body: JSON.stringify(parametros),
   });
-  if (!response.ok) throw new Error("No se pudieron actualizar los parámetros de cálculo");
+  await lanzarSiNoOk(response, "No se pudieron actualizar los parámetros de cálculo");
   return response.json();
 }
 
