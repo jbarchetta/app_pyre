@@ -133,14 +133,14 @@ describe("DetalleTablero", () => {
     await screen.findByRole("tab", { name: "Sección 1" });
 
     await userEvent.click(screen.getAllByRole("button", { name: /nueva salida/i })[0]);
-    const cargaInputSeccion1 = screen.getAllByLabelText(/^carga$/i)[0] as HTMLInputElement;
+    const cargaInputSeccion1 = screen.getAllByLabelText(/carga/i)[0] as HTMLInputElement;
     await userEvent.type(cargaInputSeccion1, "16");
     expect(cargaInputSeccion1.value).toBe("16");
 
     await userEvent.click(screen.getByRole("tab", { name: "Sección 2" }));
 
     await userEvent.click(screen.getAllByRole("button", { name: /nueva salida/i })[0]);
-    const cargaInputSeccion2 = screen.getAllByLabelText(/^carga$/i)[0] as HTMLInputElement;
+    const cargaInputSeccion2 = screen.getAllByLabelText(/carga/i)[0] as HTMLInputElement;
     expect(cargaInputSeccion2.value).toBe("");
   });
 

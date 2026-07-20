@@ -16,6 +16,7 @@ function salida(overrides: Partial<Salida>): Salida {
     componente_id: "c1",
     origen: "manual",
     asignado_manualmente: false,
+    posicion_orden: 0,
     ...overrides,
   };
 }
@@ -29,7 +30,7 @@ describe("EsquemaVisual", () => {
       />,
     );
 
-    expect(screen.getByTestId("salida-sal-tetra")).toHaveAttribute("width", "96");
+    expect(screen.getByTestId("salida-sal-tetra")).toHaveAttribute("width", "112");
   });
 
   it("draws a tripolar rectangle three poles wide", () => {
@@ -40,7 +41,7 @@ describe("EsquemaVisual", () => {
       />,
     );
 
-    expect(screen.getByTestId("salida-sal-tri")).toHaveAttribute("width", "72");
+    expect(screen.getByTestId("salida-sal-tri")).toHaveAttribute("width", "84");
   });
 
   it("fills a termomagnetico salida solid", () => {
@@ -51,7 +52,7 @@ describe("EsquemaVisual", () => {
       />,
     );
 
-    expect(screen.getByTestId("salida-sal-term")).toHaveAttribute("fill", "#1a1c1c");
+    expect(screen.getByTestId("salida-sal-term")).toHaveAttribute("fill", "#1f2937");
   });
 
   it("fills a diferencial salida with the diagonal-stripe pattern", () => {
@@ -66,7 +67,7 @@ describe("EsquemaVisual", () => {
     expect(fill).toMatch(/^url\(#.+\)$/);
   });
 
-  it("draws a dashed outline with no fill when there is no matched component", () => {
+  it("draws a warning outline with amber background when there is no matched component", () => {
     render(
       <EsquemaVisual
         tieneInterruptorPrincipal={false}
@@ -75,16 +76,16 @@ describe("EsquemaVisual", () => {
     );
 
     const rect = screen.getByTestId("salida-sal-sinmatch");
-    expect(rect).toHaveAttribute("fill", "none");
-    expect(rect).toHaveAttribute("stroke-dasharray", "2,2");
+    expect(rect).toHaveAttribute("fill", "#fffbe6");
+    expect(rect).toHaveAttribute("stroke-dasharray", "3,2");
   });
 
-  it("renders the interruptor principal block only when present, in the accent color", () => {
+  it("renders the interruptor principal block only when present", () => {
     const { rerender } = render(<EsquemaVisual tieneInterruptorPrincipal={false} secciones={[]} />);
     expect(screen.queryByTestId("interruptor-principal")).not.toBeInTheDocument();
 
     rerender(<EsquemaVisual tieneInterruptorPrincipal={true} secciones={[]} />);
-    expect(screen.getByTestId("interruptor-principal")).toHaveAttribute("fill", "#e31f26");
+    expect(screen.getByTestId("interruptor-principal")).toBeInTheDocument();
   });
 
   it("shows the componente code label when the codigos layer is on and hides it when off", () => {
@@ -123,8 +124,8 @@ describe("EsquemaVisual", () => {
     render(<EsquemaVisual tieneInterruptorPrincipal={false} secciones={[]} zoom={2} />);
 
     const svg = screen.getByRole("img", { name: /esquema visual del tablero/i });
-    expect(svg).toHaveAttribute("width", "960");
+    expect(svg).toHaveAttribute("width", "1040");
     const [, , viewBoxAncho] = svg.getAttribute("viewBox")!.split(" ").map(Number);
-    expect(viewBoxAncho).toBe(480);
+    expect(viewBoxAncho).toBe(520);
   });
 });

@@ -16,6 +16,7 @@ const salidaSinMatch = {
   componente_id: null,
   origen: "manual",
   asignado_manualmente: false,
+  posicion_orden: 0,
 };
 
 const salidaConMatch = {
@@ -30,6 +31,7 @@ const salidaConMatch = {
   componente_codigo_comercial: "XT2N 160 TMD 160-1600",
   origen: "manual",
   asignado_manualmente: false,
+  posicion_orden: 0,
 };
 
 describe("SeccionBlock", () => {
@@ -302,7 +304,7 @@ describe("SeccionBlock", () => {
 
     await userEvent.click(screen.getByRole("button", { name: /editar salida 20 a/i }));
 
-    expect(screen.getByText(/Componente:.*1SDA067004R1/)).toBeInTheDocument();
+    expect(within(screen.getByRole("dialog")).getByText("1SDA067004R1")).toBeInTheDocument();
   });
 
   it("does not close the edit modal when a mousedown starts inside it but the click resolves on the backdrop", async () => {
@@ -337,9 +339,9 @@ describe("SeccionBlock", () => {
     );
 
     await userEvent.click(screen.getByRole("button", { name: /nueva salida/i }));
-    await userEvent.type(screen.getByLabelText(/^carga$/i), "16.5");
+    await userEvent.type(screen.getByLabelText(/carga/i), "16.5");
 
-    expect(screen.getByText(/los amperios deben ser un valor entero/i)).toBeInTheDocument();
+    expect(screen.getByText(/entero requerido para amperios/i)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /agregar salida/i })).toBeDisabled();
   });
 
@@ -355,10 +357,10 @@ describe("SeccionBlock", () => {
     );
 
     await userEvent.click(screen.getByRole("button", { name: /nueva salida/i }));
-    await userEvent.selectOptions(screen.getByLabelText(/^unidad$/i), "kW");
-    await userEvent.type(screen.getByLabelText(/^carga$/i), "16.5");
+    await userEvent.selectOptions(screen.getByLabelText(/unidad/i), "kW");
+    await userEvent.type(screen.getByLabelText(/carga/i), "16.5");
 
-    expect(screen.queryByText(/los amperios deben ser un valor entero/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/entero requerido para amperios/i)).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: /agregar salida/i })).not.toBeDisabled();
   });
 
@@ -374,7 +376,7 @@ describe("SeccionBlock", () => {
     );
 
     await userEvent.click(screen.getByRole("button", { name: /editar salida 20 a/i }));
-    const input = screen.getByLabelText(/^carga$/i);
+    const input = screen.getByLabelText(/carga/i);
     await userEvent.clear(input);
     await userEvent.type(input, "20.5");
 
@@ -401,7 +403,7 @@ describe("SeccionBlock", () => {
     );
 
     await userEvent.click(screen.getByRole("button", { name: /nueva salida/i }));
-    await userEvent.type(screen.getByLabelText(/^carga$/i), "16");
+    await userEvent.type(screen.getByLabelText(/carga/i), "16");
     await userEvent.click(screen.getByRole("button", { name: /agregar salida/i }));
 
     expect(await screen.findByText("La carga en amperios debe ser un número entero")).toBeInTheDocument();

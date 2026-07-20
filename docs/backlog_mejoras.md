@@ -53,10 +53,10 @@ Leyenda: ✅ hecho (con ciclo/commit) · 🟦 planeado (ciclo asignado) · ⬜ s
 | Estado | Hallazgo | Destino |
 |---|---|---|
 | ✅ | Formularios numéricos sin validación inline (carga "16.5" A llega al backend y vuelve 400 genérico) | Ciclo 10a (`f64c105`) |
-| 🟦 | Carga masiva de salidas cuesta ~6 clicks por salida | Ciclo 10b — "Agregar y otra" + Enter submit |
-| ✅ | `ComponentePicker` no recuerda búsqueda/filtros entre aperturas | Ciclo 10a (`ef0f183`) |
-| 🟦 | `EsquemaVisual` pasivo (sin hover↔tabla ni click→editar) | Ciclo 10b — bidireccional |
-| 🟦 | Dashboard es un callejón sin salida (3 links, sin contenido) | Ciclo 10b |
+| ✅ | Carga masiva de salidas cuesta ~6 clicks por salida | Ciclo 10b — "Agregar y otra" + Enter submit + duplicar + Drag & Drop |
+| ✅ | `ComponentePicker` no recuerda búsqueda/filtros entre aperturas | Ciclo 10a (`ef0f183`), categorías diferenciales ampliadas en Ciclo 10b |
+| ✅ | `EsquemaVisual` pasivo (sin hover↔tabla ni click→editar) | Ciclo 10b — bidireccional |
+| ✅ | Dashboard es un callejón sin salida (3 links, sin contenido) | Ciclo 10b — rediseño completo con métricas y 1-click navigate |
 | ✅ | Sin confirmación de "cambios sin guardar" al cerrar modales de edición | Ciclo 10a (`ae1d485`, `6baace6`) |
 | ✅ | Íconos de estado sin leyenda (auto/manual/sin match requieren tooltip) | Resuelto incidentalmente junto al pedido de reemplazar el texto "propuesto:" por ícono (`714eb1d`) — `title` en cada ícono |
 | ✅ | Tablas de salidas sin scroll horizontal en pantallas chicas | Ciclo 10a (`e677d1e`) |

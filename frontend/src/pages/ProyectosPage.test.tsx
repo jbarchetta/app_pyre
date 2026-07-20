@@ -47,7 +47,7 @@ describe("ProyectosPage", () => {
     );
     await screen.findByText(/Proyecto Existente/i);
 
-    expect(screen.queryByLabelText(/^cliente$/i)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/cliente/i)).not.toBeInTheDocument();
   });
 
   it("opens the modal, creates a new project, and adds it to the list", async () => {
@@ -59,8 +59,8 @@ describe("ProyectosPage", () => {
     await screen.findByText(/Proyecto Existente/i);
 
     await userEvent.click(screen.getByRole("button", { name: /nuevo proyecto/i }));
-    await userEvent.type(screen.getByLabelText(/^cliente$/i), "Cliente Nuevo");
-    await userEvent.type(screen.getByLabelText(/^nombre$/i), "Proyecto Nuevo");
+    await userEvent.type(screen.getByLabelText(/cliente/i), "Cliente Nuevo");
+    await userEvent.type(screen.getByLabelText(/nombre/i), "Proyecto Nuevo");
     await userEvent.click(screen.getByRole("button", { name: /crear proyecto/i }));
 
     expect(await screen.findByText(/Proyecto Nuevo/i)).toBeInTheDocument();
@@ -75,14 +75,14 @@ describe("ProyectosPage", () => {
     await screen.findByText(/Proyecto Existente/i);
 
     await userEvent.click(screen.getByRole("button", { name: /nuevo proyecto/i }));
-    await userEvent.type(screen.getByLabelText(/^cliente$/i), "Algo tipeado");
+    await userEvent.type(screen.getByLabelText(/cliente/i), "Algo tipeado");
     await userEvent.click(screen.getByRole("button", { name: /cancelar/i }));
 
-    expect(screen.queryByLabelText(/^cliente$/i)).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/cliente/i)).not.toBeInTheDocument();
     expect(fetch).not.toHaveBeenCalledWith(expect.anything(), expect.objectContaining({ method: "POST" }));
 
     await userEvent.click(screen.getByRole("button", { name: /nuevo proyecto/i }));
-    expect((screen.getByLabelText(/^cliente$/i) as HTMLInputElement).value).toBe("");
+    expect((screen.getByLabelText(/cliente/i) as HTMLInputElement).value).toBe("");
   });
 
   it("edits a project's nombre and cliente via the edit icon", async () => {
@@ -117,11 +117,11 @@ describe("ProyectosPage", () => {
     await screen.findByText(/Proyecto Existente/i);
 
     await userEvent.click(screen.getByRole("button", { name: /editar proyecto existente/i }));
-    const nombreInput = screen.getByLabelText(/^nombre$/i) as HTMLInputElement;
+    const nombreInput = screen.getByLabelText(/nombre/i) as HTMLInputElement;
     expect(nombreInput.value).toBe("Proyecto Existente");
     await userEvent.clear(nombreInput);
     await userEvent.type(nombreInput, "Proyecto Editado");
-    await userEvent.click(screen.getByRole("button", { name: /^guardar$/i }));
+    await userEvent.click(screen.getByRole("button", { name: /guardar/i }));
 
     expect(await screen.findByText(/Proyecto Editado/i)).toBeInTheDocument();
   });

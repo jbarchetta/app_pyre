@@ -78,7 +78,7 @@ describe("ProyectoWorkspacePage", () => {
     );
     renderPage();
 
-    expect(await screen.findByText(/creá tu primer tablero/i)).toBeInTheDocument();
+    expect(await screen.findByText(/este proyecto aún no tiene tableros/i)).toBeInTheDocument();
     expect(screen.queryByRole("tab")).not.toBeInTheDocument();
   });
 
@@ -163,7 +163,7 @@ describe("ProyectoWorkspacePage", () => {
     );
     renderPage();
 
-    expect(await screen.findByRole("heading", { name: "Sección 1" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: /Sección 1/i })).toBeInTheDocument();
   });
 
   it("keeps each tablero's zoom level when switching tabs and back", async () => {
@@ -186,7 +186,7 @@ describe("ProyectoWorkspacePage", () => {
     renderPage();
     await screen.findByRole("tab", { name: "TG1" });
 
-    expect(screen.getByRole("link", { name: /proyectos/i })).toHaveAttribute("href", "/proyectos");
+    expect(screen.getByRole("link", { name: /volver a proyectos/i })).toHaveAttribute("href", "/proyectos");
   });
 
   it("shows the tablero management icons to the right of the tabs", async () => {
@@ -196,7 +196,7 @@ describe("ProyectoWorkspacePage", () => {
 
     expect(screen.getByRole("button", { name: /renombrar tablero activo/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /borrar tablero activo/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /^nuevo tablero$/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /nuevo tablero/i })).toBeInTheDocument();
   });
 
   it("renames the active tablero via the icon and modal", async () => {

@@ -55,6 +55,7 @@ class Salida(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     seccion_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("seccion.id"), nullable=False)
+    etiqueta: Mapped[str | None] = mapped_column(String(100), nullable=True)
     carga_valor: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
     carga_unidad: Mapped[str] = mapped_column(String(10), nullable=False)
     formato: Mapped[FormatoPolos] = mapped_column(Enum(FormatoPolos, name="formato_polos"), nullable=False)

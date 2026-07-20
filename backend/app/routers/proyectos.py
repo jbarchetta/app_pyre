@@ -1,3 +1,4 @@
+from datetime import datetime
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -16,25 +17,37 @@ router = APIRouter(prefix="/proyectos", tags=["proyectos"])
 class ProyectoCreate(BaseModel):
     cliente: str
     nombre: str
+    codigo_obra: str | None = None
+    fecha_inicio: datetime | None = None
 
 
 class ProyectoResponse(BaseModel):
     id: str
     cliente: str
     nombre: str
+    codigo_obra: str | None = None
+    fecha_inicio: str | None = None
     analista_id: str
+    analista_nombre: str | None = None
+    analista_email: str | None = None
     estado: str
+    creado_en: str | None = None
 
     model_config = {"from_attributes": True}
 
 
-def _to_response(proyecto: Proyecto) -> ProyectoResponse:
+def _to_response(proyecto: Proyecto, analista: Usuario | None = None) -> ProyectoResponse:
     return ProyectoResponse(
         id=str(proyecto.id),
         cliente=proyecto.cliente,
         nombre=proyecto.nombre,
+        codigo_obra=proyecto.codigo_obra,
+        fecha_inicio=proyecto.fecha_inicio.isoformat() if proyecto.fecha_inicio else None,
         analista_id=str(proyecto.analista_id),
+        analista_nombre=analista.nombre if analista else None,
+        analista_email=analista.email if analista else None,
         estado=proyecto.estado.value,
+        creado_en=proyecto.creado_en.isoformat() if proyecto.creado_en else None,
     )
 
 
@@ -44,11 +57,17 @@ def crear_proyecto(
     db: Session = Depends(get_db),
     usuario: Usuario = Depends(require_role(RolUsuario.ANALISTA, RolUsuario.SUPERVISOR)),
 ):
-    proyecto = Proyecto(cliente=payload.cliente, nombre=payload.nombre, analista_id=usuario.id)
+    proyecto = Proyecto(
+        cliente=payload.cliente,
+        nombre=payload.nombre,
+        codigo_obra=payload.codigo_obra,
+        fecha_inicio=payload.fecha_inicio,
+        analista_id=usuario.id,
+    )
     db.add(proyecto)
     db.commit()
     db.refresh(proyecto)
-    return _to_response(proyecto)
+    return _to_response(proyecto, usuario)
 
 
 @router.get("", response_model=list[ProyectoResponse])
@@ -65,19 +84,27 @@ def listar_proyectos(
     if usuario.rol != RolUsuario.SUPERVISOR:
         consulta = consulta.filter(Proyecto.analista_id == usuario.id)
     proyectos = consulta.order_by(Proyecto.creado_en.desc(), Proyecto.id).offset(offset).limit(limit).all()
-    return [_to_response(p) for p in proyectos]
+    
+    analista_ids = {p.analista_id for p in proyectos}
+    analistas_dict = {u.id: u for u in db.query(Usuario).filter(Usuario.id.in_(analista_ids)).all()} if analista_ids else {}
+    return [_to_response(p, analistas_dict.get(p.analista_id)) for p in proyectos]
 
 
 @router.get("/{proyecto_id}", response_model=ProyectoResponse)
 def obtener_proyecto(
     proyecto_id: uuid.UUID, db: Session = Depends(get_db), usuario: Usuario = Depends(get_current_user)
 ):
-    return _to_response(obtener_proyecto_autorizado(db, proyecto_id, usuario))
+    proyecto = obtener_proyecto_autorizado(db, proyecto_id, usuario)
+    analista = db.get(Usuario, proyecto.analista_id)
+    return _to_response(proyecto, analista)
 
 
 class ProyectoUpdate(BaseModel):
     nombre: str | None = None
     cliente: str | None = None
+    codigo_obra: str | None = None
+    fecha_inicio: datetime | None = None
+    estado: str | None = None
     # Reasignación de propiedad: solo la puede setear un supervisor (ver endpoint).
     analista_id: uuid.UUID | None = None
 
@@ -96,10 +123,13 @@ def actualizar_proyecto(
         proyecto.nombre = cambios["nombre"]
     if "cliente" in cambios:
         proyecto.cliente = cambios["cliente"]
+    if "codigo_obra" in cambios:
+        proyecto.codigo_obra = cambios["codigo_obra"]
+    if "fecha_inicio" in cambios:
+        proyecto.fecha_inicio = cambios["fecha_inicio"]
+    if "estado" in cambios:
+        proyecto.estado = cambios["estado"]
     if "analista_id" in cambios:
-        # "Proyectos reasignables entre analistas" (reglas_negocio.md): la
-        # reasignación es una decisión de supervisión — un analista no puede
-        # ceder el suyo ni tomar uno ajeno.
         if usuario.rol != RolUsuario.SUPERVISOR:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
@@ -115,7 +145,8 @@ def actualizar_proyecto(
 
     db.commit()
     db.refresh(proyecto)
-    return _to_response(proyecto)
+    analista = db.get(Usuario, proyecto.analista_id)
+    return _to_response(proyecto, analista)
 
 
 @router.delete("/{proyecto_id}", status_code=status.HTTP_204_NO_CONTENT)

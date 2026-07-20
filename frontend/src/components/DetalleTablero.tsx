@@ -60,6 +60,7 @@ export function DetalleTablero({
   const [nivelFallaKaEdit, setNivelFallaKaEdit] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [confirmandoDescarteEdicion, setConfirmandoDescarteEdicion] = useState(false);
+  const [hoveredSalidaId, setHoveredSalidaId] = useState<string | null>(null);
   const ultimoTriggerRef = useRef<HTMLElement | null>(null);
   const nivelFallaInputRef = useRef<HTMLInputElement>(null);
   const nombreFilaInputRef = useRef<HTMLInputElement>(null);
@@ -67,6 +68,22 @@ export function DetalleTablero({
   const modalInterruptorRef = useRef(false);
   const modalNuevaFilaRef = useRef(false);
   const filaEnEdicionIdRef = useRef<string | null>(null);
+
+  function handleSalidaClickInBlueprint(salida: Salida) {
+    setTabSeleccionadoRaw(salida.seccion_id);
+    setTimeout(() => {
+      const el = document.getElementById(`salida-fila-${salida.id}`);
+      if (el) {
+        el.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+    }, 100);
+  }
+
+  function handleSalidasReordenadas(seccionId: string, salidasReordenadas: Salida[]) {
+    setSecciones((actuales) =>
+      (actuales ?? []).map((s) => (s.seccion.id === seccionId ? { ...s, salidas: salidasReordenadas } : s))
+    );
+  }
 
   useEffect(() => {
     modalIccRef.current = modalIcc;
@@ -459,6 +476,9 @@ export function DetalleTablero({
             onZoomChange={onZoomChange}
             capas={vista.capas}
             onCapasChange={onCapasChange}
+            hoveredSalidaId={hoveredSalidaId}
+            onSalidaHover={setHoveredSalidaId}
+            onSalidaClick={handleSalidaClickInBlueprint}
           />
         </div>
         <div className="w-full lg:flex-1">
@@ -645,6 +665,9 @@ export function DetalleTablero({
                 onSalidaCreada={(salida) => handleSalidaCreada(seccionSeleccionada.seccion.id, salida)}
                 onSalidaActualizada={(salida) => handleSalidaActualizada(seccionSeleccionada.seccion.id, salida)}
                 onSalidaBorrada={(salidaId) => handleSalidaBorrada(seccionSeleccionada.seccion.id, salidaId)}
+                onSalidasReordenadas={(salidas) => handleSalidasReordenadas(seccionSeleccionada.seccion.id, salidas)}
+                hoveredSalidaId={hoveredSalidaId}
+                onSalidaHover={setHoveredSalidaId}
               />
             )
           )}

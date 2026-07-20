@@ -21,6 +21,8 @@ class Proyecto(Base):
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     cliente: Mapped[str] = mapped_column(String(255), nullable=False)
     nombre: Mapped[str] = mapped_column(String(255), nullable=False)
+    codigo_obra: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    fecha_inicio: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     analista_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("usuario.id"), nullable=False)
     estado: Mapped[EstadoProyecto] = mapped_column(
         Enum(EstadoProyecto, name="estado_proyecto"), default=EstadoProyecto.EN_CURSO, nullable=False

@@ -364,3 +364,63 @@ def test_listar_salidas_sin_componente_devuelve_codigo_null(client, db_session):
     assert body["componente_id"] is None
     assert body["componente_codigo"] is None
     assert body["componente_codigo_comercial"] is None
+
+
+def test_duplicar_salida(client, db_session):
+    seccion_id = _setup_tablero(client, db_session, "salidas15.test@pyre.com")
+    res1 = client.post(
+        f"/secciones/{seccion_id}/salidas",
+        json={
+            "carga_valor": "16",
+            "carga_unidad": "A",
+            "formato": "unipolar",
+            "tipo_proteccion": "seccional_termomagnetico",
+            "etiqueta": "Circuito 1",
+        },
+    )
+    salida_id = res1.json()["id"]
+
+    res_dup = client.post(f"/salidas/{salida_id}/duplicar")
+    assert res_dup.status_code == 201
+    body_dup = res_dup.json()
+    assert body_dup["id"] != salida_id
+    assert body_dup["etiqueta"] == "Circuito 1 (copia)"
+    assert body_dup["carga_valor"] == "16.00"
+
+
+def test_reordenar_salidas(client, db_session):
+    seccion_id = _setup_tablero(client, db_session, "salidas16.test@pyre.com")
+    res1 = client.post(
+        f"/secciones/{seccion_id}/salidas",
+        json={"carga_valor": "10", "carga_unidad": "A", "formato": "unipolar", "tipo_proteccion": "seccional_termomagnetico"},
+    ).json()["id"]
+    res2 = client.post(
+        f"/secciones/{seccion_id}/salidas",
+        json={"carga_valor": "20", "carga_unidad": "A", "formato": "unipolar", "tipo_proteccion": "seccional_termomagnetico"},
+    ).json()["id"]
+
+    reorder_res = client.post(
+        f"/secciones/{seccion_id}/salidas/reordenar",
+        json={"salidas_ids": [res2, res1]},
+    )
+    assert reorder_res.status_code == 204
+
+    salidas_list = client.get(f"/secciones/{seccion_id}/salidas").json()
+    assert salidas_list[0]["id"] == res2
+    assert salidas_list[1]["id"] == res1
+
+
+def test_salida_motivo_sin_match_diagnostico(client, db_session):
+    seccion_id = _setup_tablero(client, db_session, "salidas17.test@pyre.com")
+    res = client.post(
+        f"/secciones/{seccion_id}/salidas",
+        json={
+            "carga_valor": "16",
+            "carga_unidad": "A",
+            "formato": "unipolar",
+            "tipo_proteccion": "seccional_termomagnetico",
+        },
+    )
+    assert res.status_code == 201
+    assert res.json()["motivo_sin_match"] == "Debe seleccionar un interruptor principal para poder proponer un componente."
+

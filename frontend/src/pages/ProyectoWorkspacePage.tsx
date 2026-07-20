@@ -184,14 +184,38 @@ export function ProyectoWorkspacePage() {
   }
 
   return (
-    <div>
-      <Link to="/proyectos" className="text-sm text-secondary hover:text-on-background">
-        ← Proyectos
-      </Link>
-      <h1 className="mt-2 text-2xl font-bold">{proyecto.nombre}</h1>
-      <p className="text-secondary">{proyecto.cliente}</p>
+    <div className="space-y-4">
+      {/* Header and Return Button */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-surface-stroke pb-3 gap-2">
+        <div>
+          <div className="flex items-center gap-2 text-xs text-gray-500 mb-1">
+            <Link to="/proyectos" className="hover:text-abb-red hover:underline">
+              Proyectos
+            </Link>
+            <span>/</span>
+            <span className="font-medium text-gray-800">{proyecto.nombre}</span>
+          </div>
+          <h1 className="text-2xl font-bold text-gray-900">{proyecto.nombre}</h1>
+          <p className="text-xs text-gray-600">
+            Cliente: <span className="font-medium text-gray-800">{proyecto.cliente}</span>
+            {proyecto.codigo_obra && (
+              <span className="ml-2 font-mono bg-gray-100 px-1.5 py-0.5 rounded text-gray-700">
+                Obra: {proyecto.codigo_obra}
+              </span>
+            )}
+          </p>
+        </div>
 
-      <div className="mt-6 flex flex-wrap items-center gap-1 border-b border-surface-stroke">
+        <Link
+          to="/proyectos"
+          className="self-start sm:self-auto inline-flex items-center gap-1.5 px-3 py-1.5 border border-gray-300 rounded text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 hover:border-gray-400 transition"
+        >
+          <span className="material-symbols-outlined text-base">arrow_back</span>
+          Volver a Proyectos
+        </Link>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-1 border-b border-surface-stroke">
         {tableros.length > 0 && (
           <div role="tablist" aria-label="Tableros del proyecto" className="flex flex-wrap gap-1">
             {tableros.map((tablero) => (
@@ -201,10 +225,10 @@ export function ProyectoWorkspacePage() {
                 type="button"
                 aria-selected={tablero.id === tableroActivoId}
                 onClick={() => handleSeleccionarTablero(tablero.id)}
-                className={`px-4 py-2 text-sm uppercase tracking-widest ${
+                className={`px-4 py-2 text-sm font-bold uppercase tracking-wider transition ${
                   tablero.id === tableroActivoId
-                    ? "border-b-2 border-abb-red text-abb-red"
-                    : "text-secondary hover:text-on-background"
+                    ? "border-b-2 border-abb-red text-abb-red bg-red-50/20"
+                    : "text-gray-600 hover:text-gray-900"
                 }`}
               >
                 {tablero.nombre}
@@ -212,7 +236,7 @@ export function ProyectoWorkspacePage() {
             ))}
           </div>
         )}
-        <div className="ml-auto flex gap-3 px-2 text-on-background">
+        <div className="ml-auto flex gap-3 px-2 text-on-background py-1">
           {tableroActivo && (
             <>
               <button
@@ -223,7 +247,8 @@ export function ProyectoWorkspacePage() {
                   setNombreTableroEdit(tableroActivo.nombre);
                   setTableroEnEdicion(tableroActivo);
                 }}
-                className="hover:text-abb-red"
+                className="hover:text-abb-red p-1"
+                title="Renombrar tablero"
               >
                 <span className="material-symbols-outlined text-base">edit</span>
               </button>
@@ -234,7 +259,8 @@ export function ProyectoWorkspacePage() {
                   triggerRef.current = e.currentTarget;
                   setTableroABorrar(tableroActivo);
                 }}
-                className="hover:text-abb-red"
+                className="hover:text-abb-red p-1"
+                title="Borrar tablero"
               >
                 <span className="material-symbols-outlined text-base">delete</span>
               </button>
@@ -247,15 +273,37 @@ export function ProyectoWorkspacePage() {
               triggerRef.current = e.currentTarget;
               setModalNuevoTablero(true);
             }}
-            className="hover:text-abb-red"
+            className="inline-flex items-center gap-1 bg-abb-red hover:bg-red-700 text-white text-xs font-semibold px-3 py-1.5 rounded transition shadow-sm"
           >
             <span className="material-symbols-outlined text-base">add</span>
+            Nuevo Tablero
           </button>
         </div>
       </div>
 
       {tableroActivo === null ? (
-        <p className="mt-6 text-secondary">Creá tu primer tablero para empezar a configurarlo.</p>
+        <div className="my-12 text-center border-2 border-dashed border-gray-300 rounded-xl p-12 bg-white shadow-sm max-w-2xl mx-auto space-y-4">
+          <div className="w-16 h-16 bg-red-50 text-abb-red rounded-full flex items-center justify-center mx-auto text-3xl font-bold">
+            <span className="material-symbols-outlined text-4xl">domain</span>
+          </div>
+          <div>
+            <h2 className="text-xl font-bold text-gray-900">Este proyecto aún no tiene tableros</h2>
+            <p className="text-sm text-gray-600 mt-1 max-w-md mx-auto">
+              Comenzá agregando el primer tablero eléctrico (ej. Tablero General TG1) para cargar sus secciones, salidas y componentes.
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={(e) => {
+              triggerRef.current = e.currentTarget;
+              setModalNuevoTablero(true);
+            }}
+            className="inline-flex items-center gap-2 bg-abb-red hover:bg-red-700 text-white font-semibold px-6 py-3 rounded-lg shadow-md transition transform hover:-translate-y-0.5"
+          >
+            <span className="material-symbols-outlined text-xl">add</span>
+            Crear mi primer tablero
+          </button>
+        </div>
       ) : (
         <DetalleTablero
           key={tableroActivo.id}

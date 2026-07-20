@@ -79,8 +79,13 @@ export interface Proyecto {
   id: string;
   cliente: string;
   nombre: string;
+  codigo_obra?: string | null;
+  fecha_inicio?: string | null;
   analista_id: string;
+  analista_nombre?: string | null;
+  analista_email?: string | null;
   estado: string;
+  creado_en?: string | null;
 }
 
 export async function listarProyectos(): Promise<Proyecto[]> {
@@ -89,12 +94,19 @@ export async function listarProyectos(): Promise<Proyecto[]> {
   return response.json();
 }
 
-export async function crearProyecto(cliente: string, nombre: string): Promise<Proyecto> {
+export interface ProyectoCreateInput {
+  cliente: string;
+  nombre: string;
+  codigo_obra?: string;
+  fecha_inicio?: string;
+}
+
+export async function crearProyecto(datos: { cliente: string; nombre: string; codigo_obra?: string; fecha_inicio?: string }): Promise<Proyecto> {
   const response = await fetch(`${API_BASE_URL}/proyectos`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     credentials: "include",
-    body: JSON.stringify({ cliente, nombre }),
+    body: JSON.stringify(datos),
   });
   await lanzarSiNoOk(response, "No se pudo crear el proyecto");
   return response.json();
@@ -109,6 +121,9 @@ export async function obtenerProyecto(id: string): Promise<Proyecto> {
 export interface ProyectoUpdate {
   nombre?: string;
   cliente?: string;
+  codigo_obra?: string;
+  fecha_inicio?: string;
+  estado?: string;
 }
 
 export async function actualizarProyecto(id: string, cambios: ProyectoUpdate): Promise<Proyecto> {
@@ -245,6 +260,7 @@ export type TipoProteccion = "seccional_termomagnetico" | "seccional_diferencial
 export interface Salida {
   id: string;
   seccion_id: string;
+  etiqueta?: string | null;
   carga_valor: string;
   carga_unidad: string;
   formato: FormatoPolos;
@@ -255,9 +271,12 @@ export interface Salida {
   componente_descripcion?: string | null;
   origen: string;
   asignado_manualmente: boolean;
+  posicion_orden: number;
+  motivo_sin_match?: string | null;
 }
 
 export interface SalidaInput {
+  etiqueta?: string;
   carga_valor: string;
   carga_unidad: string;
   formato: FormatoPolos;
@@ -282,11 +301,13 @@ export async function crearSalida(seccionId: string, datos: SalidaInput): Promis
 }
 
 export interface SalidaUpdateInput {
+  etiqueta?: string;
   carga_valor?: string;
   carga_unidad?: string;
   formato?: FormatoPolos;
   tipo_proteccion?: TipoProteccion;
   componente_id?: string | null;
+  asignado_manualmente?: boolean;
 }
 
 export async function actualizarSalida(salidaId: string, cambios: SalidaUpdateInput): Promise<Salida> {
@@ -298,6 +319,25 @@ export async function actualizarSalida(salidaId: string, cambios: SalidaUpdateIn
   });
   await lanzarSiNoOk(response, "No se pudo actualizar la salida");
   return response.json();
+}
+
+export async function duplicarSalida(salidaId: string): Promise<Salida> {
+  const response = await fetch(`${API_BASE_URL}/salidas/${salidaId}/duplicar`, {
+    method: "POST",
+    credentials: "include",
+  });
+  await lanzarSiNoOk(response, "No se pudo duplicar la salida");
+  return response.json();
+}
+
+export async function reordenarSalidas(seccionId: string, salidasIds: string[]): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/secciones/${seccionId}/salidas/reordenar`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({ salidas_ids: salidasIds }),
+  });
+  await lanzarSiNoOk(response, "No se pudieron reordenar las salidas");
 }
 
 export async function eliminarSalida(id: string): Promise<void> {
@@ -373,6 +413,9 @@ export const CATEGORIAS_INTERRUPTORES = [
   "Interruptores Termomagnéticos - Sin posibilidad de utilizar accesorios",
   "Interruptores automáticos en caja moldeada",
   "Interruptores termomagnéticos con protección diferencial",
+  "Interruptores Diferenciales",
+  "Interruptores diferenciales",
+  "Bloques diferenciales",
 ];
 
 export interface ParametroCalculo {
