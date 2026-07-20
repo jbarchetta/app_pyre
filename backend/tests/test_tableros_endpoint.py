@@ -82,6 +82,39 @@ def test_listar_tableros_no_hace_n_mas_uno_queries(client, db_session, contador_
     assert queries_componentes == 1
 
 
+def test_listar_tableros_paginacion_estable(client, db_session):
+    proyecto_id = _proyecto(client, db_session, email="tableros.pag@pyre.com")
+    for nombre in ["TPAG-TG1", "TPAG-TG2", "TPAG-TG3"]:
+        client.post(
+            f"/proyectos/{proyecto_id}/tableros", json={"nombre": nombre, "nivel_falla_ka": "10.00"}
+        )
+
+    pagina1 = client.get(f"/proyectos/{proyecto_id}/tableros?limit=2").json()
+    pagina2 = client.get(f"/proyectos/{proyecto_id}/tableros?limit=2&offset=2").json()
+
+    # Orden creado_en asc (orden de creación) + sin solapes entre páginas.
+    assert [t["nombre"] for t in pagina1] == ["TPAG-TG1", "TPAG-TG2"]
+    assert [t["nombre"] for t in pagina2] == ["TPAG-TG3"]
+
+
+def test_listar_secciones_paginacion_sin_solapes(client, db_session):
+    proyecto_id = _proyecto(client, db_session, email="secciones.pag@pyre.com")
+    tablero_id = client.post(
+        f"/proyectos/{proyecto_id}/tableros", json={"nombre": "TG", "nivel_falla_ka": "10.00"}
+    ).json()["id"]
+    for i in range(3):
+        client.post(f"/tableros/{tablero_id}/secciones", json={"nombre": f"SPAG-F{i}"})
+
+    pagina1 = client.get(f"/tableros/{tablero_id}/secciones?limit=2").json()
+    pagina2 = client.get(f"/tableros/{tablero_id}/secciones?limit=2&offset=2").json()
+
+    ids_pagina1 = {s["id"] for s in pagina1}
+    ids_pagina2 = {s["id"] for s in pagina2}
+    assert len(ids_pagina1) == 2
+    assert len(ids_pagina2) == 1
+    assert ids_pagina1.isdisjoint(ids_pagina2)
+
+
 def test_crear_seccion_devuelve_la_seccion_creada(client, db_session):
     proyecto_id = _proyecto(client, db_session, email="secciones.test@pyre.com")
     tablero_id = client.post(

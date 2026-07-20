@@ -24,6 +24,7 @@ from app.models import (
 from app.motor.calculo import calcular_corriente_nominal
 from app.motor.parametros import obtener_parametros
 from app.motor.propuesta import proponer_componente
+from app.routers.paginacion import LIMITE_POR_DEFECTO, acotar_paginacion
 
 router = APIRouter(tags=["salidas"])
 
@@ -220,10 +221,22 @@ def eliminar_salida(
 
 @router.get("/secciones/{seccion_id}/salidas", response_model=list[SalidaResponse])
 def listar_salidas(
-    seccion_id: uuid.UUID, db: Session = Depends(get_db), usuario: Usuario = Depends(get_current_user)
+    seccion_id: uuid.UUID,
+    limit: int = LIMITE_POR_DEFECTO,
+    offset: int = 0,
+    db: Session = Depends(get_db),
+    usuario: Usuario = Depends(get_current_user),
 ):
     obtener_seccion_autorizada(db, seccion_id, usuario)
-    salidas = db.query(Salida).filter(Salida.seccion_id == seccion_id).order_by(Salida.posicion_orden).all()
+    limit, offset = acotar_paginacion(limit, offset)
+    salidas = (
+        db.query(Salida)
+        .filter(Salida.seccion_id == seccion_id)
+        .order_by(Salida.posicion_orden, Salida.id)
+        .offset(offset)
+        .limit(limit)
+        .all()
+    )
     # Batch fetch de componentes: 1 query IN en vez de un db.get por salida.
     componentes = componentes_por_id(db, {s.componente_id for s in salidas if s.componente_id})
     return [_salida_response(db, s, componentes.get(s.componente_id)) for s in salidas]

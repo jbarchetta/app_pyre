@@ -184,6 +184,29 @@ def test_listar_salidas_no_hace_n_mas_uno_queries(client, db_session, contador_q
     assert queries_componentes == 1
 
 
+def test_listar_salidas_paginacion_sin_solapes(client, db_session):
+    seccion_id = _setup_tablero(client, db_session, "salidas.pag@pyre.com")
+    for i in range(3):
+        client.post(
+            f"/secciones/{seccion_id}/salidas",
+            json={
+                "carga_valor": str(10 + i),
+                "carga_unidad": "A",
+                "formato": "unipolar",
+                "tipo_proteccion": "seccional_termomagnetico",
+            },
+        )
+
+    pagina1 = client.get(f"/secciones/{seccion_id}/salidas?limit=2").json()
+    pagina2 = client.get(f"/secciones/{seccion_id}/salidas?limit=2&offset=2").json()
+
+    ids_pagina1 = {s["id"] for s in pagina1}
+    ids_pagina2 = {s["id"] for s in pagina2}
+    assert len(ids_pagina1) == 2
+    assert len(ids_pagina2) == 1
+    assert ids_pagina1.isdisjoint(ids_pagina2)
+
+
 def test_patch_salida_recalcula_cuando_cambia_la_carga(client, db_session):
     principal = _componente(db_session, "SAL-PRINC-7", tipo="interruptor_principal", corriente=100, ka=15)
     seccion_id = _setup_tablero(

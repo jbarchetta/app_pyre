@@ -14,6 +14,7 @@ from app.auth.ownership import (
 from app.catalogo.queries import componentes_por_id
 from app.database import get_db
 from app.models import CatalogoComponente, Proyecto, RolUsuario, Salida, Seccion, Tablero, Usuario
+from app.routers.paginacion import LIMITE_POR_DEFECTO, acotar_paginacion
 
 router = APIRouter(tags=["tableros"])
 
@@ -92,10 +93,22 @@ def crear_tablero(
 
 @router.get("/proyectos/{proyecto_id}/tableros", response_model=list[TableroResponse])
 def listar_tableros(
-    proyecto_id: uuid.UUID, db: Session = Depends(get_db), usuario: Usuario = Depends(get_current_user)
+    proyecto_id: uuid.UUID,
+    limit: int = LIMITE_POR_DEFECTO,
+    offset: int = 0,
+    db: Session = Depends(get_db),
+    usuario: Usuario = Depends(get_current_user),
 ):
     obtener_proyecto_autorizado(db, proyecto_id, usuario)
-    tableros = db.query(Tablero).filter(Tablero.proyecto_id == proyecto_id).all()
+    limit, offset = acotar_paginacion(limit, offset)
+    tableros = (
+        db.query(Tablero)
+        .filter(Tablero.proyecto_id == proyecto_id)
+        .order_by(Tablero.creado_en, Tablero.id)
+        .offset(offset)
+        .limit(limit)
+        .all()
+    )
     # Batch fetch de interruptores principales: 1 query IN en vez de un db.get por tablero.
     componentes = componentes_por_id(db, {t.interruptor_principal_id for t in tableros if t.interruptor_principal_id})
     return [_tablero_response(db, t, componentes.get(t.interruptor_principal_id)) for t in tableros]
@@ -193,10 +206,22 @@ def crear_seccion(
 
 @router.get("/tableros/{tablero_id}/secciones", response_model=list[SeccionResponse])
 def listar_secciones(
-    tablero_id: uuid.UUID, db: Session = Depends(get_db), usuario: Usuario = Depends(get_current_user)
+    tablero_id: uuid.UUID,
+    limit: int = LIMITE_POR_DEFECTO,
+    offset: int = 0,
+    db: Session = Depends(get_db),
+    usuario: Usuario = Depends(get_current_user),
 ):
     obtener_tablero_autorizado(db, tablero_id, usuario)
-    secciones = db.query(Seccion).filter(Seccion.tablero_id == tablero_id).order_by(Seccion.orden).all()
+    limit, offset = acotar_paginacion(limit, offset)
+    secciones = (
+        db.query(Seccion)
+        .filter(Seccion.tablero_id == tablero_id)
+        .order_by(Seccion.orden, Seccion.id)
+        .offset(offset)
+        .limit(limit)
+        .all()
+    )
     return [_seccion_response(s) for s in secciones]
 
 

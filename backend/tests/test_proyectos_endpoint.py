@@ -35,6 +35,33 @@ def test_listar_proyectos_incluye_los_creados(client, db_session):
     assert "Proyecto listado" in nombres
 
 
+def test_listar_proyectos_paginacion_estable_y_sin_solapes(client, db_session):
+    # Paginación defensiva (ciclo 9): orden estable creado_en desc (más nuevos
+    # primero) y páginas sin duplicados. La lista está filtrada por propiedad,
+    # así que solo se ven los proyectos del usuario del test.
+    _login(client, db_session, email="proyectos.pag@pyre.com")
+    for nombre in ["PAG-P1", "PAG-P2", "PAG-P3"]:
+        client.post("/proyectos", json={"cliente": "C", "nombre": nombre})
+
+    pagina1 = client.get("/proyectos?limit=2").json()
+    pagina2 = client.get("/proyectos?limit=2&offset=2").json()
+
+    assert [p["nombre"] for p in pagina1] == ["PAG-P3", "PAG-P2"]
+    assert [p["nombre"] for p in pagina2] == ["PAG-P1"]
+
+
+def test_listar_proyectos_paginacion_acota_parametros_invalidos(client, db_session):
+    _login(client, db_session, email="proyectos.clamp@pyre.com")
+    for nombre in ["CLP-P1", "CLP-P2", "CLP-P3"]:
+        client.post("/proyectos", json={"cliente": "C", "nombre": nombre})
+
+    assert len(client.get("/proyectos?limit=0").json()) == 1  # limit < 1 → 1
+    assert len(client.get("/proyectos?limit=9999").json()) == 3  # limit > 500 → cap silencioso
+    assert [p["id"] for p in client.get("/proyectos?offset=-5").json()] == [
+        p["id"] for p in client.get("/proyectos").json()
+    ]  # offset < 0 → 0
+
+
 def test_obtener_proyecto_inexistente_devuelve_404(client, db_session):
     import uuid
 

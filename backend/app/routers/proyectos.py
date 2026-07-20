@@ -8,6 +8,7 @@ from app.auth.dependencies import get_current_user, require_role
 from app.auth.ownership import obtener_proyecto_autorizado
 from app.database import get_db
 from app.models import Proyecto, RolUsuario, Salida, Seccion, Tablero, Usuario
+from app.routers.paginacion import LIMITE_POR_DEFECTO, acotar_paginacion
 
 router = APIRouter(prefix="/proyectos", tags=["proyectos"])
 
@@ -51,13 +52,20 @@ def crear_proyecto(
 
 
 @router.get("", response_model=list[ProyectoResponse])
-def listar_proyectos(db: Session = Depends(get_db), usuario: Usuario = Depends(get_current_user)):
+def listar_proyectos(
+    limit: int = LIMITE_POR_DEFECTO,
+    offset: int = 0,
+    db: Session = Depends(get_db),
+    usuario: Usuario = Depends(get_current_user),
+):
     # Autorización por propiedad (ciclo 8): el analista solo ve sus proyectos;
-    # el supervisor ve todos.
+    # el supervisor ve todos. Orden: más nuevos primero (estable para paginar).
+    limit, offset = acotar_paginacion(limit, offset)
     consulta = db.query(Proyecto)
     if usuario.rol != RolUsuario.SUPERVISOR:
         consulta = consulta.filter(Proyecto.analista_id == usuario.id)
-    return [_to_response(p) for p in consulta.all()]
+    proyectos = consulta.order_by(Proyecto.creado_en.desc(), Proyecto.id).offset(offset).limit(limit).all()
+    return [_to_response(p) for p in proyectos]
 
 
 @router.get("/{proyecto_id}", response_model=ProyectoResponse)
