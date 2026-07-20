@@ -44,6 +44,18 @@ Tienen polos, corriente nominal y capacidad de corte (los tres datos que necesit
 
 **Mientras tanto:** se mantiene el comportamiento actual (el componente manual se conserva siempre, sin validación ni advertencia).
 
+### 4. Regla de "amperios enteros" — ¿es cierta para todas las líneas de interruptores, o solo desde cierto calibre?
+
+**Encontrado:** 2026-07-20, durante el brainstorming del ciclo 10a (`docs/superpowers/specs/2026-07-20-ciclo-10a-feedback-formularios-design.md`).
+
+**Contexto:** el motor de configuración exige hoy que la carga en amperios sea un número entero (`backend/app/motor/calculo.py:13`, regla vigente desde el ciclo 2 de Fase C). El usuario revisó documentación real de ABB sobre líneas de "Miniature Circuit Breaker" (MCB) y encontró calibres fraccionarios por debajo de 2A: **0.2 - 0.3 - 0.5 - 0.75 - 1 - 1.6A**; recién a partir de 2A los calibres son todos enteros (2 - 3 - 4 - 6 - 8...). La regla actual, tal como está, rechazaría una carga real de 1.6A o 0.5A aunque corresponda exactamente a un interruptor real del catálogo.
+
+**Por qué importa:** si la regla es incorrecta, el sistema le impide al analista cargar salidas con calibres MCB reales por debajo de 2A — un falso negativo de validación, no una protección real.
+
+**Qué se necesita:** el usuario mismo va a terminar de revisar el resto de las líneas de interruptores ABB (caja moldeada, etc.) para confirmar si el patrón "fraccionario por debajo de cierto umbral, entero en adelante" es general o específico de MCB. Con eso confirmado, se decide la regla definitiva (ej. "entero salvo para calibres tabulados conocidos por debajo de 2A", o un enfoque distinto si otras líneas tienen sus propios calibres fraccionarios).
+
+**Mientras tanto:** la regla actual (entero exacto, sin excepciones) se mantiene sin cambios — el ciclo 10a solo mueve esta validación al frontend tal como está hoy, no la corrige.
+
 ## Resueltas
 
 _(ninguna todavía)_
