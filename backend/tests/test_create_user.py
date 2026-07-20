@@ -29,3 +29,26 @@ def test_create_user_rejects_duplicate_email():
             create_user("dup.test@pyre.com", "Segundo", "otra-clave", "supervisor", db=db)
     finally:
         db.close()
+
+
+def test_create_user_rejects_password_shorter_than_8_chars():
+    from app.scripts.create_user import create_user
+
+    db = SessionLocal()
+    try:
+        with pytest.raises(ValueError):
+            create_user("cortita.test@pyre.com", "Password Corta", "1234567", "analista", db=db)
+    finally:
+        db.close()
+
+
+def test_create_user_accepts_password_of_exactly_8_chars():
+    from app.scripts.create_user import create_user
+
+    db = SessionLocal()
+    try:
+        user = create_user("ochochars.test@pyre.com", "Password Ocho", "12345678", "analista", db=db)
+
+        assert user.email == "ochochars.test@pyre.com"
+    finally:
+        db.close()

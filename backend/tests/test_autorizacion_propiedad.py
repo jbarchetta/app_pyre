@@ -75,6 +75,28 @@ def test_get_proyecto_ajeno_devuelve_403(client, db_session):
     assert client.get(f"/proyectos/{proyecto_id}").status_code == 200
 
 
+def test_acceso_denegado_a_proyecto_ajeno_queda_auditado(client, db_session):
+    from app.models import AuditLog
+
+    _crear_usuarios(db_session, "audit")
+    _login(client, "audit", "a")
+    proyecto_id = _crear_proyecto(client)
+
+    _login(client, "audit", "b")
+    response = client.get(f"/proyectos/{proyecto_id}")
+
+    assert response.status_code == 403
+    eventos = (
+        db_session.query(AuditLog)
+        .filter(AuditLog.accion == "acceso_denegado_propiedad", AuditLog.entidad_id == proyecto_id)
+        .all()
+    )
+    assert len(eventos) == 1
+    evento = eventos[0]
+    assert evento.entidad == "proyecto"
+    assert evento.detalle["recurso"] == "proyecto"
+
+
 def test_patch_proyecto_ajeno_devuelve_403(client, db_session):
     _crear_usuarios(db_session, "patch")
     _login(client, "patch", "a")

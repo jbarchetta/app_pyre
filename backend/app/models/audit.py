@@ -12,7 +12,10 @@ class AuditLog(Base):
     __tablename__ = "audit_log"
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    usuario_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("usuario.id"), nullable=False)
+    # Nullable: un intento de login fallido con un email que no corresponde a
+    # ningún usuario no tiene un actor autenticado al que atribuirlo, pero
+    # igual se audita (sin distinguir "no existe" de "password incorrecta").
+    usuario_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("usuario.id"), nullable=True)
     accion: Mapped[str] = mapped_column(String(255), nullable=False)
     entidad: Mapped[str] = mapped_column(String(100), nullable=False)
     entidad_id: Mapped[str] = mapped_column(String(100), nullable=False)

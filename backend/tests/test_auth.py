@@ -25,6 +25,66 @@ def test_login_with_wrong_password_returns_401(client, db_session):
     assert response.status_code == 401
 
 
+def test_login_fallido_queda_auditado_sin_password(client, db_session):
+    _make_user(db_session, email="audit.fail@pyre.com")
+    from app.models import AuditLog
+
+    response = client.post(
+        "/auth/login", json={"email": "audit.fail@pyre.com", "password": "clave-incorrecta-xyz"}
+    )
+
+    assert response.status_code == 401
+    # audit_log es una tabla compartida entre tests (no se trunca por test) --
+    # se scopea por entidad_id además de accion para que no se contamine con
+    # los logins de otros tests del mismo archivo/sesión.
+    eventos = (
+        db_session.query(AuditLog)
+        .filter(AuditLog.accion == "login_fallido", AuditLog.entidad_id == "audit.fail@pyre.com")
+        .all()
+    )
+    assert len(eventos) == 1
+    evento = eventos[0]
+    assert evento.entidad == "usuario"
+    assert evento.entidad_id == "audit.fail@pyre.com"
+    # La password intentada NUNCA se persiste, ni en detalle ni en ningún campo.
+    assert "clave-incorrecta-xyz" not in str(evento.detalle)
+    # Ni siquiera se distingue "usuario inexistente" de "password incorrecta".
+    assert evento.detalle["motivo"] == "credenciales_invalidas"
+
+
+def test_login_exitoso_queda_auditado(client, db_session):
+    _make_user(db_session, email="audit.ok@pyre.com")
+    from app.models import AuditLog
+
+    response = client.post("/auth/login", json={"email": "audit.ok@pyre.com", "password": "clave-segura-123"})
+
+    assert response.status_code == 200
+    eventos = (
+        db_session.query(AuditLog)
+        .filter(AuditLog.accion == "login_exitoso", AuditLog.entidad_id == "audit.ok@pyre.com")
+        .all()
+    )
+    assert len(eventos) == 1
+    assert eventos[0].entidad_id == "audit.ok@pyre.com"
+
+
+def test_login_fallido_de_usuario_inexistente_tambien_se_audita_sin_enumerar(client, db_session):
+    from app.models import AuditLog
+
+    response = client.post(
+        "/auth/login", json={"email": "no.existe.audit@pyre.com", "password": "cualquier-cosa-123"}
+    )
+
+    assert response.status_code == 401
+    eventos = (
+        db_session.query(AuditLog)
+        .filter(AuditLog.accion == "login_fallido", AuditLog.entidad_id == "no.existe.audit@pyre.com")
+        .all()
+    )
+    assert len(eventos) == 1
+    assert eventos[0].detalle["motivo"] == "credenciales_invalidas"
+
+
 def test_me_without_cookie_returns_401(client):
     response = client.get("/auth/me")
 

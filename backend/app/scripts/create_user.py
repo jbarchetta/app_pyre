@@ -16,6 +16,8 @@ def create_user(email: str, nombre: str, password: str, rol: str, db: Session | 
         existing = db.query(Usuario).filter(Usuario.email == email).first()
         if existing:
             raise ValueError(f"Ya existe un usuario con email {email}")
+        if len(password) < 8:
+            raise ValueError("La password debe tener al menos 8 caracteres")
 
         user = Usuario(
             email=email,
