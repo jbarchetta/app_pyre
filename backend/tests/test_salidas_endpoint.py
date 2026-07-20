@@ -153,6 +153,37 @@ def test_listar_salidas_devuelve_las_creadas(client, db_session):
     assert ids == [primera["id"]]
 
 
+def test_listar_salidas_no_hace_n_mas_uno_queries(client, db_session, contador_queries):
+    # Anti-N+1 (ciclo 9): con 5 salidas con componente, el listado debe resolver
+    # los componentes en batch — el conteo de statements es constante, no crece
+    # con la cantidad de salidas (antes: 1 query extra por salida).
+    seccion_id = _setup_tablero(client, db_session, "salidas.nplus1@pyre.com")
+    for i in range(5):
+        componente = _componente(db_session, f"SAL-NPLUS1-{i}", corriente=20, ka=10)
+        salida_id = client.post(
+            f"/secciones/{seccion_id}/salidas",
+            json={
+                "carga_valor": "16",
+                "carga_unidad": "A",
+                "formato": "unipolar",
+                "tipo_proteccion": "seccional_termomagnetico",
+            },
+        ).json()["id"]
+        client.patch(f"/salidas/{salida_id}", json={"componente_id": str(componente.id)})
+
+    contador_queries["n"] = 0
+    contador_queries["statements"] = []
+    response = client.get(f"/secciones/{seccion_id}/salidas")
+
+    assert response.status_code == 200
+    assert len(response.json()) == 5
+    # Los 5 componentes deben resolverse en UNA query batch (IN), no en 5 db.get
+    # individuales. (Filtrar por tabla: el conteo total es no-determinístico por
+    # el identity map; las queries contra catalogo_componente sí lo son.)
+    queries_componentes = sum(1 for s in contador_queries["statements"] if "catalogo_componente" in s)
+    assert queries_componentes == 1
+
+
 def test_patch_salida_recalcula_cuando_cambia_la_carga(client, db_session):
     principal = _componente(db_session, "SAL-PRINC-7", tipo="interruptor_principal", corriente=100, ka=15)
     seccion_id = _setup_tablero(

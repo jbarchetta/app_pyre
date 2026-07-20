@@ -59,3 +59,28 @@ def client(db_session):
     with TestClient(app) as c:
         yield c
     app.dependency_overrides.clear()
+
+
+@pytest.fixture()
+def contador_queries():
+    """Registra statements SQL ejecutados contra la engine durante el test.
+
+    Para tests anti-N+1 (ciclo 9): se resetea antes de la llamada medida y se
+    aserta el conteo — total o filtrado por tabla. Filtrar por tabla es lo
+    robusto: `db.get()` sirve desde el identity map sin SQL cuando el objeto no
+    está expirado, así que el conteo total es no-determinístico, pero la query
+    batch (IN) o las N queries por fila contra una tabla dada sí lo son.
+    """
+    from sqlalchemy import event
+
+    registro = {"n": 0, "statements": []}
+
+    def _listener(conn, cursor, statement, parameters, context, executemany):
+        registro["n"] += 1
+        registro["statements"].append(statement)
+
+    event.listen(engine, "before_cursor_execute", _listener)
+    try:
+        yield registro
+    finally:
+        event.remove(engine, "before_cursor_execute", _listener)

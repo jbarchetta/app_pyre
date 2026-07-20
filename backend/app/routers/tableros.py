@@ -11,6 +11,7 @@ from app.auth.ownership import (
     obtener_seccion_autorizada,
     obtener_tablero_autorizado,
 )
+from app.catalogo.queries import componentes_por_id
 from app.database import get_db
 from app.models import CatalogoComponente, Proyecto, RolUsuario, Salida, Seccion, Tablero, Usuario
 
@@ -39,12 +40,11 @@ class TableroResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
-def _tablero_response(db: Session, tablero: Tablero) -> TableroResponse:
-    componente = (
-        db.get(CatalogoComponente, tablero.interruptor_principal_id)
-        if tablero.interruptor_principal_id
-        else None
-    )
+def _tablero_response(db: Session, tablero: Tablero, componente: CatalogoComponente | None = None) -> TableroResponse:
+    # componente ya resuelto (batch fetch del listado, ciclo 9) — si no viene,
+    # es un endpoint individual y el db.get puntual es aceptable.
+    if componente is None and tablero.interruptor_principal_id:
+        componente = db.get(CatalogoComponente, tablero.interruptor_principal_id)
     atributos = componente.atributos or {} if componente else {}
     return TableroResponse(
         id=str(tablero.id),
@@ -96,7 +96,9 @@ def listar_tableros(
 ):
     obtener_proyecto_autorizado(db, proyecto_id, usuario)
     tableros = db.query(Tablero).filter(Tablero.proyecto_id == proyecto_id).all()
-    return [_tablero_response(db, t) for t in tableros]
+    # Batch fetch de interruptores principales: 1 query IN en vez de un db.get por tablero.
+    componentes = componentes_por_id(db, {t.interruptor_principal_id for t in tableros if t.interruptor_principal_id})
+    return [_tablero_response(db, t, componentes.get(t.interruptor_principal_id)) for t in tableros]
 
 
 @router.get("/tableros/{tablero_id}", response_model=TableroResponse)

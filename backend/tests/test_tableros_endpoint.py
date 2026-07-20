@@ -55,6 +55,33 @@ def test_crear_tablero_en_proyecto_inexistente_devuelve_404(client, db_session):
     assert response.status_code == 404
 
 
+def test_listar_tableros_no_hace_n_mas_uno_queries(client, db_session, contador_queries):
+    # Anti-N+1 (ciclo 9): el listado debe resolver los interruptores principales
+    # en batch — conteo de statements constante, no crece con la cantidad de tableros.
+    proyecto_id = _proyecto(client, db_session, email="tableros.nplus1@pyre.com")
+    for i in range(3):
+        componente = _componente(db_session, f"TAB-NPLUS1-{i}")
+        client.post(
+            f"/proyectos/{proyecto_id}/tableros",
+            json={
+                "nombre": f"TG{i}",
+                "nivel_falla_ka": "10.00",
+                "interruptor_principal_id": str(componente.id),
+            },
+        )
+
+    contador_queries["n"] = 0
+    contador_queries["statements"] = []
+    response = client.get(f"/proyectos/{proyecto_id}/tableros")
+
+    assert response.status_code == 200
+    assert len(response.json()) == 3
+    # Los 3 interruptores principales deben resolverse en UNA query batch (IN),
+    # no en db.get individuales por tablero.
+    queries_componentes = sum(1 for s in contador_queries["statements"] if "catalogo_componente" in s)
+    assert queries_componentes == 1
+
+
 def test_crear_seccion_devuelve_la_seccion_creada(client, db_session):
     proyecto_id = _proyecto(client, db_session, email="secciones.test@pyre.com")
     tablero_id = client.post(

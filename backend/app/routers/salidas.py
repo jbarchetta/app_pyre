@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.auth.dependencies import get_current_user, require_role
 from app.auth.ownership import obtener_salida_autorizada, obtener_seccion_autorizada
+from app.catalogo.queries import componentes_por_id
 from app.database import get_db
 from app.models import (
     CatalogoComponente,
@@ -51,8 +52,11 @@ class SalidaResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
-def _salida_response(db: Session, salida: Salida) -> SalidaResponse:
-    componente = db.get(CatalogoComponente, salida.componente_id) if salida.componente_id else None
+def _salida_response(db: Session, salida: Salida, componente: CatalogoComponente | None = None) -> SalidaResponse:
+    # componente ya resuelto (batch fetch del listado, ciclo 9) — si no viene,
+    # es un endpoint individual y el db.get puntual es aceptable.
+    if componente is None and salida.componente_id:
+        componente = db.get(CatalogoComponente, salida.componente_id)
     return SalidaResponse(
         id=str(salida.id),
         seccion_id=str(salida.seccion_id),
@@ -220,4 +224,6 @@ def listar_salidas(
 ):
     obtener_seccion_autorizada(db, seccion_id, usuario)
     salidas = db.query(Salida).filter(Salida.seccion_id == seccion_id).order_by(Salida.posicion_orden).all()
-    return [_salida_response(db, s) for s in salidas]
+    # Batch fetch de componentes: 1 query IN en vez de un db.get por salida.
+    componentes = componentes_por_id(db, {s.componente_id for s in salidas if s.componente_id})
+    return [_salida_response(db, s, componentes.get(s.componente_id)) for s in salidas]
