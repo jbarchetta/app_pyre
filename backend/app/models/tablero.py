@@ -75,6 +75,9 @@ class Salida(Base):
     # componente de ESTA salida.
     asignado_manualmente: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     posicion_orden: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    alimentado_por_salida_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("salida.id", ondelete="SET NULL"), nullable=True
+    )
     creado_en: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
 
 

@@ -17,9 +17,18 @@ import { ComponentePicker } from "./ComponentePicker";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { useCerrarAlClickFuera } from "../hooks/useCerrarAlClickFuera";
 
+export interface ElementoAlimentadorCandidato {
+  id: string;
+  codigo: string;
+  etiqueta?: string | null;
+  tipo_proteccion: string;
+  carga: string;
+}
+
 interface SeccionBlockProps {
   seccion: Seccion;
   salidas: Salida[];
+  elementosCandidatos?: ElementoAlimentadorCandidato[];
   onSalidaCreada: (salida: Salida) => void;
   onSalidaActualizada: (salida: Salida) => void;
   onSalidaBorrada: (salidaId: string) => void;
@@ -34,6 +43,7 @@ interface FilaSalidaProps {
   seccionOrden?: number;
   isHovered?: boolean;
   onAbrirEdicion: (salida: Salida, trigger: HTMLElement) => void;
+  onAbrirLink: (salida: Salida, trigger: HTMLElement) => void;
   onDuplicar: (salida: Salida) => void;
   onConfirmarBorrado: (salida: Salida, trigger: HTMLElement) => void;
   onDragStart: (e: React.DragEvent<HTMLTableRowElement>, index: number) => void;
@@ -49,6 +59,7 @@ function FilaSalida({
   seccionOrden = 0,
   isHovered,
   onAbrirEdicion,
+  onAbrirLink,
   onDuplicar,
   onConfirmarBorrado,
   onDragStart,
@@ -102,17 +113,29 @@ function FilaSalida({
       </td>
 
       {/* Etiqueta / Circuito (Limitado para no expandir la tabla) */}
-      <td className="p-3 font-semibold text-gray-900 text-sm max-w-[120px]">
-        {salida.etiqueta ? (
-          <span
-            className="bg-gray-100 text-gray-800 px-2 py-0.5 rounded font-mono text-xs border border-gray-200 truncate inline-block max-w-[110px] align-middle"
-            title={salida.etiqueta}
-          >
-            {salida.etiqueta}
-          </span>
-        ) : (
-          <span className="text-gray-400 italic text-xs">Sin tag</span>
-        )}
+      <td className="p-3 font-semibold text-gray-900 text-sm max-w-[160px]">
+        <div className="flex items-center gap-1.5 flex-wrap">
+          {salida.etiqueta ? (
+            <span
+              className="bg-gray-100 text-gray-800 px-2 py-0.5 rounded font-mono text-xs border border-gray-200 truncate inline-block max-w-[110px] align-middle"
+              title={salida.etiqueta}
+            >
+              {salida.etiqueta}
+            </span>
+          ) : (
+            <span className="text-gray-400 italic text-xs">Sin tag</span>
+          )}
+
+          {salida.alimentado_por_codigo && (
+            <span
+              className="bg-red-50 text-abb-red px-1.5 py-0.5 rounded font-mono text-[11px] font-bold border border-red-200 inline-flex items-center gap-0.5"
+              title={`Alimentado por ${salida.alimentado_por_codigo}`}
+            >
+              <span className="material-symbols-outlined text-[12px]">link</span>
+              {salida.alimentado_por_codigo}
+            </span>
+          )}
+        </div>
       </td>
 
       {/* Carga */}
@@ -188,7 +211,20 @@ function FilaSalida({
 
       {/* Acciones */}
       <td className="p-3 text-right">
-        <div className="flex items-center justify-end gap-2 text-gray-500">
+        <div className="flex items-center justify-end gap-1.5 text-gray-500">
+          <button
+            type="button"
+            aria-label={`Vincular alimentación de ${codigoAuto}`}
+            onClick={(e) => onAbrirLink(salida, e.currentTarget)}
+            className={`p-1 rounded transition ${
+              salida.alimentado_por_salida_id
+                ? "text-abb-red bg-red-50 hover:bg-red-100"
+                : "hover:text-abb-red hover:bg-gray-100"
+            }`}
+            title={salida.alimentado_por_codigo ? `Alimentado por ${salida.alimentado_por_codigo}` : "Linkear alimentación a otro elemento"}
+          >
+            <span className="material-symbols-outlined text-base">link</span>
+          </button>
           <button
             type="button"
             aria-label={`Duplicar salida ${salida.carga_valor} ${salida.carga_unidad}`}
@@ -225,6 +261,7 @@ function FilaSalida({
 export function SeccionBlock({
   seccion,
   salidas,
+  elementosCandidatos = [],
   onSalidaCreada,
   onSalidaActualizada,
   onSalidaBorrada,
@@ -256,9 +293,43 @@ export function SeccionBlock({
   const [mostrarFormulario, setMostrarFormulario] = useState(false);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
 
+  // Estado Modal Linkeo 🔗
+  const [salidaEnLink, setSalidaEnLink] = useState<Salida | null>(null);
+  const [padreSeleccionadoId, setPadreSeleccionadoId] = useState<string | null>(null);
+  const [guardandoLink, setGuardandoLink] = useState(false);
+
   const ultimoTriggerRef = useRef<HTMLElement | null>(null);
   const editCargaInputRef = useRef<HTMLInputElement>(null);
   const idSalidaEnEdicionRef = useRef<string | null>(null);
+
+  function abrirLink(salida: Salida, trigger: HTMLElement) {
+    ultimoTriggerRef.current = trigger;
+    setSalidaEnLink(salida);
+    setPadreSeleccionadoId(salida.alimentado_por_salida_id ?? null);
+  }
+
+  async function handleGuardarLink(event: FormEvent) {
+    event.preventDefault();
+    if (!salidaEnLink) return;
+    setGuardandoLink(true);
+    setError(null);
+    try {
+      const actualizada = await actualizarSalida(salidaEnLink.id, {
+        alimentado_por_salida_id: padreSeleccionadoId,
+      });
+      onSalidaActualizada(actualizada);
+      setSalidaEnLink(null);
+      ultimoTriggerRef.current?.focus();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "No se pudo actualizar el enlace de alimentación");
+    } finally {
+      setGuardandoLink(false);
+    }
+  }
+
+  const candidatosElegibles = elementosCandidatos.filter(
+    (c) => c.id !== salidaEnLink?.id
+  );
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
@@ -458,6 +529,7 @@ export function SeccionBlock({
                   seccionOrden={seccion.orden != null ? seccion.orden : 0}
                   isHovered={hoveredSalidaId === salida.id}
                   onAbrirEdicion={abrirEdicion}
+                  onAbrirLink={abrirLink}
                   onDuplicar={handleDuplicar}
                   onConfirmarBorrado={(sal, trigger) => {
                     ultimoTriggerRef.current = trigger;
@@ -738,6 +810,98 @@ export function SeccionBlock({
           onSelect={handleReasignarComponente}
           onCancel={() => setPickerAbierto(false)}
         />
+      )}
+
+      {/* Modal de Linkeo de Alimentación 🔗 */}
+      {salidaEnLink && (
+        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 backdrop-blur-sm">
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 border border-gray-200 space-y-4">
+            <div className="flex items-center justify-between border-b border-gray-100 pb-3">
+              <h2 className="text-base font-bold text-gray-900 flex items-center gap-2">
+                <span className="material-symbols-outlined text-abb-red">link</span>
+                Linkear Fuente de Alimentación
+              </h2>
+              <button
+                type="button"
+                onClick={() => setSalidaEnLink(null)}
+                className="text-gray-400 hover:text-gray-600 p-1 rounded"
+              >
+                <span className="material-symbols-outlined text-lg">close</span>
+              </button>
+            </div>
+
+            <form onSubmit={handleGuardarLink} className="space-y-4">
+              <p className="text-xs text-gray-600">
+                Seleccioná el elemento desde el cual recibe energía el circuito:
+              </p>
+
+              <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+                {/* Opción 1: Alimentación estándar desde barral / Q1 */}
+                <label
+                  className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer transition ${
+                    padreSeleccionadoId === null
+                      ? "border-abb-red bg-red-50/60 text-gray-900 font-semibold"
+                      : "border-gray-200 hover:bg-gray-50 text-gray-700"
+                  }`}
+                >
+                  <div className="flex items-center gap-2 text-xs">
+                    <input
+                      type="radio"
+                      name="alimentador"
+                      checked={padreSeleccionadoId === null}
+                      onChange={() => setPadreSeleccionadoId(null)}
+                      className="accent-abb-red"
+                    />
+                    <span>⚡ Alimentación estándar (Embarrado / Q1)</span>
+                  </div>
+                  <span className="text-[11px] text-gray-500 font-mono">Por defecto</span>
+                </label>
+
+                {/* Lista de candidatos elegibles del tablero */}
+                {candidatosElegibles.map((candidato) => (
+                  <label
+                    key={candidato.id}
+                    className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer transition ${
+                      padreSeleccionadoId === candidato.id
+                        ? "border-abb-red bg-red-50/60 text-gray-900 font-semibold"
+                        : "border-gray-200 hover:bg-gray-50 text-gray-700"
+                    }`}
+                  >
+                    <div className="flex items-center gap-2 text-xs">
+                      <input
+                        type="radio"
+                        name="alimentador"
+                        checked={padreSeleccionadoId === candidato.id}
+                        onChange={() => setPadreSeleccionadoId(candidato.id)}
+                        className="accent-abb-red"
+                      />
+                      <span className="font-mono font-bold text-abb-red">{candidato.codigo}</span>
+                      <span>{candidato.etiqueta ? `(${candidato.etiqueta})` : candidato.tipo_proteccion}</span>
+                    </div>
+                    <span className="text-[11px] text-gray-500 font-mono">{candidato.carga}</span>
+                  </label>
+                ))}
+              </div>
+
+              <div className="flex justify-end gap-2 pt-3 border-t border-gray-100">
+                <button
+                  type="button"
+                  onClick={() => setSalidaEnLink(null)}
+                  className="px-4 py-2 text-xs font-semibold text-gray-600 hover:bg-gray-100 rounded"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={guardandoLink}
+                  className="px-4 py-2 text-xs font-semibold bg-abb-red hover:bg-red-700 text-white rounded transition disabled:opacity-50"
+                >
+                  {guardandoLink ? "Guardando..." : "Guardar Enlace"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
       )}
 
       {salidaABorrar && (

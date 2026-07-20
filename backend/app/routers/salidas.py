@@ -35,6 +35,7 @@ class SalidaCreate(BaseModel):
     formato: FormatoPolos
     tipo_proteccion: TipoProteccion
     etiqueta: str | None = None
+    alimentado_por_salida_id: uuid.UUID | None = None
 
 
 class SalidaResponse(BaseModel):
@@ -53,8 +54,42 @@ class SalidaResponse(BaseModel):
     asignado_manualmente: bool
     posicion_orden: int
     motivo_sin_match: str | None = None
+    alimentado_por_salida_id: str | None = None
+    alimentado_por_codigo: str | None = None
 
     model_config = {"from_attributes": True}
+
+
+def _calcular_codigo_salida(db: Session, salida_id: uuid.UUID) -> str | None:
+    salida_obj = db.get(Salida, salida_id)
+    if not salida_obj:
+        return None
+    seccion = db.get(Seccion, salida_obj.seccion_id)
+    if not seccion:
+        return None
+    secciones = (
+        db.query(Seccion.id)
+        .filter(Seccion.tablero_id == seccion.tablero_id)
+        .order_by(Seccion.orden, Seccion.id)
+        .all()
+    )
+    seccion_num = 1
+    for idx, (sec_id,) in enumerate(secciones):
+        if sec_id == seccion.id:
+            seccion_num = idx + 1
+            break
+    salidas = (
+        db.query(Salida.id)
+        .filter(Salida.seccion_id == seccion.id)
+        .order_by(Salida.posicion_orden, Salida.id)
+        .all()
+    )
+    salida_num = 1
+    for idx, (sal_id,) in enumerate(salidas):
+        if sal_id == salida_obj.id:
+            salida_num = idx + 1
+            break
+    return f"F{seccion_num}.{salida_num}"
 
 
 def _obtener_motivo_sin_match(db: Session, salida: Salida) -> str | None:
@@ -98,6 +133,11 @@ def _salida_response(db: Session, salida: Salida, componente: CatalogoComponente
         componente = db.get(CatalogoComponente, salida.componente_id)
 
     motivo = _obtener_motivo_sin_match(db, salida)
+    alimentado_por_codigo = (
+        _calcular_codigo_salida(db, salida.alimentado_por_salida_id)
+        if salida.alimentado_por_salida_id
+        else None
+    )
 
     return SalidaResponse(
         id=str(salida.id),
@@ -115,6 +155,8 @@ def _salida_response(db: Session, salida: Salida, componente: CatalogoComponente
         asignado_manualmente=salida.asignado_manualmente,
         posicion_orden=salida.posicion_orden,
         motivo_sin_match=motivo,
+        alimentado_por_salida_id=str(salida.alimentado_por_salida_id) if salida.alimentado_por_salida_id else None,
+        alimentado_por_codigo=alimentado_por_codigo,
     )
 
 
@@ -200,6 +242,7 @@ class SalidaUpdate(BaseModel):
     tipo_proteccion: TipoProteccion | None = None
     componente_id: uuid.UUID | None = None
     asignado_manualmente: bool | None = None
+    alimentado_por_salida_id: uuid.UUID | None = None
 
 
 @router.patch("/salidas/{salida_id}", response_model=SalidaResponse)
@@ -226,6 +269,24 @@ def actualizar_salida(
         salida.formato = cambios["formato"]
     if "tipo_proteccion" in cambios:
         salida.tipo_proteccion = cambios["tipo_proteccion"]
+    if "alimentado_por_salida_id" in cambios:
+        padre_id = cambios["alimentado_por_salida_id"]
+        if padre_id == salida_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail="Un elemento no puede alimentarse a sí mismo."
+            )
+        if padre_id is not None:
+            padre = db.get(Salida, padre_id)
+            if not padre:
+                raise HTTPException(
+                    status_code=status.HTTP_444_NOT_FOUND if hasattr(status, "HTTP_444_NOT_FOUND") else status.HTTP_404_NOT_FOUND,
+                    detail="Salida alimentadora no encontrada.",
+                )
+            if padre.alimentado_por_salida_id == salida_id:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST, detail="Enlace circular entre salidas no permitido."
+                )
+        salida.alimentado_por_salida_id = padre_id
 
     if "asignado_manualmente" in cambios:
         salida.asignado_manualmente = cambios["asignado_manualmente"]

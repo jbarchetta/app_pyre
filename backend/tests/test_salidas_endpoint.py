@@ -228,6 +228,45 @@ def test_patch_salida_recalcula_cuando_cambia_la_carga(client, db_session):
     assert response.json()["carga_valor"] == "30.00"
 
 
+def test_linkear_salidas_y_prevenir_autolink(client, db_session):
+    seccion_id = _setup_tablero(client, db_session, "salidas_link.test@pyre.com")
+    salida1_id = client.post(
+        f"/secciones/{seccion_id}/salidas",
+        json={
+            "carga_valor": "40",
+            "carga_unidad": "A",
+            "formato": "tetrapolar",
+            "tipo_proteccion": "seccional_diferencial",
+        },
+    ).json()["id"]
+    salida2_id = client.post(
+        f"/secciones/{seccion_id}/salidas",
+        json={
+            "carga_valor": "16",
+            "carga_unidad": "A",
+            "formato": "bipolar",
+            "tipo_proteccion": "seccional_termomagnetico",
+        },
+    ).json()["id"]
+
+    # Probar auto-link invalido (devuelve 400)
+    response_auto = client.patch(f"/salidas/{salida2_id}", json={"alimentado_por_salida_id": salida2_id})
+    assert response_auto.status_code == 400
+
+    # Linkear salida2 a salida1
+    response_link = client.patch(f"/salidas/{salida2_id}", json={"alimentado_por_salida_id": salida1_id})
+    assert response_link.status_code == 200
+    body = response_link.json()
+    assert body["alimentado_por_salida_id"] == salida1_id
+    assert body["alimentado_por_codigo"] == "F1.1"
+
+    # Desvincular salida2 (volver a alimentacion estandar)
+    response_unlink = client.patch(f"/salidas/{salida2_id}", json={"alimentado_por_salida_id": None})
+    assert response_unlink.status_code == 200
+    assert response_unlink.json()["alimentado_por_salida_id"] is None
+    assert response_unlink.json()["alimentado_por_codigo"] is None
+
+
 def test_patch_salida_con_componente_id_explicito_no_recalcula(client, db_session):
     seccion_id = _setup_tablero(client, db_session, "salidas8.test@pyre.com")
     manual = _componente(db_session, "SAL-C8", corriente=20, ka=10)

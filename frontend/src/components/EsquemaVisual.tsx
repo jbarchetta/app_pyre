@@ -270,7 +270,10 @@ export function EsquemaVisual({
               const cardX = 30 + salidaIndex * (ANCHO_CARD + GAP_X);
 
               const asignada = !!salida.componente_id;
-              const isHovered = hoveredSalidaId === salida.id;
+              const isAlimentadaPorHovered = !!(
+                hoveredSalidaId && salida.alimentado_por_salida_id === hoveredSalidaId
+              );
+              const isHovered = hoveredSalidaId === salida.id || isAlimentadaPorHovered;
 
               const fill = isHovered
                 ? "#fff5f5"
@@ -300,12 +303,13 @@ export function EsquemaVisual({
 
               const tooltipInfo = [
                 `Circuito: ${codigoAuto}${salida.etiqueta ? ` (${salida.etiqueta})` : ""}`,
+                salida.alimentado_por_codigo ? `Alimentado por: ${salida.alimentado_por_codigo}` : null,
                 `Carga: ${cargaTexto}`,
                 `Formato: ${formatoText} (${salida.tipo_proteccion === "seccional_diferencial" ? "Diferencial" : "Termomagnético"})`,
                 salida.componente_id
                   ? `Componente ABB: ${salida.componente_codigo ?? salida.componente_id}${salida.componente_descripcion ? ` - ${salida.componente_descripcion}` : ""}`
                   : `Estado: ${salida.motivo_sin_match ?? "Sin propuesta automática"}`,
-              ].join("\n");
+              ].filter(Boolean).join("\n");
 
               return (
                 <g

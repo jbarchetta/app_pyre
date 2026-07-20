@@ -718,6 +718,16 @@ export function DetalleTablero({
                 key={seccionSeleccionada.seccion.id}
                 seccion={seccionSeleccionada.seccion}
                 salidas={seccionSeleccionada.salidas}
+                elementosCandidatos={(secciones ?? []).flatMap((s, sIdx) => {
+                  const sNum = s.seccion.orden != null ? s.seccion.orden + 1 : sIdx + 1;
+                  return s.salidas.map((sal, salIdx) => ({
+                    id: sal.id,
+                    codigo: `F${sNum}.${salIdx + 1}`,
+                    etiqueta: sal.etiqueta,
+                    tipo_proteccion: sal.tipo_proteccion === "seccional_diferencial" ? "Diferencial" : "Termomagnético",
+                    carga: `${sal.carga_valor} ${sal.carga_unidad}`,
+                  }));
+                })}
                 onSalidaCreada={(salida) => handleSalidaCreada(seccionSeleccionada.seccion.id, salida)}
                 onSalidaActualizada={(salida) => handleSalidaActualizada(seccionSeleccionada.seccion.id, salida)}
                 onSalidaBorrada={(salidaId) => handleSalidaBorrada(seccionSeleccionada.seccion.id, salidaId)}

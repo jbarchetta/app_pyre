@@ -273,6 +273,8 @@ export interface Salida {
   asignado_manualmente: boolean;
   posicion_orden: number;
   motivo_sin_match?: string | null;
+  alimentado_por_salida_id?: string | null;
+  alimentado_por_codigo?: string | null;
 }
 
 export interface SalidaInput {
@@ -281,6 +283,7 @@ export interface SalidaInput {
   carga_unidad: string;
   formato: FormatoPolos;
   tipo_proteccion: TipoProteccion;
+  alimentado_por_salida_id?: string | null;
 }
 
 export async function listarSalidas(seccionId: string): Promise<Salida[]> {
@@ -308,6 +311,7 @@ export interface SalidaUpdateInput {
   tipo_proteccion?: TipoProteccion;
   componente_id?: string | null;
   asignado_manualmente?: boolean;
+  alimentado_por_salida_id?: string | null;
 }
 
 export async function actualizarSalida(salidaId: string, cambios: SalidaUpdateInput): Promise<Salida> {
