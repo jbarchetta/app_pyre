@@ -390,19 +390,21 @@ export function CadViewerCanvas({
           <button
             onClick={() => setShowGrid((g) => !g)}
             className={`px-2.5 py-1 rounded-md border text-xs font-mono transition-colors ${
-              showGrid ? "bg-sky-950/50 border-sky-700 text-sky-400" : "border-slate-700 text-slate-500"
+              showGrid ? "bg-sky-950/50 border-sky-700 text-sky-400 font-bold" : "border-slate-700 text-slate-500"
             }`}
+            title={showGrid ? "Desactivar Grilla CAD" : "Activar Grilla CAD"}
           >
-            GRID: {showGrid ? "ON" : "OFF"}
+            GRID
           </button>
 
           <button
             onClick={() => setSnapGrid((s) => !s)}
             className={`px-2.5 py-1 rounded-md border text-xs font-mono transition-colors ${
-              snapGrid ? "bg-yellow-950/50 border-yellow-700 text-yellow-400" : "border-slate-700 text-slate-500"
+              snapGrid ? "bg-yellow-950/50 border-yellow-700 text-yellow-400 font-bold" : "border-slate-700 text-slate-500"
             }`}
+            title={snapGrid ? "Desactivar Snap a Grilla (10mm)" : "Activar Snap a Grilla (10mm)"}
           >
-            SNAP: {snapGrid ? "10mm" : "OFF"}
+            SNAP
           </button>
 
           <button

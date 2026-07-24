@@ -10,7 +10,6 @@ import {
   BoltIcon,
   CheckCircleIcon,
   CubeIcon,
-  ArrowsPointingOutIcon,
   ArrowsPointingInIcon,
 } from "@heroicons/react/24/outline";
 import {
@@ -436,28 +435,6 @@ export function DetalleTablero({
 
   return (
     <div className="mt-4 space-y-6">
-      {/* Botón Superior para Comprimir / Expandir Tarjetas Laterales */}
-      <div className="flex justify-end">
-        <button
-          type="button"
-          onClick={() => setPanelLateralColapsado((col) => !col)}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-mono font-bold rounded-lg border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 shadow-sm transition"
-          title={panelLateralColapsado ? "Expandir tarjetas laterales" : "Comprimir tarjetas laterales (extender visor gráfico al máximo)"}
-        >
-          {panelLateralColapsado ? (
-            <>
-              <ArrowsPointingOutIcon className="w-4 h-4 text-abb-red" />
-              <span>EXPANDIR TARJETAS LATERALES</span>
-            </>
-          ) : (
-            <>
-              <ArrowsPointingInIcon className="w-4 h-4 text-abb-red" />
-              <span>COMPRIMIR TARJETAS LATERALES</span>
-            </>
-          )}
-        </button>
-      </div>
-
       {/* ZONA SUPERIOR: Visor de Blueprint (68% o 100%) + Panel Lateral Derecha (32% u oculto) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch transition-all duration-300">
         {/* Columna Izquierda: Visor del Unifilar / Bloques LIVE_SCHEMATIC_VIEWER */}
@@ -493,12 +470,30 @@ export function DetalleTablero({
             gabineteSugeridoAncho={tablero.gabinete_sugerido_ancho_mm}
             gabineteSugeridoAlto={tablero.gabinete_sugerido_alto_mm}
             tableroId={tablero.id}
+            panelLateralColapsado={panelLateralColapsado}
+            onTogglePanelLateral={() => setPanelLateralColapsado(false)}
           />
         </div>
 
         {/* Columna Derecha: Tarjetas de Control y Parámetros (~32%, ocultas si panelLateralColapsado === true) */}
         {!panelLateralColapsado && (
           <div className="lg:col-span-4 w-full flex flex-col gap-4 transition-all duration-300">
+            {/* Cabecera Identica sobre las Tarjetas Laterales */}
+            <div className="flex items-center justify-between bg-industrial-gray border border-surface-stroke rounded-xl px-4 py-2 shadow-sm min-h-[46px] shrink-0">
+              <span className="font-mono text-xs font-bold uppercase tracking-wider text-gray-700 flex items-center gap-1.5 truncate">
+                <BoltIcon className="w-4 h-4 text-abb-red shrink-0" />
+                <span className="truncate">PANEL LATERAL</span>
+              </span>
+              <button
+                type="button"
+                onClick={() => setPanelLateralColapsado(true)}
+                className="flex items-center gap-1.5 px-3 py-1 text-xs font-mono font-bold rounded-lg border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 shadow-sm transition shrink-0"
+                title="Comprimir tarjetas laterales"
+              >
+                <ArrowsPointingInIcon className="w-4 h-4 text-abb-red" />
+                <span>Comprimir tarjetas laterales</span>
+              </button>
+            </div>
             {/* Card 1: TECHNICAL PARAMETERS (Normalizado con estilo claro de la app) */}
             <div className="bg-white border border-surface-stroke rounded-xl shadow-sm overflow-hidden shrink-0">
               <div className="border-b border-surface-stroke bg-gray-50 px-4 py-2.5 flex items-center justify-between">

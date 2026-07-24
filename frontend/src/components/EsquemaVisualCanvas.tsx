@@ -38,6 +38,8 @@ interface EsquemaVisualCanvasProps {
   gabineteSugeridoAlto?: number | null;
   tableroId?: string;
   modoVisual?: "bloques" | "topografico" | "unifilar";
+  panelLateralColapsado?: boolean;
+  onTogglePanelLateral?: () => void;
 }
 
 const ZOOM_MIN = 0.5;
@@ -62,6 +64,8 @@ export function EsquemaVisualCanvas({
   gabineteSugeridoAncho,
   gabineteSugeridoAlto,
   modoVisual: modoVisualProp = "bloques",
+  panelLateralColapsado,
+  onTogglePanelLateral,
 }: EsquemaVisualCanvasProps) {
   const [modoVisualState, setModoVisualState] = useState<"bloques" | "topografico" | "unifilar">(modoVisualProp);
   const [panelCapasAbierto, setPanelCapasAbierto] = useState(false);
@@ -282,10 +286,24 @@ export function EsquemaVisualCanvas({
           </button>
         </div>
 
-        <div className="text-[11px] font-mono text-gray-500 hidden sm:block">
-          {modoVisualState === "bloques"
-            ? "Esquema Vectorial SVG - Modo Bloques"
-            : `Motor CAD DXF - Modo ${modoVisualState === "topografico" ? "Topográfico 2D" : "Esquema Unifilar"}`}
+        <div className="flex items-center gap-3">
+          <div className="text-[11px] font-mono text-gray-500 hidden sm:block">
+            {modoVisualState === "bloques"
+              ? "Esquema Vectorial SVG - Modo Bloques"
+              : `Motor CAD DXF - Modo ${modoVisualState === "topografico" ? "Topográfico 2D" : "Esquema Unifilar"}`}
+          </div>
+
+          {panelLateralColapsado && onTogglePanelLateral && (
+            <button
+              type="button"
+              onClick={onTogglePanelLateral}
+              className="flex items-center gap-1.5 px-3 py-1 text-xs font-mono font-bold rounded-lg border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 shadow-sm transition ml-2"
+              title="Expandir tarjetas laterales"
+            >
+              <ArrowsPointingOutIcon className="w-4 h-4 text-abb-red" />
+              <span className="hidden md:inline">EXPANDIR TARJETAS</span>
+            </button>
+          )}
         </div>
       </div>
 
