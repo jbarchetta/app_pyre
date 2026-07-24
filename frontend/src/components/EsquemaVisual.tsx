@@ -196,10 +196,10 @@ export function EsquemaVisual({
         {tieneInterruptorPrincipal && (
           <g>
             {/* Input line from Client */}
-            <line x1={q1X} y1={10} x2={q1X} y2={50} stroke="#0f172a" strokeWidth={2} />
+            <line x1={q1X} y1={10} x2={q1X} y2={50} stroke="#059669" strokeWidth={2} />
             {/* Double arrowhead pointing down */}
-            <path d={`M ${q1X - 5} 20 L ${q1X} 25 L ${q1X + 5} 20`} fill="none" stroke="#0f172a" strokeWidth={1.8} />
-            <path d={`M ${q1X - 5} 27 L ${q1X} 32 L ${q1X + 5} 27`} fill="none" stroke="#0f172a" strokeWidth={1.8} />
+            <path d={`M ${q1X - 5} 20 L ${q1X} 25 L ${q1X + 5} 20`} fill="none" stroke="#059669" strokeWidth={1.8} />
+            <path d={`M ${q1X - 5} 27 L ${q1X} 32 L ${q1X + 5} 27`} fill="none" stroke="#059669" strokeWidth={1.8} />
             <text x={q1X + 14} y={24} fontSize={11.5} fontFamily="sans-serif" fontWeight="bold" fill="#0f172a">CLIENTE</text>
 
             {renderPhaseTicks(q1X, 38, interruptorPrincipal?.polos ?? 3)}
@@ -218,11 +218,11 @@ export function EsquemaVisual({
               y1={65}
               x2={q1X}
               y2={fila1SubBusbarY}
-              stroke="#0f172a"
+              stroke="#059669"
               strokeWidth={2.5}
             />
-            {/* Dot de conexión agrandado a r=5mm */}
-            <circle cx={q1X} cy={fila1SubBusbarY} r={5} fill="#0f172a" />
+            {/* Dot de conexión verde a la línea de potencia */}
+            <circle cx={q1X} cy={fila1SubBusbarY} r={5} fill="#059669" />
           </g>
         )}
 
@@ -232,7 +232,7 @@ export function EsquemaVisual({
             y1={fila1SubBusbarY}
             x2={12}
             y2={ultimoSubBusbarY}
-            stroke="#0f172a"
+            stroke="#059669"
             strokeWidth={3}
           />
         )}
@@ -251,7 +251,7 @@ export function EsquemaVisual({
                   y1={rowBusbarY}
                   x2={sIdx === 0 && tieneInterruptorPrincipal ? Math.max(rowWidth, q1X) : rowWidth}
                   y2={rowBusbarY}
-                  stroke="#0f172a"
+                  stroke="#059669"
                   strokeWidth={2.5}
                 />
               )}
@@ -321,9 +321,9 @@ export function EsquemaVisual({
                     onMouseLeave={() => onSalidaHover?.(null)}
                     onClick={() => onSalidaClick?.(salida)}
                   >
-                    {/* Dot de conexión a la línea principal agrandado (r=5mm) */}
+                    {/* Dot de conexión verde a la línea principal (r=5mm) */}
                     {!hasParent && (
-                      <circle cx={x} cy={rowBusbarY} r={5} fill="#0f172a" />
+                      <circle cx={x} cy={rowBusbarY} r={5} fill="#059669" />
                     )}
 
                     {hasParent ? (
@@ -456,23 +456,21 @@ export function EsquemaVisual({
                       </g>
                     )}
 
-                    {/* Contenedor Cuadrado Imaginario de Texto de Salida (Ancho 110mm centrado en la línea con 5mm de espacio libre a cada lado) */}
+                    {/* Contenedor de Texto de Salida (Transparente sin borde - Solo texto visible) */}
                     <rect
                       x={x - 55}
                       y={cardY + 58}
                       width={110}
-                      height={46}
-                      rx={5}
-                      fill={isDirectHover ? "#fef2f2" : "#ffffff"}
-                      stroke={isDirectHover ? "#b91c1c" : "#cbd5e1"}
-                      strokeWidth={isDirectHover ? 1.5 : 1}
+                      height={50}
+                      fill="none"
+                      stroke="none"
                     />
 
-                    {/* Etiqueta de Ubicación del Elemento (F1.1, F1.2, etc.) */}
+                    {/* Etiqueta de Ubicación del Elemento (F1.1, F1.2, etc.) (+25% tamaño) */}
                     <text
                       x={x}
-                      y={cardY + 71}
-                      fontSize={13}
+                      y={cardY + 73}
+                      fontSize={16.5}
                       fontFamily="monospace"
                       fontWeight="bold"
                       fill={isDirectHover ? "#b91c1c" : "#0f172a"}
@@ -482,8 +480,8 @@ export function EsquemaVisual({
                     </text>
                     <text
                       x={x}
-                      y={cardY + 83}
-                      fontSize={11}
+                      y={cardY + 87}
+                      fontSize={14}
                       fontFamily="sans-serif"
                       fontWeight={salida.etiqueta ? "bold" : "normal"}
                       fill={isDirectHover ? "#b91c1c" : salida.etiqueta ? "#1f2937" : "#d97706"}
@@ -493,8 +491,8 @@ export function EsquemaVisual({
                     </text>
                     <text
                       x={x}
-                      y={cardY + 95}
-                      fontSize={11}
+                      y={cardY + 101}
+                      fontSize={14}
                       fontFamily="sans-serif"
                       fill="#0f172a"
                       textAnchor="middle"
@@ -504,8 +502,8 @@ export function EsquemaVisual({
                     {salida.componente_codigo && (
                       <text
                         x={x}
-                        y={cardY + 106}
-                        fontSize={10}
+                        y={cardY + 114}
+                        fontSize={12.5}
                         fontFamily="monospace"
                         fill="#64748b"
                         textAnchor="middle"

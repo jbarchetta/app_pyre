@@ -89,9 +89,13 @@ export class CadCanvasEngine {
       if (!activeLayerIds.has(prim.layerId)) return;
 
       const layer = doc.layers.find((l) => l.id === prim.layerId);
-      let color = prim.color || layer?.color || (theme === "light" ? "#0F172A" : "#E2E8F0");
-      if (theme === "light" && (color === "#F8FAFC" || color === "#E2E8F0" || color === "#FFFFFF")) {
-        color = "#0F172A";
+      let rawColor = prim.color || layer?.color;
+      let color = rawColor || (theme === "light" ? "#000000" : "#FFFFFF");
+
+      if (rawColor === "auto" || rawColor === "AUTO") {
+        color = theme === "light" ? "#000000" : "#FFFFFF";
+      } else if (theme === "light" && (color === "#F8FAFC" || color === "#E2E8F0" || color === "#FFFFFF")) {
+        color = "#000000";
       }
 
       const isHovered = Boolean(hoveredDataId && prim.dataId === hoveredDataId);

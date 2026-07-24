@@ -39,11 +39,11 @@ export const UNIFILAR_LAYOUT = {
 export const CAPAS_ESTANDAR_CAD: CadLayer[] = [
   { id: "0_Gabinete", name: "0. Gabinete & Chasis", color: "#64748B", visible: true, locked: false, lineWidth: 2 },
   { id: "1_Equipos_DIN", name: "1. Equipos & Riel DIN", color: "#3B82F6", visible: true, locked: false, lineWidth: 1.5 },
-  { id: "2_Embarrado", name: "2. Embarrado de Cobre", color: "#0f172a", visible: true, locked: false, lineWidth: 3.5 },
+  { id: "2_Embarrado", name: "2. Embarrado de Cobre", color: "#10B981", visible: true, locked: false, lineWidth: 3.5 },
   { id: "3_Cablecanal", name: "3. Cablecanales", color: "#94A3B8", visible: true, locked: false, lineWidth: 1 },
-  { id: "4_Unifilar", name: "4. Esquema Unifilar IEC", color: "#000000", visible: true, locked: false, lineWidth: 1.8 },
-  { id: "5_Borneras", name: "5. Regletas de Bornes", color: "#000000", visible: true, locked: false, lineWidth: 1.8 },
-  { id: "6_Cotas_Textos", name: "6. Cotas & Etiquetas", color: "#0f172a", visible: true, locked: false, lineWidth: 1 },
+  { id: "4_Unifilar", name: "4. Esquema Unifilar IEC", color: "#10B981", visible: true, locked: false, lineWidth: 1.8 },
+  { id: "5_Borneras", name: "5. Regletas de Bornes", color: "auto", visible: true, locked: false, lineWidth: 1.8 },
+  { id: "6_Cotas_Textos", name: "6. Cotas & Etiquetas", color: "auto", visible: true, locked: false, lineWidth: 1 },
 ];
 
 export type FormatoPolo = "unipolar" | "bipolar" | "tripolar" | "tetrapolar";
@@ -301,31 +301,32 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
         // Regla de Formato IEC (unipolar, bipolar, tripolar, tetrapolar 3F+N)
         const { etiquetaPolos } = obtenerReglaFormato(salida.formato);
 
-        // 1. Nodo de unión al Embarrado en (X_col, Y_DISTRIBUTION_BUS) (Dot de conexión agrandado a r=4.5 y mismo color de línea)
+        // 1. Nodo de unión al Embarrado en (X_col, Y_DISTRIBUTION_BUS) (Dot de conexión agrandado y verde como las líneas de potencia)
         primitives.push({
           id: `node-busbar-${salida.id}`,
           layerId: "2_Embarrado",
           type: "circle",
           cx: X_col,
           cy: Y_DISTRIBUTION_BUS,
-          r: 4.5,
-          fill: "#0f172a",
+          r: 5.0,
+          fill: "#10B981",
+          color: "#10B981",
         });
 
-        // 2. Conductor Vertical Superior AMPLIADO (120mm -> 260mm)
+        // 2. Conductor Vertical Superior
         primitives.push({
           id: `wire-top-${salida.id}`,
           layerId: "4_Unifilar",
           type: "line",
           start: { x: X_col, y: Y_DISTRIBUTION_BUS },
           end: { x: X_col, y: Y_BRANCH_DEVICES - 10 },
-          lineWidth: 1.5,
+          lineWidth: 1.8,
         });
 
-        // Ticks de Polos Superiores (Fases + Neutro replicando idénticamente Block_0 de abb_unif_4p.dxf)
+        // Ticks de Polos Superiores (Fases + Neutro)
         agregarTicksPolos(primitives, salida.id, "top", X_col, Y_DISTRIBUTION_BUS + 20, salida.formato);
 
-        // 3. Símbolo Indicador de Calibre del Cable SUPERIOR (AGUAS ARRIBA)
+        // 3. Símbolo Indicador de Calibre del Cable SUPERIOR
         const cableTopY = Y_DISTRIBUTION_BUS + 85;
         primitives.push({
           id: `cable-top-line-${salida.id}`,
@@ -334,6 +335,7 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
           start: { x: X_col - 6, y: cableTopY },
           end: { x: X_col + 6, y: cableTopY },
           lineWidth: 2.5,
+          color: "auto",
         });
 
         primitives.push({
@@ -343,6 +345,7 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
           start: { x: X_col + 6, y: cableTopY },
           end: { x: X_col + 24, y: cableTopY },
           lineWidth: 1.0,
+          color: "auto",
         });
 
         // Texto del calibre posicionado DIRECTAMENTE SOBRE la línea guía horizontal
@@ -353,12 +356,13 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
           x: X_col + 9,
           y: cableTopY - 1,
           text: cableCalibre,
-          fontSize: 4.5,
+          fontSize: 6.0,
           weight: "bold",
           align: "left",
+          color: "auto",
         });
 
-        // Símbolo del Disyuntor / Diferencial en Y_BRANCH_DEVICES (= 260mm)
+        // Símbolo del Disyuntor / Diferencial en Y_BRANCH_DEVICES (= 260mm) (Símbolos en color adaptativo Auto: Negro en Light, Blanco en Dark)
         primitives.push({
           id: `sym-arm-${salida.id}`,
           layerId: "4_Unifilar",
@@ -366,6 +370,7 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
           start: { x: X_col, y: Y_BRANCH_DEVICES + 10 },
           end: { x: X_col - 7, y: Y_BRANCH_DEVICES - 6 },
           lineWidth: 1.8,
+          color: "auto",
         });
 
         // Cruz 'X' de seccionamiento automático
@@ -376,6 +381,7 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
           start: { x: X_col - 2, y: Y_BRANCH_DEVICES - 9 },
           end: { x: X_col + 2, y: Y_BRANCH_DEVICES - 5 },
           lineWidth: 1.8,
+          color: "auto",
         });
         primitives.push({
           id: `sym-cross2-${salida.id}`,
@@ -384,6 +390,7 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
           start: { x: X_col + 2, y: Y_BRANCH_DEVICES - 9 },
           end: { x: X_col - 2, y: Y_BRANCH_DEVICES - 5 },
           lineWidth: 1.8,
+          color: "auto",
         });
 
         // Gatillo térmico / diferencial
@@ -394,6 +401,7 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
           start: { x: X_col - 5, y: Y_BRANCH_DEVICES - 2 },
           end: { x: X_col - 8, y: Y_BRANCH_DEVICES + 2 },
           lineWidth: 1.2,
+          color: "auto",
         });
 
         if (diff) {
@@ -404,6 +412,7 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
             cx: X_col - 10,
             cy: Y_BRANCH_DEVICES,
             r: 4.0,
+            color: "auto",
           });
         }
 
@@ -542,7 +551,7 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
         });
 
         // -------------------------------------------------------------------
-        // CONTENEDOR CUADRADO DE TEXTO DE SALIDA (ANCHO 110mm CENTRADO EN LA LÍNEA CON 5mm LIBRE A CADA LADO)
+        // CONTENEDOR DE TEXTO DE SALIDA (TRANSPARENTE SIN BORDE - SOLO TEXTOS VISIBLES)
         // -------------------------------------------------------------------
         primitives.push({
           id: `load-txt-box-${salida.id}`,
@@ -551,15 +560,15 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
           x: X_col - 55,
           y: Y_LABELS_BOTTOM - 24,
           width: 110,
-          height: 48,
-          fill: "#ffffff",
-          color: "#0f172a",
-          lineWidth: 1.2,
+          height: 52,
+          fill: "none",
+          color: "none",
+          lineWidth: 0,
           dataId: salida.id,
           interactive: true,
         });
 
-        // Nomenclatura de Ubicación del Elemento (ej. F1.1, F1.2)
+        // Nomenclatura de Ubicación del Elemento (ej. F1.1, F1.2) (+25% tamaño)
         primitives.push({
           id: `load-txt-tag-${salida.id}`,
           layerId: "6_Cotas_Textos",
@@ -567,48 +576,52 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
           x: X_col,
           y: Y_LABELS_BOTTOM - 13,
           text: tagGenerico,
-          fontSize: 7.3,
+          fontSize: 9.1,
           weight: "bold",
           align: "center",
+          color: "auto",
         });
 
-        // Etiqueta del circuito ingresada por usuario o reserva
+        // Etiqueta del circuito ingresada por usuario o reserva (+25% tamaño)
         const tagUsuarioSalida = salida.etiqueta ? salida.etiqueta.toUpperCase() : (salida.componente_id ? "" : "RESERVA");
         primitives.push({
           id: `load-txt-lbl-${salida.id}`,
           layerId: "6_Cotas_Textos",
           type: "text",
           x: X_col,
-          y: Y_LABELS_BOTTOM - 2,
+          y: Y_LABELS_BOTTOM - 1,
           text: tagUsuarioSalida.slice(0, 15),
-          fontSize: 6.0,
+          fontSize: 7.5,
           weight: "bold",
           align: "center",
+          color: "auto",
         });
 
-        // Especificación de Carga & Polos (ej. 32A / 2P)
+        // Especificación de Carga & Polos (ej. 32A / 2P) (+25% tamaño)
         primitives.push({
           id: `load-txt-spec-${salida.id}`,
           layerId: "6_Cotas_Textos",
           type: "text",
           x: X_col,
-          y: Y_LABELS_BOTTOM + 8,
+          y: Y_LABELS_BOTTOM + 11,
           text: `${ampStr} / ${etiquetaPolos}`,
-          fontSize: 6.0,
+          fontSize: 7.5,
           align: "center",
+          color: "auto",
         });
 
-        // Código SAP de componente
+        // Código SAP de componente (+25% tamaño)
         if (salida.componente_codigo) {
           primitives.push({
             id: `load-txt-code-${salida.id}`,
             layerId: "6_Cotas_Textos",
             type: "text",
             x: X_col,
-            y: Y_LABELS_BOTTOM + 17,
+            y: Y_LABELS_BOTTOM + 22,
             text: salida.componente_codigo.slice(0, 15),
-            fontSize: 5.2,
+            fontSize: 6.5,
             align: "center",
+            color: "auto",
           });
         }
       });
