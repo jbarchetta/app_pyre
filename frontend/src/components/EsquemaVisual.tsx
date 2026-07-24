@@ -196,10 +196,10 @@ export function EsquemaVisual({
         {tieneInterruptorPrincipal && (
           <g>
             {/* Input line from Client */}
-            <line x1={q1X} y1={10} x2={q1X} y2={50} stroke="#059669" strokeWidth={2} />
+            <line x1={q1X} y1={10} x2={q1X} y2={50} stroke="#059669" strokeWidth={1.2} />
             {/* Double arrowhead pointing down */}
-            <path d={`M ${q1X - 5} 20 L ${q1X} 25 L ${q1X + 5} 20`} fill="none" stroke="#059669" strokeWidth={1.8} />
-            <path d={`M ${q1X - 5} 27 L ${q1X} 32 L ${q1X + 5} 27`} fill="none" stroke="#059669" strokeWidth={1.8} />
+            <path d={`M ${q1X - 4} 20 L ${q1X} 25 L ${q1X + 4} 20`} fill="none" stroke="#059669" strokeWidth={1.2} />
+            <path d={`M ${q1X - 4} 27 L ${q1X} 32 L ${q1X + 4} 27`} fill="none" stroke="#059669" strokeWidth={1.2} />
             <text x={q1X + 14} y={24} fontSize={11.5} fontFamily="sans-serif" fontWeight="bold" fill="#0f172a">CLIENTE</text>
 
             {renderPhaseTicks(q1X, 38, interruptorPrincipal?.polos ?? 3)}
@@ -219,10 +219,10 @@ export function EsquemaVisual({
               x2={q1X}
               y2={fila1SubBusbarY}
               stroke="#059669"
-              strokeWidth={2.5}
+              strokeWidth={1.5}
             />
             {/* Dot de conexión verde a la línea de potencia */}
-            <circle cx={q1X} cy={fila1SubBusbarY} r={5} fill="#059669" />
+            <circle cx={q1X} cy={fila1SubBusbarY} r={4.5} fill="#059669" />
           </g>
         )}
 
@@ -233,7 +233,7 @@ export function EsquemaVisual({
             x2={12}
             y2={ultimoSubBusbarY}
             stroke="#059669"
-            strokeWidth={3}
+            strokeWidth={1.8}
           />
         )}
 
@@ -252,7 +252,7 @@ export function EsquemaVisual({
                   x2={sIdx === 0 && tieneInterruptorPrincipal ? Math.max(rowWidth, q1X) : rowWidth}
                   y2={rowBusbarY}
                   stroke="#059669"
-                  strokeWidth={2.5}
+                  strokeWidth={1.5}
                 />
               )}
 

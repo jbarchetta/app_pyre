@@ -39,10 +39,10 @@ export const UNIFILAR_LAYOUT = {
 export const CAPAS_ESTANDAR_CAD: CadLayer[] = [
   { id: "0_Gabinete", name: "0. Gabinete & Chasis", color: "#64748B", visible: true, locked: false, lineWidth: 2 },
   { id: "1_Equipos_DIN", name: "1. Equipos & Riel DIN", color: "#3B82F6", visible: true, locked: false, lineWidth: 1.5 },
-  { id: "2_Embarrado", name: "2. Embarrado de Cobre", color: "#10B981", visible: true, locked: false, lineWidth: 3.5 },
+  { id: "2_Embarrado", name: "2. Embarrado de Cobre", color: "#10B981", visible: true, locked: false, lineWidth: 1.8 },
   { id: "3_Cablecanal", name: "3. Cablecanales", color: "#94A3B8", visible: true, locked: false, lineWidth: 1 },
-  { id: "4_Unifilar", name: "4. Esquema Unifilar IEC", color: "#10B981", visible: true, locked: false, lineWidth: 1.8 },
-  { id: "5_Borneras", name: "5. Regletas de Bornes", color: "auto", visible: true, locked: false, lineWidth: 1.8 },
+  { id: "4_Unifilar", name: "4. Esquema Unifilar IEC", color: "#10B981", visible: true, locked: false, lineWidth: 1.2 },
+  { id: "5_Borneras", name: "5. Regletas de Bornes", color: "auto", visible: true, locked: false, lineWidth: 1.2 },
   { id: "6_Cotas_Textos", name: "6. Cotas & Etiquetas", color: "auto", visible: true, locked: false, lineWidth: 1 },
 ];
 
@@ -261,7 +261,7 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
       type: "line",
       start: { x: X_INITIAL - 30, y: Y_DISTRIBUTION_BUS },
       end: { x: X_INITIAL + busbarLength, y: Y_DISTRIBUTION_BUS },
-      lineWidth: 3.5,
+      lineWidth: 1.8,
     });
 
     primitives.push({
