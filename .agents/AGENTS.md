@@ -18,22 +18,26 @@
    - Se elimina la línea conductora que se extendía por debajo del borne de salida.
 
 5. **Reubicación del Contenedor de Texto de Salida (+10mm Arriba)**:
-   - El bloque de texto del pie (referencia de posición `F1.1`, etiqueta del circuito, especificaciones y código SAP) se eleva **10mm hacia arriba** directamente debajo del borne.
+   - El bloque de texto del pie (referencia de posición `F1.1`, etiqueta explicativa del circuito) se eleva **10mm hacia arriba** directamente debajo del borne.
 
-6. **Referencia de Ubicación (`F<fila>.<posicion>`)**:
+6. **Texto Explicativo del Pie (Sin Truncar y Multi-línea)**:
+   - El texto explicativo de la salida (etiqueta del circuito ingresada por el usuario o reserva) se despliega **completo sin recortarse a 15 caracteres**. Se ajusta de forma multilínea llenando el ancho del contenedor.
+   - Las antiguas líneas inferiores de polos/amperaje (`32A / 2P`) y código SAP secundario quedan **eliminadas** del contenedor del pie.
+
+7. **Referencia de Ubicación (`F<fila>.<posicion>`)**:
    - La etiqueta de posición por fila y salida (ej. `F1.1`, `F1.2`, `F2.1`) se ubica en el área descriptiva del pie en fuente **6.5mm Bold** (`12.5px`) y **nunca reemplaza el TAG del elemento**.
 
-7. **Conexión de Acometida Principal (Q1)**:
+8. **Conexión de Acometida Principal (Q1)**:
    - El interruptor principal general (Q1) se conecta de forma totalmente centrada con respecto a la línea del barral principal distribuidor.
 
-8. **Color de Líneas de Potencia y Barral Principal**:
+9. **Color de Líneas de Potencia y Barral Principal**:
    - El barral / embarrado principal y las líneas de energía/potencia son de **Color Verde** (`#10B981` en CAD / `#059669` en SVG).
 
-9. **Dots de Conexión de Ramales (-20% de tamaño)**:
+10. **Dots de Conexión de Ramales (-20% de tamaño)**:
    - Los nodos de conexión al embarrado se renderizan rellenos del mismo **Verde** de las líneas (`#10B981` / `#059669`) con radio compacto `r = 4.0px`.
 
-10. **Calibres de Cables (+1mm de elevación sobre guía)**:
+11. **Calibres de Cables (+1mm de elevación sobre guía)**:
    - Las etiquetas de calibre del cable (superiores e inferiores) se fijan en fuente **6.0mm Bold** y se elevan **1mm por encima** de la línea guía horizontal.
 
-11. **Contenedor Transparente de Texto al Pie**:
+12. **Contenedor Transparente de Texto al Pie**:
    - El contenedor del pie es **100% transparente sin bordes ni fondos visibles** (`fill="none"`, `stroke="none"`).

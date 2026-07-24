@@ -36,6 +36,24 @@ export const UNIFILAR_LAYOUT = {
   X_INITIAL: 100,         // Coordenada X inicial de la primera columna
 };
 
+export function wrapText(text: string, maxCharsPerLine: number = 20): string {
+  if (!text) return "";
+  const words = text.trim().split(/\s+/);
+  const lines: string[] = [];
+  let currentLine = "";
+
+  for (const word of words) {
+    if ((currentLine + " " + word).trim().length <= maxCharsPerLine) {
+      currentLine = (currentLine + " " + word).trim();
+    } else {
+      if (currentLine) lines.push(currentLine);
+      currentLine = word;
+    }
+  }
+  if (currentLine) lines.push(currentLine);
+  return lines.join("\n");
+}
+
 export const CAPAS_ESTANDAR_CAD: CadLayer[] = [
   { id: "0_Gabinete", name: "0. Gabinete & Chasis", color: "#64748B", visible: true, locked: false, lineWidth: 2 },
   { id: "1_Equipos_DIN", name: "1. Equipos & Riel DIN", color: "#3B82F6", visible: true, locked: false, lineWidth: 1.5 },
@@ -306,7 +324,6 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
         const X_col = X_INITIAL + 50 + i * COLUMN_STEP_X;
 
         const diff = esDiferencial(salida);
-        const ampStr = obtenerAmperaje(salida);
         const cableCalibre = calcularCalibreCableMm2(salida);
 
         // TAG único de Elemento (Q101, Q102... para termomagnéticos, D101, D102... para diferenciales)
@@ -316,9 +333,6 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
         // Código de posición (F1.1, F1.2, etc.) para referencia de ubicación en la caja al pie
         const seccionNum = secGroup.seccion.orden != null ? secGroup.seccion.orden + 1 : _secIdx + 1;
         const tagPosicion = `F${seccionNum}.${salIdx + 1}`;
-
-        // Regla de Formato IEC (unipolar, bipolar, tripolar, tetrapolar 3F+N)
-        const { etiquetaPolos } = obtenerReglaFormato(salida.formato);
 
         // 1. Nodo de unión al Embarrado en (X_col, Y_DISTRIBUTION_BUS) (Dot de conexión r=4.0, 20% más pequeño)
         primitives.push({
@@ -604,48 +618,22 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
           color: "auto",
         });
 
-        // Etiqueta del circuito ingresada por usuario o reserva (6.5mm)
-        const tagUsuarioSalida = salida.etiqueta ? salida.etiqueta.toUpperCase() : (salida.componente_id ? "" : "RESERVA");
+        // Texto Explicativo Completo del Circuito (sin truncar a 15 caracteres, multilínea 6.5mm Bold)
+        const rawEtiqueta = salida.etiqueta || salida.descripcion_personalizada || (salida.componente_id ? "" : "RESERVA");
+        const fullTextUsuario = rawEtiqueta ? wrapText(rawEtiqueta.toUpperCase(), 20) : "RESERVA";
+
         primitives.push({
           id: `load-txt-lbl-${salida.id}`,
           layerId: "6_Cotas_Textos",
           type: "text",
           x: X_col,
-          y: Y_LABELS_POS - 2,
-          text: tagUsuarioSalida.slice(0, 15),
+          y: Y_LABELS_POS - 1,
+          text: fullTextUsuario,
           fontSize: 6.5,
           weight: "bold",
           align: "center",
           color: "auto",
         });
-
-        // Especificación de Carga & Polos (ej. 32A / 2P) (6.5mm)
-        primitives.push({
-          id: `load-txt-spec-${salida.id}`,
-          layerId: "6_Cotas_Textos",
-          type: "text",
-          x: X_col,
-          y: Y_LABELS_POS + 8,
-          text: `${ampStr} / ${etiquetaPolos}`,
-          fontSize: 6.5,
-          align: "center",
-          color: "auto",
-        });
-
-        // Código SAP de componente (6.5mm)
-        if (salida.componente_codigo) {
-          primitives.push({
-            id: `load-txt-code-${salida.id}`,
-            layerId: "6_Cotas_Textos",
-            type: "text",
-            x: X_col,
-            y: Y_LABELS_POS + 18,
-            text: salida.componente_codigo.slice(0, 15),
-            fontSize: 6.5,
-            align: "center",
-            color: "auto",
-          });
-        }
       });
     });
 

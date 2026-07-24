@@ -309,8 +309,6 @@ export function EsquemaVisual({
                 const prefixTag = isDiff ? "D" : "Q";
                 const tagElemento = `${prefixTag}${101 + salIdx}`;
                 const polesCount = FORMATO_LABEL[salida.formato] ? parseInt(FORMATO_LABEL[salida.formato].charAt(0)) : 2;
-                const labelPoles = FORMATO_LABEL[salida.formato] ?? "2P";
-                const labelCarga = `${salida.carga_unidad === "A" ? Math.round(Number(salida.carga_valor)) : salida.carga_valor}${salida.carga_unidad}`;
                 const codeAuto = `F${seccionNum}.${salIdx + 1}`;
                 const isToBornera = bornerasTipo !== "ninguno" && bornerasTipo != null;
 
@@ -489,39 +487,42 @@ export function EsquemaVisual({
                     >
                       {codeAuto}
                     </text>
-                    <text
-                      x={x}
-                      y={cardY + 77}
-                      fontSize={14}
-                      fontFamily="sans-serif"
-                      fontWeight={salida.etiqueta ? "bold" : "normal"}
-                      fill={isDirectHover ? "#b91c1c" : salida.etiqueta ? "#1f2937" : "#d97706"}
-                      textAnchor="middle"
-                    >
-                      {salida.etiqueta ? salida.etiqueta.toUpperCase().slice(0, 15) : (salida.componente_id ? "" : "RESERVA")}
-                    </text>
-                    <text
-                      x={x}
-                      y={cardY + 91}
-                      fontSize={14}
-                      fontFamily="sans-serif"
-                      fill="#0f172a"
-                      textAnchor="middle"
-                    >
-                      {labelCarga} / {labelPoles}
-                    </text>
-                    {salida.componente_codigo && (
-                      <text
-                        x={x}
-                        y={cardY + 104}
-                        fontSize={12.5}
-                        fontFamily="monospace"
-                        fill="#64748b"
-                        textAnchor="middle"
-                      >
-                        {salida.componente_codigo.slice(0, 15)}
-                      </text>
-                    )}
+
+                    {/* Texto Explicativo Completo del Circuito (Multilinea sin recortar a 15 caracteres) */}
+                    {(() => {
+                      const rawText = salida.etiqueta || salida.descripcion_personalizada || (salida.componente_id ? "" : "RESERVA");
+                      const fullTextStr = rawText ? rawText.toUpperCase() : "RESERVA";
+                      const words = fullTextStr.trim().split(/\s+/);
+                      const lines: string[] = [];
+                      let curr = "";
+                      for (const w of words) {
+                        if ((curr + " " + w).trim().length <= 20) {
+                          curr = (curr + " " + w).trim();
+                        } else {
+                          if (curr) lines.push(curr);
+                          curr = w;
+                        }
+                      }
+                      if (curr) lines.push(curr);
+
+                      return (
+                        <text
+                          x={x}
+                          y={cardY + 79}
+                          fontSize={13}
+                          fontFamily="sans-serif"
+                          fontWeight={salida.etiqueta ? "bold" : "normal"}
+                          fill={isDirectHover ? "#b91c1c" : salida.etiqueta ? "#1f2937" : "#d97706"}
+                          textAnchor="middle"
+                        >
+                          {lines.map((lineStr, idx) => (
+                            <tspan key={idx} x={x} dy={idx === 0 ? 0 : 15}>
+                              {lineStr}
+                            </tspan>
+                          ))}
+                        </text>
+                      );
+                    })()}
                   </g>
                 );
               })}
