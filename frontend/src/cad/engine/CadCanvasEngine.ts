@@ -230,6 +230,7 @@ export class CadCanvasEngine {
         if (prim.fill) {
           ctx.fillStyle = prim.fill;
           ctx.fill();
+          ctx.strokeStyle = prim.fill;
         }
         ctx.stroke();
         break;

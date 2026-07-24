@@ -39,11 +39,11 @@ export const UNIFILAR_LAYOUT = {
 export const CAPAS_ESTANDAR_CAD: CadLayer[] = [
   { id: "0_Gabinete", name: "0. Gabinete & Chasis", color: "#64748B", visible: true, locked: false, lineWidth: 2 },
   { id: "1_Equipos_DIN", name: "1. Equipos & Riel DIN", color: "#3B82F6", visible: true, locked: false, lineWidth: 1.5 },
-  { id: "2_Embarrado", name: "2. Embarrado de Cobre", color: "#F59E0B", visible: true, locked: false, lineWidth: 3.5 },
+  { id: "2_Embarrado", name: "2. Embarrado de Cobre", color: "#0f172a", visible: true, locked: false, lineWidth: 3.5 },
   { id: "3_Cablecanal", name: "3. Cablecanales", color: "#94A3B8", visible: true, locked: false, lineWidth: 1 },
-  { id: "4_Unifilar", name: "4. Esquema Unifilar IEC", color: "#10B981", visible: true, locked: false, lineWidth: 1.5 },
-  { id: "5_Borneras", name: "5. Regletas de Bornes", color: "#8B5CF6", visible: true, locked: false, lineWidth: 1.5 },
-  { id: "6_Cotas_Textos", name: "6. Cotas & Etiquetas", color: "#F8FAFC", visible: true, locked: false, lineWidth: 1 },
+  { id: "4_Unifilar", name: "4. Esquema Unifilar IEC", color: "#000000", visible: true, locked: false, lineWidth: 1.8 },
+  { id: "5_Borneras", name: "5. Regletas de Bornes", color: "#000000", visible: true, locked: false, lineWidth: 1.8 },
+  { id: "6_Cotas_Textos", name: "6. Cotas & Etiquetas", color: "#0f172a", visible: true, locked: false, lineWidth: 1 },
 ];
 
 export type FormatoPolo = "unipolar" | "bipolar" | "tripolar" | "tetrapolar";
@@ -151,7 +151,7 @@ function calcularCalibreCableMm2(salida: Salida): string {
 }
 
 // Función helper para envolver/delimitar textos largos al pie y evitar solapamientos entre columnas
-function envolverTexto(texto: string, maxCharsPorLinea = 15): string[] {
+export function envolverTexto(texto: string, maxCharsPorLinea = 15): string[] {
   if (!texto) return [""];
   if (texto.length <= maxCharsPorLinea) return [texto];
 
@@ -542,46 +542,75 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
         });
 
         // -------------------------------------------------------------------
-        // ETIQUETA INGRESADA EN LA TABLA (salida.etiqueta) DESPLAZADA AL PIE
+        // CONTENEDOR CUADRADO DE TEXTO DE SALIDA (ANCHO 110mm CENTRADO EN LA LÍNEA CON 5mm LIBRE A CADA LADO)
         // -------------------------------------------------------------------
-        const nombreSec = secGroup.seccion.nombre || "";
-        const tagUsuarioSalida = salida.etiqueta || `Circuito C${salIdx + 1}`;
+        primitives.push({
+          id: `load-txt-box-${salida.id}`,
+          layerId: "6_Cotas_Textos",
+          type: "rect",
+          x: X_col - 55,
+          y: Y_LABELS_BOTTOM - 24,
+          width: 110,
+          height: 48,
+          fill: "#ffffff",
+          color: "#0f172a",
+          lineWidth: 1.2,
+          dataId: salida.id,
+          interactive: true,
+        });
 
-        const lineasSeccion = nombreSec ? envolverTexto(nombreSec, 15) : [];
-        const lineasCircuito = envolverTexto(tagUsuarioSalida, 15);
+        // Nomenclatura de Ubicación del Elemento (ej. F1.1, F1.2)
+        primitives.push({
+          id: `load-txt-tag-${salida.id}`,
+          layerId: "6_Cotas_Textos",
+          type: "text",
+          x: X_col,
+          y: Y_LABELS_BOTTOM - 13,
+          text: tagGenerico,
+          fontSize: 7.3,
+          weight: "bold",
+          align: "center",
+        });
 
-        let curLabelY = Y_LABELS_BOTTOM - 12;
+        // Etiqueta del circuito ingresada por usuario o reserva
+        const tagUsuarioSalida = salida.etiqueta ? salida.etiqueta.toUpperCase() : (salida.componente_id ? "" : "RESERVA");
+        primitives.push({
+          id: `load-txt-lbl-${salida.id}`,
+          layerId: "6_Cotas_Textos",
+          type: "text",
+          x: X_col,
+          y: Y_LABELS_BOTTOM - 2,
+          text: tagUsuarioSalida.slice(0, 15),
+          fontSize: 6.0,
+          weight: "bold",
+          align: "center",
+        });
 
-        if (lineasSeccion.length > 0) {
-          lineasSeccion.forEach((l, idx) => {
-            primitives.push({
-              id: `load-txt-sec-${salida.id}-${idx}`,
-              layerId: "6_Cotas_Textos",
-              type: "text",
-              x: X_col,
-              y: curLabelY,
-              text: l,
-              fontSize: 4.5,
-              weight: "bold",
-              align: "center",
-            });
-            curLabelY += 6;
-          });
-        }
+        // Especificación de Carga & Polos (ej. 32A / 2P)
+        primitives.push({
+          id: `load-txt-spec-${salida.id}`,
+          layerId: "6_Cotas_Textos",
+          type: "text",
+          x: X_col,
+          y: Y_LABELS_BOTTOM + 8,
+          text: `${ampStr} / ${etiquetaPolos}`,
+          fontSize: 6.0,
+          align: "center",
+        });
 
-        lineasCircuito.forEach((l, idx) => {
+        // Código SAP de componente
+        if (salida.componente_codigo) {
           primitives.push({
-            id: `load-txt-cir-${salida.id}-${idx}`,
+            id: `load-txt-code-${salida.id}`,
             layerId: "6_Cotas_Textos",
             type: "text",
             x: X_col,
-            y: curLabelY,
-            text: l,
-            fontSize: 4.0,
+            y: Y_LABELS_BOTTOM + 17,
+            text: salida.componente_codigo.slice(0, 15),
+            fontSize: 5.2,
             align: "center",
           });
-          curLabelY += 6;
-        });
+        }
       });
     });
 
