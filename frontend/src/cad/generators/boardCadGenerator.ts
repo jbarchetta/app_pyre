@@ -293,23 +293,23 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
         const ampStr = obtenerAmperaje(salida);
         const cableCalibre = calcularCalibreCableMm2(salida);
 
-        // TAG GENÉRICO ÚNICO POR TIPO DE ELEMENTO (Q10x para termomagnéticos, D10x para diferenciales)
-        const prefixTag = diff ? "D" : "Q";
-        const tagGenerico = `${prefixTag}${100 + globalOutIdx}`;
+        // Ubicación según línea y posición (F1.1, F1.2, etc.)
+        const seccionNum = secGroup.seccion.orden != null ? secGroup.seccion.orden + 1 : _secIdx + 1;
+        const tagGenerico = `F${seccionNum}.${salIdx + 1}`;
         const codigoComp = salida.componente_codigo || `ABB S200`;
 
         // Regla de Formato IEC (unipolar, bipolar, tripolar, tetrapolar 3F+N)
         const { etiquetaPolos } = obtenerReglaFormato(salida.formato);
 
-        // 1. Nodo de unión al Embarrado en (X_col, Y_DISTRIBUTION_BUS)
+        // 1. Nodo de unión al Embarrado en (X_col, Y_DISTRIBUTION_BUS) (Dot de conexión agrandado a r=4.5 y mismo color de línea)
         primitives.push({
           id: `node-busbar-${salida.id}`,
           layerId: "2_Embarrado",
           type: "circle",
           cx: X_col,
           cy: Y_DISTRIBUTION_BUS,
-          r: 2.0,
-          fill: "#F59E0B",
+          r: 4.5,
+          fill: "#0f172a",
         });
 
         // 2. Conductor Vertical Superior AMPLIADO (120mm -> 260mm)
