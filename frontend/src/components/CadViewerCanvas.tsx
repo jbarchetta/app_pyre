@@ -325,7 +325,9 @@ export function CadViewerCanvas({
     <div
       className={`transition-all duration-200 ${
         modalAmpliado
-          ? "fixed inset-0 z-50 w-screen h-screen flex flex-col bg-slate-950 p-2"
+          ? `fixed inset-0 z-50 w-screen h-screen flex flex-col p-2 ${
+              theme === "light" ? "bg-slate-100 text-slate-900" : "bg-slate-950 text-slate-200"
+            }`
           : `relative flex flex-col w-full h-[620px] rounded-xl overflow-hidden border shadow-2xl ${
               theme === "light" ? "bg-white border-slate-300 text-slate-900" : "bg-slate-900 border-slate-800 text-slate-200"
             }`
@@ -334,12 +336,18 @@ export function CadViewerCanvas({
       {/* BARRA DE HERRAMIENTAS CAD */}
       <div
         className={`flex items-center justify-between px-4 py-2 border-b text-xs z-10 select-none ${
-          theme === "light" && !modalAmpliado ? "bg-slate-100 border-slate-300 text-slate-800" : "bg-slate-950/90 border-slate-800 text-slate-200"
+          theme === "light"
+            ? "bg-slate-100 border-slate-300 text-slate-900 shadow-sm"
+            : "bg-slate-950/90 border-slate-800 text-slate-200"
         }`}
       >
         {/* Título de Modo CAD Activo */}
-        <div className="flex items-center space-x-2 font-mono font-bold text-xs uppercase tracking-wider text-slate-300">
-          <span className="w-2 h-2 rounded-full bg-purple-500" />
+        <div
+          className={`flex items-center space-x-2 font-mono font-bold text-xs uppercase tracking-wider ${
+            theme === "light" ? "text-slate-800" : "text-slate-200"
+          }`}
+        >
+          <span className="w-2.5 h-2.5 rounded-full bg-purple-600 animate-pulse" />
           <span>VISTA CAD {modoVisual === "topografico" ? "TOPOGRÁFICA 2D" : "UNIFILAR"}</span>
         </div>
 
@@ -349,7 +357,11 @@ export function CadViewerCanvas({
             onClick={() => changeZoom(0.25)}
             aria-label="Acercar"
             title="Zoom In (+)"
-            className="p-1.5 hover:bg-slate-800 rounded-md text-slate-300 hover:text-white"
+            className={`p-1.5 rounded-md transition-colors ${
+              theme === "light"
+                ? "text-slate-700 hover:text-slate-950 hover:bg-slate-200"
+                : "text-slate-300 hover:text-white hover:bg-slate-800"
+            }`}
           >
             <MagnifyingGlassPlusIcon className="w-4 h-4" />
           </button>
@@ -357,7 +369,11 @@ export function CadViewerCanvas({
             onClick={() => changeZoom(-0.25)}
             aria-label="Alejar"
             title="Zoom Out (-)"
-            className="p-1.5 hover:bg-slate-800 rounded-md text-slate-300 hover:text-white"
+            className={`p-1.5 rounded-md transition-colors ${
+              theme === "light"
+                ? "text-slate-700 hover:text-slate-950 hover:bg-slate-200"
+                : "text-slate-300 hover:text-white hover:bg-slate-800"
+            }`}
           >
             <MagnifyingGlassMinusIcon className="w-4 h-4" />
           </button>
@@ -365,21 +381,25 @@ export function CadViewerCanvas({
             onClick={resetZoom}
             aria-label="Ajustar zoom"
             title="Ajustar a Pantalla / Reset Zoom"
-            className="p-1.5 hover:bg-slate-800 rounded-md text-slate-300 hover:text-white flex items-center space-x-1"
+            className={`p-1.5 rounded-md flex items-center space-x-1 transition-colors ${
+              theme === "light"
+                ? "text-slate-700 hover:text-slate-950 hover:bg-slate-200"
+                : "text-slate-300 hover:text-white hover:bg-slate-800"
+            }`}
           >
             <ArrowsPointingOutIcon className="w-4 h-4" />
             <span className="font-mono text-xs">{zoomPorcentajeText}</span>
           </button>
         </div>
 
-        {/* Switch de Tema Dark / Light */}
+        {/* Switch de Tema Dark / Light y Modos CAD */}
         <div className="flex items-center space-x-2">
           <button
             onClick={() => setTheme((t) => (t === "dark" ? "light" : "dark"))}
             className={`px-2.5 py-1 rounded-md border text-xs flex items-center space-x-1 font-medium transition-colors ${
               theme === "light"
-                ? "bg-amber-100 border-amber-300 text-amber-900"
-                : "bg-slate-800 border-slate-700 text-sky-300"
+                ? "bg-amber-100 border-amber-300 text-amber-900 hover:bg-amber-200 font-bold"
+                : "bg-slate-800 border-slate-700 text-sky-300 hover:bg-slate-700 font-bold"
             }`}
             title="Cambiar Tema Dark / Light"
           >
@@ -390,7 +410,13 @@ export function CadViewerCanvas({
           <button
             onClick={() => setShowGrid((g) => !g)}
             className={`px-2.5 py-1 rounded-md border text-xs font-mono transition-colors ${
-              showGrid ? "bg-sky-950/50 border-sky-700 text-sky-400 font-bold" : "border-slate-700 text-slate-500"
+              theme === "light"
+                ? showGrid
+                  ? "bg-sky-100 border-sky-400 text-sky-900 font-bold"
+                  : "bg-white border-slate-300 text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                : showGrid
+                  ? "bg-sky-950/70 border-sky-600 text-sky-400 font-bold"
+                  : "border-slate-700 text-slate-400 hover:bg-slate-800 hover:text-slate-200"
             }`}
             title={showGrid ? "Desactivar Grilla CAD" : "Activar Grilla CAD"}
           >
@@ -400,7 +426,13 @@ export function CadViewerCanvas({
           <button
             onClick={() => setSnapGrid((s) => !s)}
             className={`px-2.5 py-1 rounded-md border text-xs font-mono transition-colors ${
-              snapGrid ? "bg-yellow-950/50 border-yellow-700 text-yellow-400 font-bold" : "border-slate-700 text-slate-500"
+              theme === "light"
+                ? snapGrid
+                  ? "bg-amber-100 border-amber-400 text-amber-900 font-bold"
+                  : "bg-white border-slate-300 text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                : snapGrid
+                  ? "bg-yellow-950/70 border-yellow-600 text-yellow-400 font-bold"
+                  : "border-slate-700 text-slate-400 hover:bg-slate-800 hover:text-slate-200"
             }`}
             title={snapGrid ? "Desactivar Snap a Grilla (10mm)" : "Activar Snap a Grilla (10mm)"}
           >
@@ -413,9 +445,13 @@ export function CadViewerCanvas({
               setPuntoInicioMedicion(null);
             }}
             className={`px-2.5 py-1 rounded-md border text-xs flex items-center space-x-1 transition-colors ${
-              herramientaMedir
-                ? "bg-pink-900/50 border-pink-700 text-pink-300"
-                : "border-slate-700 text-slate-400 hover:text-slate-200"
+              theme === "light"
+                ? herramientaMedir
+                  ? "bg-pink-100 border-pink-400 text-pink-900 font-bold"
+                  : "bg-white border-slate-300 text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                : herramientaMedir
+                  ? "bg-pink-950/70 border-pink-600 text-pink-300 font-bold"
+                  : "border-slate-700 text-slate-400 hover:bg-slate-800 hover:text-slate-200"
             }`}
           >
             <AdjustmentsHorizontalIcon className="w-3.5 h-3.5" />
@@ -425,8 +461,14 @@ export function CadViewerCanvas({
           <button
             onClick={() => setPanelCapasAbierto((p) => !p)}
             aria-label="Capas"
-            className={`p-1.5 rounded-md hover:bg-slate-800 text-slate-300 flex items-center space-x-1 ${
-              panelCapasAbierto ? "bg-slate-800 text-sky-400" : ""
+            className={`p-1.5 rounded-md flex items-center space-x-1 transition-colors ${
+              theme === "light"
+                ? panelCapasAbierto
+                  ? "bg-sky-100 text-sky-900 border border-sky-300 font-bold"
+                  : "text-slate-700 hover:bg-slate-200 hover:text-slate-950"
+                : panelCapasAbierto
+                  ? "bg-slate-800 text-sky-400 border border-slate-700 font-bold"
+                  : "text-slate-300 hover:bg-slate-800 hover:text-white"
             }`}
             title="Gestor de Capas CAD"
           >
@@ -437,8 +479,14 @@ export function CadViewerCanvas({
           <button
             onClick={() => setModalAmpliado((m) => !m)}
             aria-label="Pantalla completa"
-            className={`p-1.5 rounded-md text-slate-300 hover:text-white ${
-              modalAmpliado ? "bg-sky-600 text-white" : "hover:bg-slate-800"
+            className={`p-1.5 rounded-md transition-colors ${
+              theme === "light"
+                ? modalAmpliado
+                  ? "bg-abb-red text-white"
+                  : "text-slate-700 hover:text-slate-950 hover:bg-slate-200"
+                : modalAmpliado
+                  ? "bg-sky-600 text-white"
+                  : "text-slate-300 hover:text-white hover:bg-slate-800"
             }`}
             title={modalAmpliado ? "Salir de Pantalla Completa" : "Pantalla Completa"}
           >
@@ -458,7 +506,11 @@ export function CadViewerCanvas({
 
           <button
             onClick={exportPng}
-            className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-md text-xs font-medium border border-slate-700"
+            className={`px-2.5 py-1 rounded-md text-xs font-medium border transition-colors ${
+              theme === "light"
+                ? "bg-white border-slate-300 text-slate-800 hover:bg-slate-100"
+                : "bg-slate-800 border-slate-700 text-slate-200 hover:bg-slate-700"
+            }`}
           >
             PNG
           </button>
@@ -467,37 +519,66 @@ export function CadViewerCanvas({
 
       {/* PANEL FLOTANTE DE CAPAS CAD */}
       {panelCapasAbierto && (
-        <div className="absolute top-12 right-4 z-20 w-64 bg-slate-950/95 border border-slate-800 rounded-xl p-3 shadow-2xl backdrop-blur-md">
-          <div className="flex items-center justify-between border-b border-slate-800 pb-2 mb-2">
-            <h4 className="text-xs font-bold uppercase tracking-wider text-slate-300 flex items-center space-x-1">
-              <Square3Stack3DIcon className="w-4 h-4 text-sky-400" />
+        <div
+          className={`absolute top-12 right-4 z-20 w-64 border rounded-xl p-3 shadow-2xl backdrop-blur-md ${
+            theme === "light"
+              ? "bg-white/95 border-slate-300 text-slate-900 shadow-slate-300"
+              : "bg-slate-950/95 border-slate-800 text-slate-200"
+          }`}
+        >
+          <div
+            className={`flex items-center justify-between border-b pb-2 mb-2 ${
+              theme === "light" ? "border-slate-200" : "border-slate-800"
+            }`}
+          >
+            <h4
+              className={`text-xs font-bold uppercase tracking-wider flex items-center space-x-1 ${
+                theme === "light" ? "text-slate-800" : "text-slate-300"
+              }`}
+            >
+              <Square3Stack3DIcon className="w-4 h-4 text-sky-500" />
               <span>Capas CAD (Layers)</span>
             </h4>
-            <button onClick={() => setPanelCapasAbierto(false)} className="text-slate-500 hover:text-white text-xs">
+            <button
+              onClick={() => setPanelCapasAbierto(false)}
+              className={theme === "light" ? "text-slate-400 hover:text-slate-800 text-xs" : "text-slate-500 hover:text-white text-xs"}
+            >
               ✕
             </button>
           </div>
 
           <div className="space-y-1.5 max-h-64 overflow-y-auto pr-1">
-            <label className="flex items-center justify-between px-2 py-1.5 rounded-lg bg-slate-900/60 border border-slate-800/80 hover:border-slate-700 text-xs cursor-pointer">
-              <span className="font-mono text-xs text-slate-200">embarrado</span>
+            <label
+              className={`flex items-center justify-between px-2 py-1.5 rounded-lg border text-xs cursor-pointer ${
+                theme === "light"
+                  ? "bg-slate-50 border-slate-200 hover:border-slate-300 text-slate-800"
+                  : "bg-slate-900/60 border-slate-800/80 hover:border-slate-700 text-slate-200"
+              }`}
+            >
+              <span className="font-mono text-xs">embarrado</span>
               <input
                 type="checkbox"
                 aria-label="embarrado"
                 checked={capasInternas.embarrado}
                 onChange={() => toggleCapasProp("embarrado")}
-                className="rounded border-slate-700 text-blue-600 focus:ring-0"
+                className="rounded border-slate-400 text-blue-600 focus:ring-0 cursor-pointer"
               />
             </label>
 
-            <label className="flex items-center justify-between px-2 py-1.5 rounded-lg bg-slate-900/60 border border-slate-800/80 hover:border-slate-700 text-xs cursor-pointer">
-              <span className="font-mono text-xs text-slate-200">codigos</span>
+            <label
+              className={`flex items-center justify-between px-2 py-1.5 rounded-lg border text-xs cursor-pointer ${
+                theme === "light"
+                  ? "bg-slate-50 border-slate-200 hover:border-slate-300 text-slate-800"
+                  : "bg-slate-900/60 border-slate-800/80 hover:border-slate-700 text-slate-200"
+              }`}
+            >
+              <span className="font-mono text-xs">codigos</span>
               <input
                 type="checkbox"
                 aria-label="codigos"
                 checked={capasInternas.codigos}
                 onChange={() => toggleCapasProp("codigos")}
-                className="rounded border-slate-700 text-blue-600 focus:ring-0"
+                className="rounded border-slate-400 text-blue-600 focus:ring-0 cursor-pointer"
               />
             </label>
           </div>
