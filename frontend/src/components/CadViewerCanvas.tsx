@@ -161,13 +161,17 @@ export function CadViewerCanvas({
     }
   }, []);
 
-  // Event listener nativo no-pasivo sobre el contenedor del lienzo CAD
+  const onZoomChangeRef = useRef(onZoomChange);
+  onZoomChangeRef.current = onZoomChange;
+
+  // Event listener nativo no-pasivo sobre el contenedor del lienzo CAD (se vincula una sola vez)
   useEffect(() => {
     const el = containerRef.current || canvasRef.current;
     if (!el) return;
 
     const onWheelNative = (e: Event) => {
       e.preventDefault();
+      e.stopPropagation();
       const we = e as WheelEvent;
       const rect = el.getBoundingClientRect();
       const pixel = { x: we.clientX - rect.left, y: we.clientY - rect.top };
@@ -176,7 +180,7 @@ export function CadViewerCanvas({
       setTransform((prevTransform) => {
         const targetZoom = limitar(prevTransform.zoom * zoomFactor);
         const nextTransform = zoomAtPoint(pixel, prevTransform, targetZoom);
-        if (onZoomChange) onZoomChange(nextTransform.zoom);
+        if (onZoomChangeRef.current) onZoomChangeRef.current(nextTransform.zoom);
         return nextTransform;
       });
     };
@@ -185,7 +189,7 @@ export function CadViewerCanvas({
     return () => {
       el.removeEventListener("wheel", onWheelNative);
     };
-  }, [onZoomChange]);
+  }, []);
 
   // Función para ajustar el dibujo a la pantalla (Fit Bounds)
   const handleFitToScreen = useCallback(() => {
@@ -195,10 +199,11 @@ export function CadViewerCanvas({
     setTransform(nextTransform);
   }, [cadDoc.bounds]);
 
-  // Auto fit al cambiar de modo visual o al alternar pantalla completa
+  // Auto fit EXCLUSIVAMENTE al cambiar de modo visual o al alternar pantalla completa
   useEffect(() => {
     handleFitToScreen();
-  }, [modoVisual, modalAmpliado, handleFitToScreen]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [modoVisual, modalAmpliado]);
 
   // Ciclo de renderizado
   useEffect(() => {
@@ -498,7 +503,11 @@ export function CadViewerCanvas({
       )}
 
       {/* CANVAS PRINCIPAL CAD */}
-      <div ref={containerRef} className="flex-1 w-full h-full relative cursor-crosshair">
+      <div
+        ref={containerRef}
+        style={{ overscrollBehavior: "contain", touchAction: "none" }}
+        className="flex-1 w-full h-full relative cursor-crosshair"
+      >
         <canvas
           ref={canvasRef}
           className="w-full h-full block"

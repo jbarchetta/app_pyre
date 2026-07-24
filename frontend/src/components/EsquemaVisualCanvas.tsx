@@ -83,6 +83,12 @@ export function EsquemaVisualCanvas({
     if (onCapasChange) onCapasChange(nuevasCapas);
   };
 
+  const zoomRef = useRef(zoom);
+  zoomRef.current = zoom;
+
+  const onZoomChangeRef = useRef(onZoomChange);
+  onZoomChangeRef.current = onZoomChange;
+
   // Event listener nativo no-pasivo para rueda en área SVG Bloques (evita scroll de página)
   useEffect(() => {
     const containerEl = svgAreaRef.current;
@@ -90,16 +96,18 @@ export function EsquemaVisualCanvas({
 
     const onWheelNative = (e: Event) => {
       e.preventDefault();
+      e.stopPropagation();
       const we = e as WheelEvent;
       const delta = we.deltaY < 0 ? ZOOM_PASO : -ZOOM_PASO;
-      handleZoomChange(zoom + delta);
+      const z = limitar(zoomRef.current + delta);
+      if (onZoomChangeRef.current) onZoomChangeRef.current(z);
     };
 
     containerEl.addEventListener("wheel", onWheelNative, { passive: false });
     return () => {
       containerEl.removeEventListener("wheel", onWheelNative);
     };
-  }, [zoom, onZoomChange]);
+  }, []);
 
   // Event listener nativo no-pasivo para rueda en modal de pantalla completa SVG Bloques
   useEffect(() => {
@@ -108,16 +116,18 @@ export function EsquemaVisualCanvas({
 
     const onWheelNative = (e: Event) => {
       e.preventDefault();
+      e.stopPropagation();
       const we = e as WheelEvent;
       const delta = we.deltaY < 0 ? ZOOM_PASO : -ZOOM_PASO;
-      handleZoomChange(zoom + delta);
+      const z = limitar(zoomRef.current + delta);
+      if (onZoomChangeRef.current) onZoomChangeRef.current(z);
     };
 
     modalEl.addEventListener("wheel", onWheelNative, { passive: false });
     return () => {
       modalEl.removeEventListener("wheel", onWheelNative);
     };
-  }, [modalAmpliado, zoom, onZoomChange]);
+  }, [modalAmpliado]);
 
   const handleMouseDown = (e: React.MouseEvent) => {
     if (e.button === 0) {
@@ -320,6 +330,7 @@ export function EsquemaVisualCanvas({
             {/* Área del Blueprint con Pan y Zoom */}
             <div
               ref={svgAreaRef}
+              style={{ overscrollBehavior: "contain", touchAction: "none" }}
               className={`flex min-h-[380px] max-h-[70vh] justify-center overflow-hidden bg-slate-50/50 ${
                 isDragging ? "cursor-grabbing" : "cursor-grab"
               }`}
@@ -369,6 +380,7 @@ export function EsquemaVisualCanvas({
 
                 <div
                   ref={modalAreaRef}
+                  style={{ overscrollBehavior: "contain", touchAction: "none" }}
                   className={`flex-1 w-full h-full bg-slate-50/90 p-6 overflow-hidden flex items-center justify-center relative ${
                     isDragging ? "cursor-grabbing" : "cursor-grab"
                   }`}
