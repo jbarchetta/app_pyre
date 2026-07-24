@@ -200,30 +200,34 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
     const totalWidth = X_INITIAL + busbarLength + 100;
 
     // -----------------------------------------------------------------------
-    // ACOMETIDA PRINCIPAL DE ENTRADA (SOLO EN EL ALIMENTADOR SUPERIOR Q1)
+    // ACOMETIDA PRINCIPAL DE ENTRADA (CONECTADA AL CENTRO DEL DISTRIBUIDOR)
     // -----------------------------------------------------------------------
+    const busbarStartX = X_INITIAL - 30;
+    const busbarEndX = X_INITIAL + busbarLength;
+    const X_main_center = (busbarStartX + busbarEndX) / 2;
+
     primitives.push({
       id: "unifilar-feed-line",
       layerId: "4_Unifilar",
       type: "line",
-      start: { x: X_INITIAL, y: Y_BUSBAR },
-      end: { x: X_INITIAL, y: Y_DISTRIBUTION_BUS },
-      lineWidth: 2.5,
+      start: { x: X_main_center, y: Y_BUSBAR },
+      end: { x: X_main_center, y: Y_DISTRIBUTION_BUS },
+      lineWidth: 1.5,
     });
 
     primitives.push({
       id: "unifilar-feed-label",
       layerId: "6_Cotas_Textos",
       type: "text",
-      x: X_INITIAL + OFFSET_X_TEXT,
+      x: X_main_center + OFFSET_X_TEXT,
       y: Y_BUSBAR + 15,
       text: "ACOMETIDA PRINCIPAL\n3F + N (380V/220V)",
-      fontSize: 4.5,
+      fontSize: 6.0,
       weight: "bold",
       align: "right",
     });
 
-    // Interruptor Principal General Q1 en Y_MAIN_BREAKER (= 60mm)
+    // Interruptor Principal General Q1 en Y_MAIN_BREAKER (= 60mm) centrado en el distribuidor
     if (tieneInterruptorPrincipal) {
       const mainPoles = interruptorPrincipal?.polos || 4;
       const mainAmp = interruptorPrincipal?.corriente_nominal_a || 63;
@@ -231,7 +235,7 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
         id: "unifilar-main-symbol",
         layerId: "4_Unifilar",
         type: "symbol",
-        x: X_INITIAL,
+        x: X_main_center,
         y: Y_MAIN_BREAKER,
         symbolType: "breaker_main",
         label: `Q1 MAIN (${mainAmp}A / ${mainPoles}P)`,
@@ -245,12 +249,24 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
         id: "unifilar-main-spec-txt",
         layerId: "6_Cotas_Textos",
         type: "text",
-        x: X_INITIAL + OFFSET_X_TEXT,
+        x: X_main_center + OFFSET_X_TEXT,
         y: Y_MAIN_BREAKER + 5,
-        text: `MAIN: ${mainAmp}A (${mainPoles}P)\n${interruptorPrincipal?.codigo || "ABB T1"}`,
-        fontSize: 4.2,
+        text: `Q1 MAIN: ${mainAmp}A (${mainPoles}P)\n${interruptorPrincipal?.codigo || "ABB T1"}`,
+        fontSize: 6.0,
         weight: "bold",
         align: "right",
+      });
+
+      // Dot de conexión de la acometida principal al centro del distribuidor
+      primitives.push({
+        id: "node-main-busbar",
+        layerId: "2_Embarrado",
+        type: "circle",
+        cx: X_main_center,
+        cy: Y_DISTRIBUTION_BUS,
+        r: 4.0,
+        fill: "#10B981",
+        color: "#10B981",
       });
     }
 
@@ -259,8 +275,8 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
       id: "unifilar-main-busbar",
       layerId: "2_Embarrado",
       type: "line",
-      start: { x: X_INITIAL - 30, y: Y_DISTRIBUTION_BUS },
-      end: { x: X_INITIAL + busbarLength, y: Y_DISTRIBUTION_BUS },
+      start: { x: busbarStartX, y: Y_DISTRIBUTION_BUS },
+      end: { x: busbarEndX, y: Y_DISTRIBUTION_BUS },
       lineWidth: 1.8,
     });
 
@@ -268,10 +284,10 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
       id: "unifilar-busbar-text",
       layerId: "6_Cotas_Textos",
       type: "text",
-      x: X_INITIAL - 30,
+      x: busbarStartX,
       y: Y_DISTRIBUTION_BUS - 10,
       text: "EMBARRADO PRINCIPAL (L1 - L2 - L3 - N)",
-      fontSize: 4.2,
+      fontSize: 6.0,
       weight: "bold",
       align: "left",
     });
@@ -293,22 +309,26 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
         const ampStr = obtenerAmperaje(salida);
         const cableCalibre = calcularCalibreCableMm2(salida);
 
-        // Ubicación según línea y posición (F1.1, F1.2, etc.)
+        // TAG único de Elemento (Q101, Q102... para termomagnéticos, D101, D102... para diferenciales)
+        const prefixTag = diff ? "D" : "Q";
+        const tagElemento = `${prefixTag}${100 + globalOutIdx}`;
+
+        // Código de posición (F1.1, F1.2, etc.) para referencia de ubicación en la caja al pie
         const seccionNum = secGroup.seccion.orden != null ? secGroup.seccion.orden + 1 : _secIdx + 1;
-        const tagGenerico = `F${seccionNum}.${salIdx + 1}`;
+        const tagPosicion = `F${seccionNum}.${salIdx + 1}`;
         const codigoComp = salida.componente_codigo || `ABB S200`;
 
         // Regla de Formato IEC (unipolar, bipolar, tripolar, tetrapolar 3F+N)
         const { etiquetaPolos } = obtenerReglaFormato(salida.formato);
 
-        // 1. Nodo de unión al Embarrado en (X_col, Y_DISTRIBUTION_BUS) (Dot de conexión agrandado y verde como las líneas de potencia)
+        // 1. Nodo de unión al Embarrado en (X_col, Y_DISTRIBUTION_BUS) (Dot de conexión r=4.0, 20% más pequeño)
         primitives.push({
           id: `node-busbar-${salida.id}`,
           layerId: "2_Embarrado",
           type: "circle",
           cx: X_col,
           cy: Y_DISTRIBUTION_BUS,
-          r: 5.0,
+          r: 4.0,
           fill: "#10B981",
           color: "#10B981",
         });
@@ -419,19 +439,20 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
         // -------------------------------------------------------------------
         // TEXTOS DESCRIPTIVOS A LA IZQUIERDA (-15mm, RIGHT ALIGN)
         // -------------------------------------------------------------------
-        // Tag Genérico Único (Q101, Q102... o D101, D102...)
+        // Tag de Elemento (Q101, Q102... o D101, D102...)
         primitives.push({
           id: `txt-tag-${salida.id}`,
           layerId: "6_Cotas_Textos",
           type: "text",
           x: X_col + OFFSET_X_TEXT,
           y: Y_BRANCH_DEVICES - 12,
-          text: tagGenerico,
-          fontSize: 5.2,
+          text: tagElemento,
+          fontSize: 6.5,
           weight: "bold",
           align: "right",
           dataId: salida.id,
           interactive: true,
+          color: "auto",
         });
 
         // Código Comercial / ABB del Disyuntor (ej. ABB S200)
@@ -575,7 +596,7 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
           type: "text",
           x: X_col,
           y: Y_LABELS_BOTTOM - 13,
-          text: tagGenerico,
+          text: tagPosicion,
           fontSize: 9.1,
           weight: "bold",
           align: "center",

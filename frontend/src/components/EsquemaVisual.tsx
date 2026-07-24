@@ -177,7 +177,8 @@ export function EsquemaVisual({
     const ultimaSeccionY = 12 + offsetPrincipal + (numSecciones - 1) * ALTO_SECCION;
     const ultimoSubBusbarY = ultimaSeccionY - 14;
 
-    const q1X = anchoViewBox / 2;
+    const row1BusbarWidth = 30 + (secciones[0]?.salidas.length || 1) * (ANCHO_CARD + GAP_X) - GAP_X;
+    const q1X = Math.max(anchoViewBox / 2, (12 + row1BusbarWidth) / 2);
 
     return (
       <svg
@@ -212,7 +213,7 @@ export function EsquemaVisual({
               {mainCodigoAcortado}
             </text>
             
-            {/* Direct vertical feed line from Q1 to Row 1 Busbar */}
+            {/* Direct vertical feed line from Q1 to Row 1 Busbar Center */}
             <line
               x1={q1X}
               y1={65}
@@ -221,8 +222,8 @@ export function EsquemaVisual({
               stroke="#059669"
               strokeWidth={1.5}
             />
-            {/* Dot de conexión verde a la línea de potencia */}
-            <circle cx={q1X} cy={fila1SubBusbarY} r={4.5} fill="#059669" />
+            {/* Dot de conexión verde (r=4.0, 20% más pequeño) */}
+            <circle cx={q1X} cy={fila1SubBusbarY} r={4.0} fill="#059669" />
           </g>
         )}
 
@@ -305,6 +306,8 @@ export function EsquemaVisual({
                 const childrenLabel = childrenCodes.join(", ");
 
                 const isDiff = salida.tipo_proteccion === "seccional_diferencial";
+                const prefixTag = isDiff ? "D" : "Q";
+                const tagElemento = `${prefixTag}${101 + salIdx}`;
                 const polesCount = FORMATO_LABEL[salida.formato] ? parseInt(FORMATO_LABEL[salida.formato].charAt(0)) : 2;
                 const labelPoles = FORMATO_LABEL[salida.formato] ?? "2P";
                 const labelCarga = `${salida.carga_unidad === "A" ? Math.round(Number(salida.carga_valor)) : salida.carga_valor}${salida.carga_unidad}`;
@@ -321,9 +324,9 @@ export function EsquemaVisual({
                     onMouseLeave={() => onSalidaHover?.(null)}
                     onClick={() => onSalidaClick?.(salida)}
                   >
-                    {/* Dot de conexión verde a la línea principal (r=5mm) */}
+                    {/* Dot de conexión verde a la línea principal (r=4.0, 20% más pequeño) */}
                     {!hasParent && (
-                      <circle cx={x} cy={rowBusbarY} r={5} fill="#059669" />
+                      <circle cx={x} cy={rowBusbarY} r={4.0} fill="#059669" />
                     )}
 
                     {hasParent ? (
@@ -366,6 +369,7 @@ export function EsquemaVisual({
 
                     {renderPhaseTicks(x, cardY - 2, polesCount)}
                     {renderBreakerSymbol(x, cardY + 16, isDiff, hasMatch)}
+                    <text x={x + 12} y={cardY + 20} fontSize={12} fontFamily="monospace" fontWeight="bold" fill="#0f172a">{tagElemento}</text>
 
                     {hasLinkError && (
                       <g
