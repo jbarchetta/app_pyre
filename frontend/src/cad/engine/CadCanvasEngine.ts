@@ -208,12 +208,14 @@ export class CadCanvasEngine {
         const w = prim.width * transform.zoom;
         const h = prim.height * transform.zoom;
 
-        if (prim.fill && !isSelected && !isHovered) {
+        if (prim.fill && prim.fill !== "none" && !isSelected && !isHovered) {
           ctx.fillStyle = prim.fill;
           ctx.fillRect(s.x, s.y, w, h);
         }
 
-        ctx.strokeRect(s.x, s.y, w, h);
+        if (prim.color && prim.color !== "none" && (prim.lineWidth ?? 1) > 0) {
+          ctx.strokeRect(s.x, s.y, w, h);
+        }
 
         if (prim.label && w > 30 && h > 15) {
           ctx.fillStyle = isSelected || isHovered ? (theme === "light" ? "#0F172A" : "#FFFFFF") : (theme === "light" ? "#1E293B" : "#E2E8F0");

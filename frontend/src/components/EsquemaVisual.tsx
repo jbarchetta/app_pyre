@@ -470,11 +470,11 @@ export function EsquemaVisual({
                       stroke="none"
                     />
 
-                    {/* Etiqueta de Ubicación del Elemento (F1.1, F1.2, etc.) (+25% tamaño) */}
+                    {/* Referencia de Posición (F1.1, F1.2, etc.) */}
                     <text
                       x={x}
                       y={cardY + 73}
-                      fontSize={16.5}
+                      fontSize={12.5}
                       fontFamily="monospace"
                       fontWeight="bold"
                       fill={isDirectHover ? "#b91c1c" : "#0f172a"}

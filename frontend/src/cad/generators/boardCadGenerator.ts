@@ -374,7 +374,7 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
           layerId: "6_Cotas_Textos",
           type: "text",
           x: X_col + 9,
-          y: cableTopY - 1,
+          y: cableTopY - 2.0,
           text: cableCalibre,
           fontSize: 6.0,
           weight: "bold",
@@ -463,8 +463,9 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
           x: X_col + OFFSET_X_TEXT,
           y: Y_BRANCH_DEVICES - 2,
           text: codigoComp,
-          fontSize: 4.0,
+          fontSize: 6.5,
           align: "right",
+          color: "auto",
         });
 
         // Especificación (Amperaje & Formato IEC) (ej. 32A 4P (3F+N))
@@ -475,9 +476,10 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
           x: X_col + OFFSET_X_TEXT,
           y: Y_BRANCH_DEVICES + 8,
           text: `${ampStr} ${etiquetaPolos}`,
-          fontSize: 4.0,
+          fontSize: 6.5,
           weight: "bold",
           align: "right",
+          color: "auto",
         });
 
         // 4. Conductor Vertical Inferior AMPLIADO (260mm -> 400mm)
@@ -487,7 +489,7 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
           type: "line",
           start: { x: X_col, y: Y_BRANCH_DEVICES + 10 },
           end: { x: X_col, y: Y_TERMINALS },
-          lineWidth: 1.5,
+          lineWidth: 1.2,
         });
 
         // Ticks de Polos Inferiores (AGUAS ABAJO DEL ELEMENTO, idéntico a Block_1 de abb_unif_4p.dxf)
@@ -502,6 +504,7 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
           start: { x: X_col - 6, y: cableBotY },
           end: { x: X_col + 6, y: cableBotY },
           lineWidth: 2.5,
+          color: "auto",
         });
 
         primitives.push({
@@ -511,6 +514,7 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
           start: { x: X_col + 6, y: cableBotY },
           end: { x: X_col + 24, y: cableBotY },
           lineWidth: 1.0,
+          color: "auto",
         });
 
         // Texto del calibre posicionado DIRECTAMENTE SOBRE la línea guía horizontal inferior
@@ -519,11 +523,12 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
           layerId: "6_Cotas_Textos",
           type: "text",
           x: X_col + 9,
-          y: cableBotY - 1,
+          y: cableBotY - 2.0,
           text: cableCalibre,
-          fontSize: 4.5,
+          fontSize: 6.0,
           weight: "bold",
           align: "left",
+          color: "auto",
         });
 
         // Bornera de Salida en Y_TERMINALS (= 400mm)
@@ -589,7 +594,7 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
           interactive: true,
         });
 
-        // Nomenclatura de Ubicación del Elemento (ej. F1.1, F1.2) (+25% tamaño)
+        // Referencia de Posición (ej. F1.1, F1.2) (6.5mm)
         primitives.push({
           id: `load-txt-tag-${salida.id}`,
           layerId: "6_Cotas_Textos",
@@ -597,48 +602,48 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
           x: X_col,
           y: Y_LABELS_BOTTOM - 13,
           text: tagPosicion,
-          fontSize: 9.1,
+          fontSize: 6.5,
           weight: "bold",
           align: "center",
           color: "auto",
         });
 
-        // Etiqueta del circuito ingresada por usuario o reserva (+25% tamaño)
+        // Etiqueta del circuito ingresada por usuario o reserva (6.5mm)
         const tagUsuarioSalida = salida.etiqueta ? salida.etiqueta.toUpperCase() : (salida.componente_id ? "" : "RESERVA");
         primitives.push({
           id: `load-txt-lbl-${salida.id}`,
           layerId: "6_Cotas_Textos",
           type: "text",
           x: X_col,
-          y: Y_LABELS_BOTTOM - 1,
+          y: Y_LABELS_BOTTOM - 2,
           text: tagUsuarioSalida.slice(0, 15),
-          fontSize: 7.5,
+          fontSize: 6.5,
           weight: "bold",
           align: "center",
           color: "auto",
         });
 
-        // Especificación de Carga & Polos (ej. 32A / 2P) (+25% tamaño)
+        // Especificación de Carga & Polos (ej. 32A / 2P) (6.5mm)
         primitives.push({
           id: `load-txt-spec-${salida.id}`,
           layerId: "6_Cotas_Textos",
           type: "text",
           x: X_col,
-          y: Y_LABELS_BOTTOM + 11,
+          y: Y_LABELS_BOTTOM + 8,
           text: `${ampStr} / ${etiquetaPolos}`,
-          fontSize: 7.5,
+          fontSize: 6.5,
           align: "center",
           color: "auto",
         });
 
-        // Código SAP de componente (+25% tamaño)
+        // Código SAP de componente (6.5mm)
         if (salida.componente_codigo) {
           primitives.push({
             id: `load-txt-code-${salida.id}`,
             layerId: "6_Cotas_Textos",
             type: "text",
             x: X_col,
-            y: Y_LABELS_BOTTOM + 22,
+            y: Y_LABELS_BOTTOM + 18,
             text: salida.componente_codigo.slice(0, 15),
             fontSize: 6.5,
             align: "center",
