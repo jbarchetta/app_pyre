@@ -423,41 +423,41 @@ export function EsquemaVisualCanvas({
                     }}
                   />
 
-                  {/* BARRA / BANNER DE SINCRONIZACIÓN DE TABLA EN HOVER */}
+                  {/* BARRA / BANNER DE SINCRONIZACIÓN DE TABLA EN HOVER (HUD CAD TÉCNICO) */}
                   {hoveredSalidaInfo ? (
-                    <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-30 bg-slate-900/95 text-white border border-abb-red/60 shadow-2xl backdrop-blur-md rounded-xl px-5 py-3 flex items-center space-x-4 max-w-4xl animate-fade-in text-xs font-mono">
-                      <div className="flex items-center space-x-2 shrink-0 border-r border-slate-700 pr-4">
-                        <span className="w-2.5 h-2.5 rounded-full bg-abb-red animate-ping" />
-                        <span className="bg-abb-red text-white font-bold px-2 py-0.5 rounded text-[11px] uppercase tracking-wider">
+                    <div className="absolute bottom-12 left-1/2 -translate-x-1/2 z-50 bg-slate-950/95 text-slate-100 border border-emerald-500/50 shadow-[0_10px_35px_rgba(0,0,0,0.85)] backdrop-blur-xl rounded-lg px-4 py-2.5 flex items-center space-x-4 max-w-4xl animate-fade-in text-xs font-mono select-none pointer-events-none">
+                      <div className="flex items-center space-x-2 shrink-0 border-r border-slate-800 pr-3">
+                        <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_#10b981]" />
+                        <span className="bg-emerald-950 text-emerald-300 border border-emerald-600/50 font-bold px-2 py-0.5 rounded text-[11px] uppercase tracking-wider">
                           {hoveredSalidaInfo.tag}
                         </span>
                       </div>
 
                       <div className="flex flex-col">
                         <span className="font-bold text-slate-100 truncate max-w-xs">{hoveredSalidaInfo.titulo}</span>
-                        <span className="text-[11px] text-slate-400">
+                        <span className="text-[10px] text-slate-400">
                           FILA: <strong className="text-slate-200">{hoveredSalidaInfo.seccion}</strong> | CÓD: <strong className="text-amber-400">{hoveredSalidaInfo.codigo}</strong>
                         </span>
                       </div>
 
-                      <div className="flex items-center space-x-4 border-l border-slate-700 pl-4 shrink-0">
-                        <div className="text-center">
-                          <span className="block text-[9px] text-slate-400 uppercase">Calibre</span>
+                      <div className="flex items-center space-x-3 border-l border-slate-800 pl-3 shrink-0">
+                        <div className="text-center px-1">
+                          <span className="block text-[9px] text-slate-400 font-sans tracking-wider uppercase">Calibre</span>
                           <span className="font-bold text-emerald-400">{hoveredSalidaInfo.corriente}</span>
                         </div>
-                        <div className="text-center">
-                          <span className="block text-[9px] text-slate-400 uppercase">Polos</span>
+                        <div className="text-center px-1 border-l border-slate-800/60">
+                          <span className="block text-[9px] text-slate-400 font-sans tracking-wider uppercase">Polos</span>
                           <span className="font-bold text-sky-400">{hoveredSalidaInfo.polos}</span>
                         </div>
-                        <div className="text-center">
-                          <span className="block text-[9px] text-slate-400 uppercase">Cable</span>
+                        <div className="text-center px-1 border-l border-slate-800/60">
+                          <span className="block text-[9px] text-slate-400 font-sans tracking-wider uppercase">Cable</span>
                           <span className="font-bold text-purple-300">{hoveredSalidaInfo.cable}</span>
                         </div>
                       </div>
                     </div>
                   ) : (
-                    <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-30 bg-slate-900/80 text-slate-300 border border-slate-700 shadow-lg backdrop-blur-md rounded-full px-5 py-1.5 text-xs font-mono text-center select-none pointer-events-none">
-                      Pasa el puntero sobre cualquier elemento o línea para ver la fila de la tabla
+                    <div className="absolute bottom-12 left-1/2 -translate-x-1/2 z-50 bg-slate-950/85 text-slate-400 border border-slate-800 shadow-xl backdrop-blur-md rounded-full px-5 py-1.5 text-xs font-mono text-center select-none pointer-events-none">
+                      [CAD INSPECT] Pasa el cursor sobre cualquier línea o elemento para ver detalles técnicos
                     </div>
                   )}
                 </div>
