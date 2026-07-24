@@ -342,8 +342,8 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
           lineWidth: 1.8,
         });
 
-        // Ticks de Polos Superiores (Fases + Neutro)
-        agregarTicksPolos(primitives, salida.id, "top", X_col, Y_DISTRIBUTION_BUS + 20, salida.formato);
+        // Ticks de Polos Superiores (Fases + Neutro) (10mm hacia abajo)
+        agregarTicksPolos(primitives, salida.id, "top", X_col, Y_DISTRIBUTION_BUS + 30, salida.formato);
 
         // 3. Símbolo Indicador de Calibre del Cable SUPERIOR
         const cableTopY = Y_DISTRIBUTION_BUS + 85;
@@ -493,8 +493,8 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
           lineWidth: 1.2,
         });
 
-        // Ticks de Polos Inferiores (AGUAS ABAJO DEL ELEMENTO, idéntico a Block_1 de abb_unif_4p.dxf)
-        agregarTicksPolos(primitives, salida.id, "bot", X_col, Y_BRANCH_DEVICES + 20, salida.formato);
+        // Ticks de Polos Inferiores (10mm hacia abajo)
+        agregarTicksPolos(primitives, salida.id, "bot", X_col, Y_BRANCH_DEVICES + 30, salida.formato);
 
         // Símbolo Indicador de Calibre del Cable INFERIOR (AGUAS ABAJO)
         const cableBotY = Y_BRANCH_DEVICES + 95;
@@ -518,7 +518,7 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
           color: "auto",
         });
 
-        // Texto del calibre posicionado DIRECTAMENTE SOBRE la línea guía horizontal inferior
+        // Texto del calibre posicionado 1mm por encima de la línea guía horizontal inferior
         primitives.push({
           id: `cable-bot-txt-${salida.id}`,
           layerId: "6_Cotas_Textos",
@@ -532,7 +532,7 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
           color: "auto",
         });
 
-        // Bornera de Salida en Y_TERMINALS (= 400mm)
+        // Bornera de Salida en Y_TERMINALS (= 400mm) (Sin fondo de color)
         primitives.push({
           id: `term-box-${salida.id}`,
           layerId: "5_Borneras",
@@ -541,8 +541,9 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
           y: Y_TERMINALS,
           width: 8,
           height: 8,
-          stroke: "#8B5CF6",
-          fill: "rgba(139, 92, 246, 0.3)",
+          fill: "none",
+          color: "auto",
+          lineWidth: 1.2,
         });
 
         primitives.push({
@@ -552,6 +553,7 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
           start: { x: X_col - 4, y: Y_TERMINALS },
           end: { x: X_col + 4, y: Y_TERMINALS + 8 },
           lineWidth: 1.2,
+          color: "auto",
         });
 
         // Etiqueta de Borne (ej: X1.1) a la IZQUIERDA
@@ -565,27 +567,20 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
           fontSize: 4.0,
           weight: "bold",
           align: "right",
-        });
-
-        // Conexión final hacia Y_LABELS_BOTTOM (= 460mm)
-        primitives.push({
-          id: `wire-to-bottom-${salida.id}`,
-          layerId: "4_Unifilar",
-          type: "line",
-          start: { x: X_col, y: Y_TERMINALS + 8 },
-          end: { x: X_col, y: Y_LABELS_BOTTOM - 20 },
-          lineWidth: 1.0,
+          color: "auto",
         });
 
         // -------------------------------------------------------------------
-        // CONTENEDOR DE TEXTO DE SALIDA (TRANSPARENTE SIN BORDE - SOLO TEXTOS VISIBLES)
+        // CONTENEDOR DE TEXTO DE SALIDA (REUBICADO 10mm HACIA ARRIBA)
         // -------------------------------------------------------------------
+        const Y_LABELS_POS = Y_LABELS_BOTTOM - 10;
+
         primitives.push({
           id: `load-txt-box-${salida.id}`,
           layerId: "6_Cotas_Textos",
           type: "rect",
           x: X_col - 55,
-          y: Y_LABELS_BOTTOM - 24,
+          y: Y_LABELS_POS - 24,
           width: 110,
           height: 52,
           fill: "none",
@@ -601,7 +596,7 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
           layerId: "6_Cotas_Textos",
           type: "text",
           x: X_col,
-          y: Y_LABELS_BOTTOM - 13,
+          y: Y_LABELS_POS - 13,
           text: tagPosicion,
           fontSize: 6.5,
           weight: "bold",
@@ -616,7 +611,7 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
           layerId: "6_Cotas_Textos",
           type: "text",
           x: X_col,
-          y: Y_LABELS_BOTTOM - 2,
+          y: Y_LABELS_POS - 2,
           text: tagUsuarioSalida.slice(0, 15),
           fontSize: 6.5,
           weight: "bold",
@@ -630,7 +625,7 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
           layerId: "6_Cotas_Textos",
           type: "text",
           x: X_col,
-          y: Y_LABELS_BOTTOM + 8,
+          y: Y_LABELS_POS + 8,
           text: `${ampStr} / ${etiquetaPolos}`,
           fontSize: 6.5,
           align: "center",
@@ -644,7 +639,7 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
             layerId: "6_Cotas_Textos",
             type: "text",
             x: X_col,
-            y: Y_LABELS_BOTTOM + 18,
+            y: Y_LABELS_POS + 18,
             text: salida.componente_codigo.slice(0, 15),
             fontSize: 6.5,
             align: "center",

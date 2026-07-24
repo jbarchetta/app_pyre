@@ -8,20 +8,32 @@
    - **Línea 3 (Código SAP)**: Muestra el código de pedido / SAP de ABB (ej. `2CDS251001R0164`) en fuente **6.0mm Normal**.
    - **Línea Eliminada**: La línea antigua de corriente y polos (`32A 2P`) queda permanentemente **eliminada** de esta sección.
 
-2. **Referencia de Ubicación (`F<fila>.<posicion>`)**:
-   - La etiqueta de posición por fila y salida (ej. `F1.1`, `F1.2`, `F2.1`) se ubica únicamente en el área descriptiva al pie de cada salida en fuente **6.5mm Bold** (`12.5px`) y **nunca reemplaza el TAG del elemento**.
+2. **Reubicación de Símbolos de Polos/Fases**:
+   - Los ticks/símbolos de polos tanto de las líneas **aguas arriba** como de las líneas **aguas abajo** del elemento se desplazan **10mm hacia abajo**.
 
-3. **Conexión de Acometida Principal (Q1)**:
+3. **Símbolo de Bornes Sin Fondo de Color**:
+   - El símbolo de bornera / borne de salida no posee fondo de color relleno (`fill="none"`).
+
+4. **Eliminación de Línea Aguas Abajo del Borne**:
+   - Se elimina la línea conductora que se extendía por debajo del borne de salida.
+
+5. **Reubicación del Contenedor de Texto de Salida (+10mm Arriba)**:
+   - El bloque de texto del pie (referencia de posición `F1.1`, etiqueta del circuito, especificaciones y código SAP) se eleva **10mm hacia arriba** directamente debajo del borne.
+
+6. **Referencia de Ubicación (`F<fila>.<posicion>`)**:
+   - La etiqueta de posición por fila y salida (ej. `F1.1`, `F1.2`, `F2.1`) se ubica en el área descriptiva del pie en fuente **6.5mm Bold** (`12.5px`) y **nunca reemplaza el TAG del elemento**.
+
+7. **Conexión de Acometida Principal (Q1)**:
    - El interruptor principal general (Q1) se conecta de forma totalmente centrada con respecto a la línea del barral principal distribuidor.
 
-4. **Color de Líneas de Potencia y Barral Principal**:
+8. **Color de Líneas de Potencia y Barral Principal**:
    - El barral / embarrado principal y las líneas de energía/potencia son de **Color Verde** (`#10B981` en CAD / `#059669` en SVG).
 
-5. **Dots de Conexión de Ramales (-20% de tamaño)**:
+9. **Dots de Conexión de Ramales (-20% de tamaño)**:
    - Los nodos de conexión al embarrado se renderizan rellenos del mismo **Verde** de las líneas (`#10B981` / `#059669`) con radio compacto `r = 4.0px`.
 
-6. **Calibres de Cables (+1mm de elevación sobre guía)**:
+10. **Calibres de Cables (+1mm de elevación sobre guía)**:
    - Las etiquetas de calibre del cable (superiores e inferiores) se fijan en fuente **6.0mm Bold** y se elevan **1mm por encima** de la línea guía horizontal.
 
-7. **Contenedor Transparente de Texto al Pie**:
+11. **Contenedor Transparente de Texto al Pie**:
    - El contenedor del pie es **100% transparente sin bordes ni fondos visibles** (`fill="none"`, `stroke="none"`).

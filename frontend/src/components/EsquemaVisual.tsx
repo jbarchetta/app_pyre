@@ -441,7 +441,7 @@ export function EsquemaVisual({
                       </g>
                     ) : isToBornera ? (
                       <g>
-                        {/* Símbolo de borne de conexión en negro */}
+                        {/* Símbolo de borne de conexión en negro (sin fondo de color) */}
                         <line
                           x1={x}
                           y1={cardY + 26}
@@ -450,36 +450,27 @@ export function EsquemaVisual({
                           stroke={strokeColor}
                           strokeWidth={1.8}
                         />
-                        <circle cx={x} cy={cardY + 48} r={5} fill="#ffffff" stroke="#000000" strokeWidth={1.8} />
+                        <circle cx={x} cy={cardY + 48} r={5} fill="none" stroke="#000000" strokeWidth={1.8} />
                         <circle cx={x} cy={cardY + 48} r={2} fill="#000000" />
                       </g>
                     ) : (
                       <g>
-                        {/* Union line from breaker to dashed line */}
+                        {/* Union line from breaker */}
                         <line
                           x1={x}
                           y1={cardY + 26}
                           x2={x}
-                          y2={cardY + 40}
+                          y2={cardY + 44}
                           stroke={strokeColor}
                           strokeWidth={1.8}
-                        />
-                        <line
-                          x1={x}
-                          y1={cardY + 40}
-                          x2={x}
-                          y2={cardY + 58}
-                          stroke={strokeColor}
-                          strokeWidth={1.8}
-                          strokeDasharray="2 2"
                         />
                       </g>
                     )}
 
-                    {/* Contenedor de Texto de Salida (Transparente sin borde - Solo texto visible) */}
+                    {/* Contenedor de Texto de Salida (Reubicado 10px hacia arriba) */}
                     <rect
                       x={x - 55}
-                      y={cardY + 58}
+                      y={cardY + 48}
                       width={110}
                       height={50}
                       fill="none"
@@ -489,7 +480,7 @@ export function EsquemaVisual({
                     {/* Referencia de Posición (F1.1, F1.2, etc.) */}
                     <text
                       x={x}
-                      y={cardY + 73}
+                      y={cardY + 63}
                       fontSize={12.5}
                       fontFamily="monospace"
                       fontWeight="bold"
@@ -500,7 +491,7 @@ export function EsquemaVisual({
                     </text>
                     <text
                       x={x}
-                      y={cardY + 87}
+                      y={cardY + 77}
                       fontSize={14}
                       fontFamily="sans-serif"
                       fontWeight={salida.etiqueta ? "bold" : "normal"}
@@ -511,7 +502,7 @@ export function EsquemaVisual({
                     </text>
                     <text
                       x={x}
-                      y={cardY + 101}
+                      y={cardY + 91}
                       fontSize={14}
                       fontFamily="sans-serif"
                       fill="#0f172a"
@@ -522,7 +513,7 @@ export function EsquemaVisual({
                     {salida.componente_codigo && (
                       <text
                         x={x}
-                        y={cardY + 114}
+                        y={cardY + 104}
                         fontSize={12.5}
                         fontFamily="monospace"
                         fill="#64748b"
