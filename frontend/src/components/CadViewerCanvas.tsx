@@ -57,18 +57,12 @@ export function CadViewerCanvas({
   gabineteSugeridoAncho,
   gabineteSugeridoAlto,
   modoVisual: modoVisualProp = "topografico",
-  onModoVisualChange,
 }: CadViewerCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const engineRef = useRef<CadCanvasEngine | null>(null);
 
   const [modoVisual, setModoVisualState] = useState<"topografico" | "bloques" | "unifilar">(modoVisualProp);
-
-  const setModoVisual = (modo: "topografico" | "bloques" | "unifilar") => {
-    setModoVisualState(modo);
-    if (onModoVisualChange) onModoVisualChange(modo);
-  };
 
   useEffect(() => {
     if (modoVisualProp) setModoVisualState(modoVisualProp);
@@ -128,10 +122,10 @@ export function CadViewerCanvas({
       const found = sec.salidas.find((sal) => sal.id === hoveredSalidaId);
       if (found) {
         return {
-          tag: found.posicion_codigo || `Salida ${found.orden + 1}`,
+          tag: found.posicion_codigo || `Salida ${(found.orden ?? found.posicion_orden ?? 0) + 1}`,
           titulo: found.componente_descripcion || found.descripcion_personalizada || "Interruptor de Salida",
           codigo: found.componente_codigo_comercial || found.componente_id || "Sin catálogo",
-          corriente: `${found.corriente_nominal_a}A`,
+          corriente: `${found.corriente_nominal_a || 0}A`,
           polos: found.formato || "-",
           curva: found.curva || "C",
           seccion: sec.seccion.nombre,
@@ -145,9 +139,13 @@ export function CadViewerCanvas({
   // Transformación de Viewport (Zoom y Pan)
   const [transform, setTransform] = useState<ViewportTransform>({ zoom, panX: 50, panY: 50 });
 
-  // Sincronizar zoom prop
+  // Sincronizar zoom prop desde el padre solo si difiere significativamente
   useEffect(() => {
-    setTransform((t) => ({ ...t, zoom: limitar(zoom) }));
+    setTransform((t) => {
+      const targetZoom = limitar(zoom);
+      if (Math.abs(t.zoom - targetZoom) < 0.01) return t;
+      return { ...t, zoom: targetZoom };
+    });
   }, [zoom]);
 
   const [mousePosPx, setMousePosPx] = useState<{ x: number; y: number } | null>(null);
@@ -163,17 +161,18 @@ export function CadViewerCanvas({
     }
   }, []);
 
-  // Event listener nativo no-pasivo para rueda de mouse (evita advertencia e.preventDefault passive)
+  // Event listener nativo no-pasivo sobre el contenedor del lienzo CAD
   useEffect(() => {
-    const canvasEl = canvasRef.current;
-    if (!canvasEl) return;
+    const el = containerRef.current || canvasRef.current;
+    if (!el) return;
 
-    const onWheelNative = (e: WheelEvent) => {
+    const onWheelNative = (e: Event) => {
       e.preventDefault();
-      const rect = canvasEl.getBoundingClientRect();
-      const pixel = { x: e.clientX - rect.left, y: e.clientY - rect.top };
+      const we = e as WheelEvent;
+      const rect = el.getBoundingClientRect();
+      const pixel = { x: we.clientX - rect.left, y: we.clientY - rect.top };
 
-      const zoomFactor = e.deltaY < 0 ? 1.15 : 0.85;
+      const zoomFactor = we.deltaY < 0 ? 1.15 : 0.85;
       setTransform((prevTransform) => {
         const targetZoom = limitar(prevTransform.zoom * zoomFactor);
         const nextTransform = zoomAtPoint(pixel, prevTransform, targetZoom);
@@ -182,9 +181,9 @@ export function CadViewerCanvas({
       });
     };
 
-    canvasEl.addEventListener("wheel", onWheelNative, { passive: false });
+    el.addEventListener("wheel", onWheelNative, { passive: false });
     return () => {
-      canvasEl.removeEventListener("wheel", onWheelNative);
+      el.removeEventListener("wheel", onWheelNative);
     };
   }, [onZoomChange]);
 

@@ -1,4 +1,4 @@
-import { useState, useRef, useMemo } from "react";
+import { useState, useRef, useMemo, useEffect } from "react";
 import {
   MagnifyingGlassMinusIcon,
   MagnifyingGlassPlusIcon,
@@ -71,6 +71,9 @@ export function EsquemaVisualCanvas({
   const [isDragging, setIsDragging] = useState(false);
   const dragStartRef = useRef<{ x: number; y: number; panX: number; panY: number } | null>(null);
 
+  const svgAreaRef = useRef<HTMLDivElement>(null);
+  const modalAreaRef = useRef<HTMLDivElement>(null);
+
   const handleZoomChange = (nuevoZoom: number) => {
     const z = limitar(nuevoZoom);
     if (onZoomChange) onZoomChange(z);
@@ -80,11 +83,41 @@ export function EsquemaVisualCanvas({
     if (onCapasChange) onCapasChange(nuevasCapas);
   };
 
-  const handleWheel = (e: React.WheelEvent) => {
-    e.preventDefault();
-    const delta = e.deltaY < 0 ? ZOOM_PASO : -ZOOM_PASO;
-    handleZoomChange(zoom + delta);
-  };
+  // Event listener nativo no-pasivo para rueda en área SVG Bloques (evita scroll de página)
+  useEffect(() => {
+    const containerEl = svgAreaRef.current;
+    if (!containerEl) return;
+
+    const onWheelNative = (e: Event) => {
+      e.preventDefault();
+      const we = e as WheelEvent;
+      const delta = we.deltaY < 0 ? ZOOM_PASO : -ZOOM_PASO;
+      handleZoomChange(zoom + delta);
+    };
+
+    containerEl.addEventListener("wheel", onWheelNative, { passive: false });
+    return () => {
+      containerEl.removeEventListener("wheel", onWheelNative);
+    };
+  }, [zoom, onZoomChange]);
+
+  // Event listener nativo no-pasivo para rueda en modal de pantalla completa SVG Bloques
+  useEffect(() => {
+    const modalEl = modalAreaRef.current;
+    if (!modalEl || !modalAmpliado) return;
+
+    const onWheelNative = (e: Event) => {
+      e.preventDefault();
+      const we = e as WheelEvent;
+      const delta = we.deltaY < 0 ? ZOOM_PASO : -ZOOM_PASO;
+      handleZoomChange(zoom + delta);
+    };
+
+    modalEl.addEventListener("wheel", onWheelNative, { passive: false });
+    return () => {
+      modalEl.removeEventListener("wheel", onWheelNative);
+    };
+  }, [modalAmpliado, zoom, onZoomChange]);
 
   const handleMouseDown = (e: React.MouseEvent) => {
     if (e.button === 0) {
@@ -130,10 +163,10 @@ export function EsquemaVisualCanvas({
       const found = sec.salidas.find((sal) => sal.id === hoveredSalidaId);
       if (found) {
         return {
-          tag: found.posicion_codigo || `Salida ${found.orden + 1}`,
+          tag: found.posicion_codigo || `Salida ${(found.orden ?? found.posicion_orden ?? 0) + 1}`,
           titulo: found.componente_descripcion || found.descripcion_personalizada || "Interruptor de Salida",
           codigo: found.componente_codigo_comercial || found.componente_id || "Sin catálogo",
-          corriente: `${found.corriente_nominal_a}A`,
+          corriente: `${found.corriente_nominal_a || 0}A`,
           polos: found.formato || "-",
           curva: found.curva || "C",
           seccion: sec.seccion.nombre,
@@ -286,10 +319,10 @@ export function EsquemaVisualCanvas({
 
             {/* Área del Blueprint con Pan y Zoom */}
             <div
+              ref={svgAreaRef}
               className={`flex min-h-[380px] max-h-[70vh] justify-center overflow-hidden bg-slate-50/50 ${
                 isDragging ? "cursor-grabbing" : "cursor-grab"
               }`}
-              onWheel={handleWheel}
               onMouseDown={handleMouseDown}
               onMouseMove={handleMouseMove}
               onMouseUp={handleMouseUp}
@@ -335,10 +368,10 @@ export function EsquemaVisualCanvas({
                 </div>
 
                 <div
+                  ref={modalAreaRef}
                   className={`flex-1 w-full h-full bg-slate-50/90 p-6 overflow-hidden flex items-center justify-center relative ${
                     isDragging ? "cursor-grabbing" : "cursor-grab"
                   }`}
-                  onWheel={handleWheel}
                   onMouseDown={handleMouseDown}
                   onMouseMove={handleMouseMove}
                   onMouseUp={handleMouseUp}
