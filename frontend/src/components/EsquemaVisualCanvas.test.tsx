@@ -109,6 +109,32 @@ describe("EsquemaVisualCanvas", () => {
 
     await userEvent.click(screen.getByRole("button", { name: /pantalla completa/i }));
 
-    expect(screen.getByText("Blueprint Unifilar (Pantalla Completa)")).toBeInTheDocument();
+    expect(screen.getByText("Blueprint Bloques (Pantalla Completa)")).toBeInTheDocument();
+  });
+
+  it("allows switching visual modes using the tabs selector", async () => {
+    render(
+      <EsquemaVisualCanvas
+        tieneInterruptorPrincipal={false}
+        secciones={[]}
+        zoom={1}
+        onZoomChange={vi.fn()}
+        capas={{ codigos: true, embarrado: true }}
+        onCapasChange={vi.fn()}
+      />,
+    );
+
+    // Initial state is "Bloques"
+    expect(screen.getByRole("button", { name: "Bloques" })).toHaveClass("text-abb-red");
+    expect(screen.getByRole("button", { name: "Unifilar" })).not.toHaveClass("text-abb-red");
+
+    // Click on Unifilar
+    await userEvent.click(screen.getByRole("button", { name: "Unifilar" }));
+    expect(screen.getByRole("button", { name: "Unifilar" })).toHaveClass("text-abb-red");
+    expect(screen.getByRole("button", { name: "Bloques" })).not.toHaveClass("text-abb-red");
+
+    // Click on Topográfico
+    await userEvent.click(screen.getByRole("button", { name: "Topográfico" }));
+    expect(screen.getByRole("button", { name: "Topográfico" })).toHaveClass("text-abb-red");
   });
 });

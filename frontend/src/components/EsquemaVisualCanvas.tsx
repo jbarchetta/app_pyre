@@ -1,32 +1,48 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useMemo } from "react";
 import {
   MagnifyingGlassMinusIcon,
   MagnifyingGlassPlusIcon,
-  Square3Stack3DIcon,
   ArrowsPointingOutIcon,
   ArrowsPointingInIcon,
-  CpuChipIcon,
+  Square3Stack3DIcon,
   XMarkIcon,
+  CpuChipIcon,
 } from "@heroicons/react/24/outline";
+import { CadViewerCanvas } from "./CadViewerCanvas";
+import { EsquemaVisual } from "./EsquemaVisual";
 import type { Salida, Seccion } from "../api/client";
-import { EsquemaVisual, type Capas, type InterruptorPrincipalInfo } from "./EsquemaVisual";
-
-const ZOOM_PASO = 0.25;
-const ZOOM_MIN = 0.5;
-const ZOOM_MAX = 2.5;
+import type { Capas, InterruptorPrincipalInfo } from "./EsquemaVisual";
 
 interface EsquemaVisualCanvasProps {
   tieneInterruptorPrincipal: boolean;
   interruptorPrincipal?: InterruptorPrincipalInfo | null;
   secciones: { seccion: Seccion; salidas: Salida[] }[];
-  zoom: number;
-  onZoomChange: (zoom: number) => void;
-  capas: Capas;
-  onCapasChange: (capas: Capas) => void;
+  zoom?: number;
+  onZoomChange?: (zoom: number) => void;
+  capas?: Capas;
+  onCapasChange?: (capas: Capas) => void;
   hoveredSalidaId?: string | null;
   onSalidaHover?: (salidaId: string | null) => void;
   onSalidaClick?: (salida: Salida) => void;
+  tabActivo?: string;
+  accesorios?: any[];
+  sugerencias?: any;
+  onAsociarAccesorio?: (componenteId: string) => void;
+  onDesasociarAccesorio?: (componenteId: string) => void;
+  onAbrirAccesorioManual?: () => void;
+  metodoEntrada?: string | null;
+  metodoSalida?: string | null;
+  bornerasTipo?: string | null;
+  cablecanalSugerido?: string | null;
+  gabineteSugeridoAncho?: number | null;
+  gabineteSugeridoAlto?: number | null;
+  tableroId?: string;
+  modoVisual?: "bloques" | "topografico" | "unifilar";
 }
+
+const ZOOM_MIN = 0.5;
+const ZOOM_MAX = 2.5;
+const ZOOM_PASO = 0.25;
 
 function limitar(valor: number): number {
   return Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, Number(valor.toFixed(2))));
@@ -36,39 +52,45 @@ export function EsquemaVisualCanvas({
   tieneInterruptorPrincipal,
   interruptorPrincipal,
   secciones,
-  zoom,
+  zoom = 1,
   onZoomChange,
-  capas,
+  capas = { codigos: true, embarrado: true },
   onCapasChange,
   hoveredSalidaId,
   onSalidaHover,
   onSalidaClick,
+  gabineteSugeridoAncho,
+  gabineteSugeridoAlto,
+  modoVisual: modoVisualProp = "bloques",
 }: EsquemaVisualCanvasProps) {
+  const [modoVisualState, setModoVisualState] = useState<"bloques" | "topografico" | "unifilar">(modoVisualProp);
   const [panelCapasAbierto, setPanelCapasAbierto] = useState(false);
   const [modalAmpliado, setModalAmpliado] = useState(false);
-
-  // Estados de pan (arrastre con ratón)
   const [panX, setPanX] = useState(0);
   const [panY, setPanY] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
   const dragStartRef = useRef<{ x: number; y: number; panX: number; panY: number } | null>(null);
 
+  const handleZoomChange = (nuevoZoom: number) => {
+    const z = limitar(nuevoZoom);
+    if (onZoomChange) onZoomChange(z);
+  };
+
+  const handleCapasChange = (nuevasCapas: Capas) => {
+    if (onCapasChange) onCapasChange(nuevasCapas);
+  };
+
   const handleWheel = (e: React.WheelEvent) => {
     e.preventDefault();
-    const paso = e.deltaY < 0 ? ZOOM_PASO : -ZOOM_PASO;
-    onZoomChange(limitar(zoom + paso));
+    const delta = e.deltaY < 0 ? ZOOM_PASO : -ZOOM_PASO;
+    handleZoomChange(zoom + delta);
   };
 
   const handleMouseDown = (e: React.MouseEvent) => {
-    // Solo arrastrar con el botón principal (izquierdo)
-    if (e.button !== 0) return;
-    setIsDragging(true);
-    dragStartRef.current = {
-      x: e.clientX,
-      y: e.clientY,
-      panX,
-      panY,
-    };
+    if (e.button === 0) {
+      setIsDragging(true);
+      dragStartRef.current = { x: e.clientX, y: e.clientY, panX, panY };
+    }
   };
 
   const handleMouseMove = (e: React.MouseEvent) => {
@@ -85,17 +107,50 @@ export function EsquemaVisualCanvas({
   };
 
   const resetPanAndZoom = () => {
-    onZoomChange(1);
+    handleZoomChange(1);
     setPanX(0);
     setPanY(0);
   };
 
-  const renderControles = (esModal: boolean) => (
+  // Información de la Salida hovered para sincronización con la tabla
+  const hoveredSalidaInfo = useMemo(() => {
+    if (!hoveredSalidaId) return null;
+    if (hoveredSalidaId === "main-breaker") {
+      return {
+        tag: "MAIN BREAKER",
+        titulo: interruptorPrincipal?.descripcion || "Interruptor Principal Cabecera",
+        codigo: interruptorPrincipal?.codigo_comercial || interruptorPrincipal?.codigo || "-",
+        corriente: interruptorPrincipal?.corriente_nominal_a ? `${interruptorPrincipal.corriente_nominal_a}A` : "-",
+        polos: interruptorPrincipal?.polos ? `${interruptorPrincipal.polos}P` : "-",
+        seccion: "Entrada Principal",
+        cable: "-",
+      };
+    }
+    for (const sec of secciones) {
+      const found = sec.salidas.find((sal) => sal.id === hoveredSalidaId);
+      if (found) {
+        return {
+          tag: found.posicion_codigo || `Salida ${found.orden + 1}`,
+          titulo: found.componente_descripcion || found.descripcion_personalizada || "Interruptor de Salida",
+          codigo: found.componente_codigo_comercial || found.componente_id || "Sin catálogo",
+          corriente: `${found.corriente_nominal_a}A`,
+          polos: found.formato || "-",
+          curva: found.curva || "C",
+          seccion: sec.seccion.nombre,
+          cable: found.seccion_cable_mm2 ? `${found.seccion_cable_mm2} mm²` : "-",
+        };
+      }
+    }
+    return null;
+  }, [hoveredSalidaId, secciones, interruptorPrincipal]);
+
+  // Controles superiores de vista (Zoom, Capas, Pantalla completa)
+  const renderControlesSVG = (esModal: boolean) => (
     <div className="flex items-center gap-1">
       <button
         type="button"
         aria-label="Alejar"
-        onClick={() => onZoomChange(limitar(zoom - ZOOM_PASO))}
+        onClick={() => handleZoomChange(zoom - ZOOM_PASO)}
         className="p-1.5 text-gray-600 hover:text-abb-red rounded hover:bg-gray-200 transition"
         title="Alejar (-)"
       >
@@ -113,7 +168,7 @@ export function EsquemaVisualCanvas({
       <button
         type="button"
         aria-label="Acercar"
-        onClick={() => onZoomChange(limitar(zoom + ZOOM_PASO))}
+        onClick={() => handleZoomChange(zoom + ZOOM_PASO)}
         className="p-1.5 text-gray-600 hover:text-abb-red rounded hover:bg-gray-200 transition"
         title="Acercar (+)"
       >
@@ -145,93 +200,93 @@ export function EsquemaVisualCanvas({
   );
 
   return (
-    <>
-      <div className="border border-surface-stroke bg-white rounded-lg shadow-sm overflow-hidden flex flex-col">
-        {/* Cabecera del Blueprint */}
-        <div className="flex items-center justify-between border-b border-surface-stroke bg-industrial-gray px-4 py-2.5 min-h-[42px]">
-          <span className="font-mono text-xs font-bold uppercase tracking-wider text-gray-700 flex items-center gap-2">
-            <CpuChipIcon className="w-4 h-4 text-abb-red" />
-            Vista Unifilar / Blueprint
-          </span>
-          {renderControles(false)}
+    <div className="w-full flex flex-col space-y-3">
+      {/* Pestañas de Selector de Modo Visual */}
+      <div className="flex items-center justify-between bg-industrial-gray border border-surface-stroke rounded-xl px-4 py-2 shadow-sm">
+        <div className="flex items-center space-x-1 bg-white p-1 rounded-lg border border-gray-200">
+          <button
+            type="button"
+            onClick={() => setModoVisualState("bloques")}
+            className={`px-3 py-1 text-xs font-mono font-bold rounded-md transition-colors ${
+              modoVisualState === "bloques"
+                ? "bg-abb-red text-white text-abb-red shadow-sm"
+                : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+            }`}
+          >
+            Bloques
+          </button>
+          <button
+            type="button"
+            onClick={() => setModoVisualState("topografico")}
+            className={`px-3 py-1 text-xs font-mono font-bold rounded-md transition-colors ${
+              modoVisualState === "topografico"
+                ? "bg-abb-red text-white text-abb-red shadow-sm"
+                : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+            }`}
+          >
+            Topográfico
+          </button>
+          <button
+            type="button"
+            onClick={() => setModoVisualState("unifilar")}
+            className={`px-3 py-1 text-xs font-mono font-bold rounded-md transition-colors ${
+              modoVisualState === "unifilar"
+                ? "bg-abb-red text-white text-abb-red shadow-sm"
+                : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+            }`}
+          >
+            Unifilar
+          </button>
         </div>
 
-        {/* Panel desplegable de capas */}
-        {panelCapasAbierto && (
-          <div className="flex gap-4 border-b border-surface-stroke px-4 py-2.5 bg-gray-50 text-xs font-medium">
-            <label className="flex items-center gap-1.5 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={capas.codigos}
-                onChange={(e) => onCapasChange({ ...capas, codigos: e.target.checked })}
-                className="accent-abb-red"
-              />
-              Amperios / Etiquetas
-            </label>
-            <label className="flex items-center gap-1.5 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={capas.embarrado}
-                onChange={(e) => onCapasChange({ ...capas, embarrado: e.target.checked })}
-                className="accent-abb-red"
-              />
-              Embarrado General
-            </label>
-          </div>
-        )}
-
-        {/* Área del Blueprint con Pan (arrastre de ratón) y Zoom con rueda de ratón */}
-        <div
-          className={`flex min-h-[360px] max-h-[70vh] justify-center overflow-hidden bg-slate-50/50 ${
-            isDragging ? "cursor-grabbing" : "cursor-grab"
-          }`}
-          onWheel={handleWheel}
-          onMouseDown={handleMouseDown}
-          onMouseMove={handleMouseMove}
-          onMouseUp={handleMouseUp}
-          onMouseLeave={handleMouseUp}
-          title="Mantené presionado el ratón para desplazar (Pan) o usá la rueda para hacer Zoom"
-        >
-          <EsquemaVisual
-            tieneInterruptorPrincipal={tieneInterruptorPrincipal}
-            interruptorPrincipal={interruptorPrincipal}
-            secciones={secciones}
-            zoom={zoom}
-            panX={panX}
-            panY={panY}
-            capas={capas}
-            hoveredSalidaId={hoveredSalidaId}
-            onSalidaHover={onSalidaHover}
-            onSalidaClick={onSalidaClick}
-          />
+        <div className="text-[11px] font-mono text-gray-500 hidden sm:block">
+          {modoVisualState === "bloques"
+            ? "Esquema Vectorial SVG - Modo Bloques"
+            : `Motor CAD DXF - Modo ${modoVisualState === "topografico" ? "Topográfico 2D" : "Esquema Unifilar"}`}
         </div>
       </div>
 
-      {/* Modal Ampliado (Pantalla Completa Adaptativo) */}
-      {modalAmpliado && (
-        <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4 backdrop-blur-sm">
-          <div className="w-full max-w-7xl max-h-[92vh] bg-white rounded-xl shadow-2xl overflow-hidden flex flex-col border border-gray-300">
-            <div className="flex items-center justify-between bg-industrial-gray px-4 py-3 border-b border-surface-stroke">
-              <span className="font-mono text-sm font-bold uppercase tracking-wider text-gray-800 flex items-center gap-2">
-                <CpuChipIcon className="w-5 h-5 text-abb-red" />
-                Blueprint Unifilar (Pantalla Completa)
+      {/* RENDER SEGÚN EL MODO SELECCIONADO */}
+      {modoVisualState === "bloques" ? (
+        /* VISTA ORIGINAL DE BLOQUES (BLUEPRINT SVG) SIN MANDOS DE DISEÑO CAD */
+        <>
+          <div className="border border-surface-stroke bg-white rounded-xl shadow-sm overflow-hidden flex flex-col">
+            {/* Cabecera del Blueprint Bloques */}
+            <div className="flex items-center justify-between border-b border-surface-stroke bg-industrial-gray px-4 py-2.5 min-h-[42px]">
+              <span className="font-mono text-xs font-bold uppercase tracking-wider text-gray-700 flex items-center gap-2">
+                <CpuChipIcon className="w-4 h-4 text-abb-red" />
+                Blueprint Bloques (Esquema SVG)
               </span>
-              <div className="flex items-center gap-2">
-                {renderControles(true)}
-                <button
-                  type="button"
-                  aria-label="Cerrar modal de pantalla completa"
-                  onClick={() => setModalAmpliado(false)}
-                  className="p-1.5 text-gray-600 hover:text-abb-red rounded hover:bg-gray-200 transition ml-2"
-                  title="Cerrar (Esc)"
-                >
-                  <XMarkIcon className="w-5 h-5" />
-                </button>
-              </div>
+              {renderControlesSVG(false)}
             </div>
 
+            {/* Panel desplegable de capas */}
+            {panelCapasAbierto && (
+              <div className="flex gap-4 border-b border-surface-stroke px-4 py-2.5 bg-gray-50 text-xs font-medium">
+                <label className="flex items-center gap-1.5 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={capas.codigos}
+                    onChange={(e) => handleCapasChange({ ...capas, codigos: e.target.checked })}
+                    className="accent-abb-red"
+                  />
+                  Amperios / Etiquetas
+                </label>
+                <label className="flex items-center gap-1.5 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={capas.embarrado}
+                    onChange={(e) => handleCapasChange({ ...capas, embarrado: e.target.checked })}
+                    className="accent-abb-red"
+                  />
+                  Embarrado General
+                </label>
+              </div>
+            )}
+
+            {/* Área del Blueprint con Pan y Zoom */}
             <div
-              className={`flex-1 min-h-[480px] max-h-[82vh] bg-slate-50/80 p-6 overflow-hidden flex items-center justify-center ${
+              className={`flex min-h-[380px] max-h-[70vh] justify-center overflow-hidden bg-slate-50/50 ${
                 isDragging ? "cursor-grabbing" : "cursor-grab"
               }`}
               onWheel={handleWheel}
@@ -239,6 +294,7 @@ export function EsquemaVisualCanvas({
               onMouseMove={handleMouseMove}
               onMouseUp={handleMouseUp}
               onMouseLeave={handleMouseUp}
+              title="Mantené presionado el ratón para desplazar (Pan) o usá la rueda para hacer Zoom"
             >
               <EsquemaVisual
                 tieneInterruptorPrincipal={tieneInterruptorPrincipal}
@@ -250,15 +306,121 @@ export function EsquemaVisualCanvas({
                 capas={capas}
                 hoveredSalidaId={hoveredSalidaId}
                 onSalidaHover={onSalidaHover}
-                onSalidaClick={(salida) => {
-                  onSalidaClick?.(salida);
-                  setModalAmpliado(false);
-                }}
+                onSalidaClick={onSalidaClick}
               />
             </div>
           </div>
-        </div>
+
+          {/* Modal Ampliado Pantalla Completa para SVG Bloques */}
+          {modalAmpliado && (
+            <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4 backdrop-blur-sm">
+              <div className="w-full h-full max-w-7xl max-h-[94vh] bg-white rounded-xl shadow-2xl overflow-hidden flex flex-col border border-gray-300 relative">
+                <div className="flex items-center justify-between bg-industrial-gray px-4 py-3 border-b border-surface-stroke">
+                  <span className="font-mono text-sm font-bold uppercase tracking-wider text-gray-800 flex items-center gap-2">
+                    <CpuChipIcon className="w-5 h-5 text-abb-red" />
+                    Blueprint Bloques (Pantalla Completa)
+                  </span>
+                  <div className="flex items-center gap-2">
+                    {renderControlesSVG(true)}
+                    <button
+                      type="button"
+                      aria-label="Cerrar modal de pantalla completa"
+                      onClick={() => setModalAmpliado(false)}
+                      className="p-1.5 text-gray-600 hover:text-abb-red rounded hover:bg-gray-200 transition ml-2"
+                      title="Cerrar (Esc)"
+                    >
+                      <XMarkIcon className="w-5 h-5" />
+                    </button>
+                  </div>
+                </div>
+
+                <div
+                  className={`flex-1 w-full h-full bg-slate-50/90 p-6 overflow-hidden flex items-center justify-center relative ${
+                    isDragging ? "cursor-grabbing" : "cursor-grab"
+                  }`}
+                  onWheel={handleWheel}
+                  onMouseDown={handleMouseDown}
+                  onMouseMove={handleMouseMove}
+                  onMouseUp={handleMouseUp}
+                  onMouseLeave={handleMouseUp}
+                >
+                  <EsquemaVisual
+                    tieneInterruptorPrincipal={tieneInterruptorPrincipal}
+                    interruptorPrincipal={interruptorPrincipal}
+                    secciones={secciones}
+                    zoom={zoom}
+                    panX={panX}
+                    panY={panY}
+                    capas={capas}
+                    hoveredSalidaId={hoveredSalidaId}
+                    onSalidaHover={onSalidaHover}
+                    onSalidaClick={(salida) => {
+                      if (onSalidaClick) onSalidaClick(salida);
+                      setModalAmpliado(false);
+                    }}
+                  />
+
+                  {/* BARRA / BANNER DE SINCRONIZACIÓN DE TABLA EN HOVER */}
+                  {hoveredSalidaInfo ? (
+                    <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-30 bg-slate-900/95 text-white border border-abb-red/60 shadow-2xl backdrop-blur-md rounded-xl px-5 py-3 flex items-center space-x-4 max-w-4xl animate-fade-in text-xs font-mono">
+                      <div className="flex items-center space-x-2 shrink-0 border-r border-slate-700 pr-4">
+                        <span className="w-2.5 h-2.5 rounded-full bg-abb-red animate-ping" />
+                        <span className="bg-abb-red text-white font-bold px-2 py-0.5 rounded text-[11px] uppercase tracking-wider">
+                          {hoveredSalidaInfo.tag}
+                        </span>
+                      </div>
+
+                      <div className="flex flex-col">
+                        <span className="font-bold text-slate-100 truncate max-w-xs">{hoveredSalidaInfo.titulo}</span>
+                        <span className="text-[11px] text-slate-400">
+                          FILA: <strong className="text-slate-200">{hoveredSalidaInfo.seccion}</strong> | CÓD: <strong className="text-amber-400">{hoveredSalidaInfo.codigo}</strong>
+                        </span>
+                      </div>
+
+                      <div className="flex items-center space-x-4 border-l border-slate-700 pl-4 shrink-0">
+                        <div className="text-center">
+                          <span className="block text-[9px] text-slate-400 uppercase">Calibre</span>
+                          <span className="font-bold text-emerald-400">{hoveredSalidaInfo.corriente}</span>
+                        </div>
+                        <div className="text-center">
+                          <span className="block text-[9px] text-slate-400 uppercase">Polos</span>
+                          <span className="font-bold text-sky-400">{hoveredSalidaInfo.polos}</span>
+                        </div>
+                        <div className="text-center">
+                          <span className="block text-[9px] text-slate-400 uppercase">Cable</span>
+                          <span className="font-bold text-purple-300">{hoveredSalidaInfo.cable}</span>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-30 bg-slate-900/80 text-slate-300 border border-slate-700 shadow-lg backdrop-blur-md rounded-full px-5 py-1.5 text-xs font-mono text-center select-none pointer-events-none">
+                      Pasa el puntero sobre cualquier elemento o línea para ver la fila de la tabla
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+        </>
+      ) : (
+        /* VISOR CAD DXF PARA TOPOGRÁFICO Y UNIFILAR CON MANDOS DE DISEÑO COMPLETOS */
+        <CadViewerCanvas
+          tieneInterruptorPrincipal={tieneInterruptorPrincipal}
+          interruptorPrincipal={interruptorPrincipal}
+          secciones={secciones}
+          zoom={zoom}
+          onZoomChange={onZoomChange}
+          capas={capas}
+          onCapasChange={onCapasChange}
+          hoveredSalidaId={hoveredSalidaId}
+          onSalidaHover={onSalidaHover}
+          onSalidaClick={onSalidaClick}
+          gabineteSugeridoAncho={gabineteSugeridoAncho}
+          gabineteSugeridoAlto={gabineteSugeridoAlto}
+          modoVisual={modoVisualState}
+          onModoVisualChange={setModoVisualState}
+        />
       )}
-    </>
+    </div>
   );
 }
