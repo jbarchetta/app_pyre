@@ -38,6 +38,18 @@ export async function login(email: string, password: string): Promise<Usuario> {
   return response.json();
 }
 
+export async function restablecerPassword(email: string, newPassword: string): Promise<{ message: string }> {
+  const response = await fetch(`${API_BASE_URL}/auth/reset-password`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({ email, new_password: newPassword }),
+  });
+
+  await lanzarSiNoOk(response, "No se pudo restablecer la contraseña");
+  return response.json();
+}
+
 export async function fetchCurrentUser(): Promise<Usuario | null> {
   const response = await fetch(`${API_BASE_URL}/auth/me`, { credentials: "include" });
 
@@ -154,6 +166,20 @@ export interface Tablero {
   interruptor_principal_polos?: number | null;
   interruptor_principal_corriente_nominal_a?: string | null;
   interruptor_principal_capacidad_corte_ka?: string | null;
+  principal_metodo_entrada?: string | null;
+  principal_metodo_salida?: string | null;
+  borneras_tipo?: string | null;
+  lleva_banquitos?: boolean;
+  porcentaje_reserva?: number;
+  gabinete_sugerido_id?: string | null;
+  gabinete_sugerido_codigo?: string | null;
+  gabinete_sugerido_ancho_mm?: number | null;
+  gabinete_sugerido_alto_mm?: number | null;
+  distribuidor_sugerido_id?: string | null;
+  distribuidor_sugerido_codigo?: string | null;
+  cablecanal_sugerido?: string | null;
+  paso_mm?: number;
+  paso_manual?: number | null;
 }
 
 export async function listarTableros(proyectoId: string): Promise<Tablero[]> {
@@ -176,6 +202,7 @@ export async function crearTablero(
       nombre,
       nivel_falla_ka: nivelFallaKa,
       interruptor_principal_id: interruptorPrincipalId,
+      porcentaje_reserva: 0,
     }),
   });
   await lanzarSiNoOk(response, "No se pudo crear el tablero");
@@ -192,6 +219,12 @@ export interface TableroUpdate {
   nombre?: string;
   nivel_falla_ka?: string;
   interruptor_principal_id?: string | null;
+  principal_metodo_entrada?: string | null;
+  principal_metodo_salida?: string | null;
+  borneras_tipo?: string | null;
+  lleva_banquitos?: boolean;
+  porcentaje_reserva?: number;
+  paso_manual?: number | null;
 }
 
 export async function actualizarTablero(id: string, cambios: TableroUpdate): Promise<Tablero> {
@@ -215,6 +248,8 @@ export interface Seccion {
   tablero_id: string;
   nombre: string;
   orden: number;
+  paso_mm?: number;
+  paso_manual?: number | null;
 }
 
 export async function listarSecciones(tableroId: string): Promise<Seccion[]> {
@@ -236,14 +271,15 @@ export async function crearSeccion(tableroId: string, nombre: string, orden: num
 
 export interface SeccionUpdate {
   nombre?: string;
+  paso_manual?: number | null;
 }
 
-export async function actualizarSeccion(id: string, nombre: string): Promise<Seccion> {
+export async function actualizarSeccion(id: string, cambios: SeccionUpdate): Promise<Seccion> {
   const response = await fetch(`${API_BASE_URL}/secciones/${id}`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
     credentials: "include",
-    body: JSON.stringify({ nombre }),
+    body: JSON.stringify(cambios),
   });
   await lanzarSiNoOk(response, "No se pudo actualizar la sección");
   return response.json();
@@ -265,6 +301,8 @@ export interface Salida {
   carga_unidad: string;
   formato: FormatoPolos;
   tipo_proteccion: TipoProteccion;
+  sensibilidad_ma?: number | null;
+  admite_accesorios?: boolean | null;
   componente_id: string | null;
   componente_codigo?: string | null;
   componente_codigo_comercial?: string | null;
@@ -272,6 +310,12 @@ export interface Salida {
   origen: string;
   asignado_manualmente: boolean;
   posicion_orden: number;
+  posicion_codigo?: string | null;
+  orden?: number;
+  descripcion_personalizada?: string | null;
+  corriente_nominal_a?: number | string | null;
+  curva?: string | null;
+  seccion_cable_mm2?: number | string | null;
   motivo_sin_match?: string | null;
   alimentado_por_salida_id?: string | null;
   alimentado_por_codigo?: string | null;
@@ -283,6 +327,8 @@ export interface SalidaInput {
   carga_unidad: string;
   formato: FormatoPolos;
   tipo_proteccion: TipoProteccion;
+  sensibilidad_ma?: number | null;
+  admite_accesorios?: boolean | null;
   alimentado_por_salida_id?: string | null;
 }
 
@@ -309,6 +355,8 @@ export interface SalidaUpdateInput {
   carga_unidad?: string;
   formato?: FormatoPolos;
   tipo_proteccion?: TipoProteccion;
+  sensibilidad_ma?: number | null;
+  admite_accesorios?: boolean | null;
   componente_id?: string | null;
   asignado_manualmente?: boolean;
   alimentado_por_salida_id?: string | null;
@@ -349,6 +397,43 @@ export async function eliminarSalida(id: string): Promise<void> {
   await lanzarSiNoOk(response, "No se pudo borrar la salida");
 }
 
+export interface SimularPropuestaInput {
+  formato: FormatoPolos;
+  tipo_proteccion: TipoProteccion;
+  carga_valor: string;
+  carga_unidad: string;
+  sensibilidad_ma?: number | null;
+  admite_accesorios?: boolean | null;
+}
+
+export interface SimularPropuestaResponse {
+  compatible: boolean;
+  componente_id: string | null;
+  componente_codigo: string | null;
+  motivo: string | null;
+}
+
+export async function simularPropuesta(seccionId: string, input: SimularPropuestaInput): Promise<SimularPropuestaResponse> {
+  const query = new URLSearchParams();
+  query.append("formato", input.formato);
+  query.append("tipo_proteccion", input.tipo_proteccion);
+  query.append("carga_valor", input.carga_valor);
+  query.append("carga_unidad", input.carga_unidad);
+  if (input.sensibilidad_ma !== undefined && input.sensibilidad_ma !== null) {
+    query.append("sensibilidad_ma", String(input.sensibilidad_ma));
+  }
+  if (input.admite_accesorios !== undefined && input.admite_accesorios !== null) {
+    query.append("admite_accesorios", String(input.admite_accesorios));
+  }
+
+  const response = await fetch(`${API_BASE_URL}/secciones/${seccionId}/simular-propuesta?${query.toString()}`, {
+    method: "GET",
+    credentials: "include",
+  });
+  await lanzarSiNoOk(response, "No se pudo simular la propuesta del componente");
+  return response.json();
+}
+
 export interface ComponenteBusqueda {
   id: string;
   codigo: string;
@@ -369,9 +454,12 @@ export async function buscarCatalogo(
     offset?: number;
     categorias?: string[];
     solo_con_atributos?: boolean;
+    tipo?: string;
     polos?: number;
     corriente_nominal_a?: string;
     capacidad_corte_ka?: string;
+    sensibilidad_ma?: number;
+    admite_accesorios?: boolean;
   },
 ): Promise<ResultadoBusquedaCatalogo> {
   const params = new URLSearchParams({ q });
@@ -379,9 +467,12 @@ export async function buscarCatalogo(
   if (opciones?.offset !== undefined) params.set("offset", String(opciones.offset));
   for (const categoria of opciones?.categorias ?? []) params.append("categorias", categoria);
   if (opciones?.solo_con_atributos) params.set("solo_con_atributos", "true");
+  if (opciones?.tipo !== undefined) params.set("tipo", opciones.tipo);
   if (opciones?.polos !== undefined) params.set("polos", String(opciones.polos));
   if (opciones?.corriente_nominal_a !== undefined) params.set("corriente_nominal_a", opciones.corriente_nominal_a);
   if (opciones?.capacidad_corte_ka !== undefined) params.set("capacidad_corte_ka", opciones.capacidad_corte_ka);
+  if (opciones?.sensibilidad_ma !== undefined) params.set("sensibilidad_ma", String(opciones.sensibilidad_ma));
+  if (opciones?.admite_accesorios !== undefined) params.set("admite_accesorios", String(opciones.admite_accesorios));
   const response = await fetch(`${API_BASE_URL}/catalogo/buscar?${params.toString()}`, {
     credentials: "include",
   });
@@ -393,11 +484,15 @@ export interface OpcionesFiltro {
   polos: number[];
   corrientes_nominales_a: string[];
   capacidades_corte_ka: string[];
+  sensibilidades_ma?: number[];
+  sensabilidades_ma?: number[];
+  admite_accesorios?: boolean[];
 }
 
-export async function obtenerOpcionesFiltro(categorias: string[]): Promise<OpcionesFiltro> {
+export async function obtenerOpcionesFiltro(categorias: string[], tipo?: string): Promise<OpcionesFiltro> {
   const params = new URLSearchParams();
   for (const categoria of categorias) params.append("categorias", categoria);
+  if (tipo) params.set("tipo", tipo);
   const response = await fetch(`${API_BASE_URL}/catalogo/opciones-filtro?${params.toString()}`, {
     credentials: "include",
   });
@@ -418,6 +513,9 @@ export const CATEGORIAS_INTERRUPTORES = [
   "Interruptores automáticos en caja moldeada",
   "Interruptores termomagnéticos con protección diferencial",
   "Interruptores Diferenciales",
+  "Interruptores Diferenciales - Sin posibilidad de utilizar accesorios",
+  "Interruptores Diferenciales - Con posibilidad de utilizar accesorios",
+  "Detector de fallas de arco con proteccion Diferencial (AFDD+RCD)",
   "Interruptores diferenciales",
   "Bloques diferenciales",
 ];
@@ -454,4 +552,98 @@ export function formatearCorriente(valor: string | number | null | undefined): s
     return Math.round(num).toString();
   }
   return num.toString();
+}export function existeIncompatibilidadLink(
+  childFormato: FormatoPolos | string | undefined | null,
+  childTipo: TipoProteccion | string | undefined | null,
+  parentFormato: FormatoPolos | string | undefined | null,
+  parentTipo: TipoProteccion | string | undefined | null
+): boolean {
+  if (!childFormato || !childTipo || !parentFormato || !parentTipo) return false;
+
+  const isOneDiff = childTipo === "seccional_diferencial" || parentTipo === "seccional_diferencial";
+  const isOneTermo = childTipo === "seccional_termomagnetico" || parentTipo === "seccional_termomagnetico";
+  if (!isOneDiff || !isOneTermo) return false;
+
+  const isOneTetra = childFormato === "tetrapolar" || parentFormato === "tetrapolar";
+  const isOneMonoBiTri =
+    ["unipolar", "bipolar", "tripolar"].includes(childFormato) ||
+    ["unipolar", "bipolar", "tripolar"].includes(parentFormato);
+
+  return isOneTetra && isOneMonoBiTri;
+}
+
+export interface ReglaCablecanal {
+  id: string;
+  corriente_minima: string;
+  corriente_maxima: string;
+  medida_cablecanal: string;
+}
+
+export interface ReglaCablecanalInput {
+  corriente_minima: string;
+  corriente_maxima: string;
+  medida_cablecanal: string;
+}
+
+export interface AccesoriosSugeridos {
+  motorizacion: ComponenteBusqueda | null;
+  bobina_apertura: ComponenteBusqueda | null;
+  bobina_cero_tension: ComponenteBusqueda | null;
+  contactos_auxiliares: ComponenteBusqueda | null;
+}
+
+export async function obtenerAccesoriosSugeridos(tableroId: string): Promise<AccesoriosSugeridos> {
+  const response = await fetch(`${API_BASE_URL}/tableros/${tableroId}/accesorios-sugeridos`, { credentials: "include" });
+  await lanzarSiNoOk(response, "No se pudieron obtener los accesorios sugeridos");
+  return response.json();
+}
+
+export async function listarAccesoriosPrincipal(tableroId: string): Promise<ComponenteBusqueda[]> {
+  const response = await fetch(`${API_BASE_URL}/tableros/${tableroId}/accesorios`, { credentials: "include" });
+  await lanzarSiNoOk(response, "No se pudieron listar los accesorios");
+  return response.json();
+}
+
+export async function asociarAccesorioPrincipal(tableroId: string, componenteId: string): Promise<ComponenteBusqueda> {
+  const response = await fetch(`${API_BASE_URL}/tableros/${tableroId}/accesorios`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({ componente_id: componenteId }),
+  });
+  await lanzarSiNoOk(response, "No se pudo asociar el accesorio");
+  return response.json();
+}
+
+export async function desasociarAccesorioPrincipal(tableroId: string, componenteId: string): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/tableros/${tableroId}/accesorios/${componenteId}`, {
+    method: "DELETE",
+    credentials: "include",
+  });
+  await lanzarSiNoOk(response, "No se pudo desasociar el accesorio");
+}
+
+export async function listarReglasCablecanal(): Promise<ReglaCablecanal[]> {
+  const response = await fetch(`${API_BASE_URL}/config/reglas-cablecanal`, { credentials: "include" });
+  await lanzarSiNoOk(response, "No se pudieron listar las reglas de cablecanal");
+  return response.json();
+}
+
+export async function crearReglaCablecanal(datos: ReglaCablecanalInput): Promise<ReglaCablecanal> {
+  const response = await fetch(`${API_BASE_URL}/config/reglas-cablecanal`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(datos),
+  });
+  await lanzarSiNoOk(response, "No se pudo crear la regla de cablecanal");
+  return response.json();
+}
+
+export async function eliminarReglaCablecanal(id: string): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/config/reglas-cablecanal/${id}`, {
+    method: "DELETE",
+    credentials: "include",
+  });
+  await lanzarSiNoOk(response, "No se pudo eliminar la regla de cablecanal");
 }
