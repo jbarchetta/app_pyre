@@ -369,7 +369,23 @@ export function EsquemaVisual({
 
                     {renderPhaseTicks(x, cardY - 2, polesCount)}
                     {renderBreakerSymbol(x, cardY + 16, isDiff, hasMatch)}
-                    <text x={x + 12} y={cardY + 20} fontSize={12} fontFamily="monospace" fontWeight="bold" fill="#0f172a">{tagElemento}</text>
+
+                    {/* Textos de Elemento: TAG, Designación ABB en rojo y Código SAP */}
+                    <g transform={`translate(${x + 14}, ${cardY + 8})`}>
+                      {/* Linea 1: TAG Elemento (Q101, D101, etc.) */}
+                      <text x={0} y={0} fontSize={12.5} fontFamily="monospace" fontWeight="bold" fill="#0f172a">
+                        {tagElemento}
+                      </text>
+                      {/* Linea 2: Designación de Tipo (con ABB en rojo) */}
+                      <text x={0} y={13} fontSize={11.5} fontFamily="monospace">
+                        <tspan fill="#dc2626" fontWeight="bold">ABB </tspan>
+                        <tspan fill="#0f172a" fontWeight="bold">{salida.componente_codigo_comercial || (isDiff ? "F200" : "S200")}</tspan>
+                      </text>
+                      {/* Linea 3: Código SAP */}
+                      <text x={0} y={25} fontSize={11.5} fontFamily="monospace" fill="#64748b">
+                        {salida.componente_codigo || (isDiff ? "2CSF202101R1250" : "2CDS251001R0164")}
+                      </text>
+                    </g>
 
                     {hasLinkError && (
                       <g

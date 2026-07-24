@@ -316,7 +316,6 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
         // Código de posición (F1.1, F1.2, etc.) para referencia de ubicación en la caja al pie
         const seccionNum = secGroup.seccion.orden != null ? secGroup.seccion.orden + 1 : _secIdx + 1;
         const tagPosicion = `F${seccionNum}.${salIdx + 1}`;
-        const codigoComp = salida.componente_codigo || `ABB S200`;
 
         // Regla de Formato IEC (unipolar, bipolar, tripolar, tetrapolar 3F+N)
         const { etiquetaPolos } = obtenerReglaFormato(salida.formato);
@@ -437,9 +436,9 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
         }
 
         // -------------------------------------------------------------------
-        // TEXTOS DESCRIPTIVOS A LA IZQUIERDA (-15mm, RIGHT ALIGN)
+        // TEXTOS DESCRIPTIVOS A LA IZQUIERDA DEL SÍMBOLO (RIGHT ALIGN)
         // -------------------------------------------------------------------
-        // Tag de Elemento (Q101, Q102... o D101, D102...)
+        // 1. Tag de Elemento (Q101, Q102... o D101, D102...) (6.5mm Bold)
         primitives.push({
           id: `txt-tag-${salida.id}`,
           layerId: "6_Cotas_Textos",
@@ -455,29 +454,31 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
           color: "auto",
         });
 
-        // Código Comercial / ABB del Disyuntor (ej. ABB S200)
+        // 2. Designación de Tipo (ABB precedido en rojo, 6.0mm Bold)
+        const desigModelo = salida.componente_codigo_comercial || (diff ? "F200" : "S200");
         primitives.push({
-          id: `txt-code-${salida.id}`,
+          id: `txt-type-${salida.id}`,
           layerId: "6_Cotas_Textos",
           type: "text",
           x: X_col + OFFSET_X_TEXT,
           y: Y_BRANCH_DEVICES - 2,
-          text: codigoComp,
-          fontSize: 6.5,
+          text: `ABB ${desigModelo}`,
+          fontSize: 6.0,
+          weight: "bold",
           align: "right",
           color: "auto",
         });
 
-        // Especificación (Amperaje & Formato IEC) (ej. 32A 4P (3F+N))
+        // 3. Código SAP (6.0mm Normal)
+        const codSAP = salida.componente_codigo || (diff ? "2CSF202101R1250" : "2CDS251001R0164");
         primitives.push({
-          id: `txt-amp-${salida.id}`,
+          id: `txt-sap-${salida.id}`,
           layerId: "6_Cotas_Textos",
           type: "text",
           x: X_col + OFFSET_X_TEXT,
           y: Y_BRANCH_DEVICES + 8,
-          text: `${ampStr} ${etiquetaPolos}`,
-          fontSize: 6.5,
-          weight: "bold",
+          text: codSAP,
+          fontSize: 6.0,
           align: "right",
           color: "auto",
         });

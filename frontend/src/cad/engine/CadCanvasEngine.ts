@@ -250,10 +250,29 @@ export class CadCanvasEngine {
         ctx.textAlign = prim.align || "left";
         ctx.textBaseline = prim.baseline || "alphabetic";
 
-        const textLines = prim.text.split("\n");
-        textLines.forEach((line, i) => {
-          ctx.fillText(line, pos.x, pos.y + i * (fontSizePx * 1.25));
-        });
+        if (prim.text.startsWith("ABB ")) {
+          const restText = prim.text.substring(4);
+          ctx.save();
+          if (prim.align === "right") {
+            const restWidth = ctx.measureText(restText).width;
+            ctx.fillStyle = "#DC2626";
+            ctx.fillText("ABB ", pos.x - restWidth, pos.y);
+            ctx.fillStyle = isSelected || isHovered ? "#D97706" : color;
+            ctx.fillText(restText, pos.x, pos.y);
+          } else {
+            const abbWidth = ctx.measureText("ABB ").width;
+            ctx.fillStyle = "#DC2626";
+            ctx.fillText("ABB ", pos.x, pos.y);
+            ctx.fillStyle = isSelected || isHovered ? "#D97706" : color;
+            ctx.fillText(restText, pos.x + abbWidth, pos.y);
+          }
+          ctx.restore();
+        } else {
+          const textLines = prim.text.split("\n");
+          textLines.forEach((line, i) => {
+            ctx.fillText(line, pos.x, pos.y + i * (fontSizePx * 1.25));
+          });
+        }
         break;
       }
 
