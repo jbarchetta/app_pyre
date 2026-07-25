@@ -5,7 +5,6 @@ import {
   PencilIcon,
   TrashIcon,
   PlusIcon,
-  BuildingOffice2Icon,
 } from "@heroicons/react/24/outline";
 import {
   actualizarTablero,
