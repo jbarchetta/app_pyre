@@ -132,6 +132,12 @@ export function EsquemaVisualCanvas({
     };
   }, [modalAmpliado]);
 
+  // Auto-centrar el esquema al alternar entre vista normal y pantalla completa
+  useEffect(() => {
+    setPanX(0);
+    setPanY(0);
+  }, [modalAmpliado]);
+
   const handleMouseDown = (e: React.MouseEvent) => {
     if (e.button === 0) {
       setIsDragging(true);
@@ -253,7 +259,7 @@ export function EsquemaVisualCanvas({
     if (!hoveredSalidaInfo) {
       if (isModal) {
         return (
-          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-50 bg-slate-100/90 text-slate-700 border border-slate-300/80 shadow-sm backdrop-blur-sm rounded-md px-4 py-1 text-[11px] font-mono text-center opacity-90 select-none pointer-events-none">
+          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-50 bg-slate-100/95 text-slate-700 border border-slate-300/80 shadow-md backdrop-blur-sm rounded-md px-3.5 py-1 text-[10px] md:text-[11px] font-mono text-center opacity-90 select-none pointer-events-none whitespace-nowrap transition-all duration-300 ease-out transform translate-y-0 animate-fade-in">
             [CAD INSPECT] Pasa el cursor sobre cualquier línea o elemento para ver detalles técnicos
           </div>
         );
@@ -262,7 +268,7 @@ export function EsquemaVisualCanvas({
     }
 
     return (
-      <div className={`absolute ${isModal ? "bottom-8" : "bottom-4"} left-1/2 -translate-x-1/2 z-50 bg-white/95 text-slate-900 border border-slate-300/80 shadow-[0_8px_30px_rgba(0,0,0,0.15)] backdrop-blur-md rounded-md px-4 py-1.5 flex items-center space-x-4 max-w-[92%] whitespace-nowrap text-xs font-sans select-none pointer-events-none animate-fade-in`}>
+      <div className={`absolute ${isModal ? "bottom-8" : "bottom-4"} left-1/2 -translate-x-1/2 z-50 bg-white/95 text-slate-900 border border-slate-300/80 shadow-[0_8px_30px_rgba(0,0,0,0.15)] backdrop-blur-md rounded-md px-4 py-1.5 flex items-center space-x-4 max-w-[92%] whitespace-nowrap text-xs font-sans select-none pointer-events-none transition-all duration-300 ease-out transform translate-y-0 animate-fade-in`}>
         {/* TAG DE POSICIÓN */}
         <div className="flex items-center space-x-2 shrink-0">
           <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />

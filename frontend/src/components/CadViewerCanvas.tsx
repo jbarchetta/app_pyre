@@ -148,6 +148,14 @@ export function CadViewerCanvas({
   // Transformación de Viewport (Zoom y Pan)
   const [transform, setTransform] = useState<ViewportTransform>({ zoom, panX: 50, panY: 50 });
 
+  // Recalcular centrado al alternar entre vista comprimida y pantalla completa
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setTransform((t) => ({ ...t, panX: 50, panY: 50 }));
+    }, 60);
+    return () => clearTimeout(timer);
+  }, [modalAmpliado]);
+
   // Sincronizar zoom prop desde el padre solo si difiere significativamente
   useEffect(() => {
     setTransform((t) => {
@@ -488,22 +496,20 @@ export function CadViewerCanvas({
             <span>Capas</span>
           </button>
 
-          <button
-            onClick={() => setModalAmpliado((m) => !m)}
-            aria-label="Pantalla completa"
-            className={`p-1.5 rounded-md transition-colors ${
-              theme === "light"
-                ? modalAmpliado
-                  ? "bg-abb-red text-white"
-                  : "text-slate-700 hover:text-slate-950 hover:bg-slate-200"
-                : modalAmpliado
-                  ? "bg-sky-600 text-white"
+          {!modalAmpliado && (
+            <button
+              onClick={() => setModalAmpliado(true)}
+              aria-label="Pantalla completa"
+              className={`p-1.5 rounded-md transition-colors ${
+                theme === "light"
+                  ? "text-slate-700 hover:text-slate-950 hover:bg-slate-200"
                   : "text-slate-300 hover:text-white hover:bg-slate-800"
-            }`}
-            title={modalAmpliado ? "Salir de Pantalla Completa" : "Pantalla Completa"}
-          >
-            {modalAmpliado ? <XMarkIcon className="w-4 h-4" /> : <ArrowsPointingOutIcon className="w-4 h-4" />}
-          </button>
+              }`}
+              title="Pantalla Completa"
+            >
+              <ArrowsPointingOutIcon className="w-4 h-4" />
+            </button>
+          )}
         </div>
 
         {/* Acciones de Exportación Profesional y Cierre de Pantalla Completa */}
@@ -547,11 +553,18 @@ export function CadViewerCanvas({
 
           {modalAmpliado && (
             <button
+              type="button"
               onClick={() => setModalAmpliado(false)}
-              className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-md transition border-l border-slate-300 dark:border-slate-800 pl-3.5 ml-2"
-              title="Cerrar Pantalla Completa (Esc)"
+              className={`px-2.5 py-1 rounded-lg border font-mono text-xs flex items-center space-x-1.5 transition-all duration-200 shadow-sm ${
+                theme === "light"
+                  ? "bg-slate-200/90 hover:bg-red-50 border-slate-300 text-slate-700 hover:text-abb-red"
+                  : "bg-slate-800 hover:bg-red-950/60 border-slate-700 text-slate-200 hover:text-red-400"
+              }`}
+              title="Salir de Pantalla Completa (Esc)"
+              aria-label="Salir de pantalla completa"
             >
-              <XMarkIcon className="w-5 h-5" />
+              <XMarkIcon className="w-4 h-4" />
+              <span>CERRAR</span>
             </button>
           )}
         </div>
@@ -559,13 +572,7 @@ export function CadViewerCanvas({
 
       {/* PANEL FLOTANTE DE CAPAS CAD */}
       {panelCapasAbierto && (
-        <div
-          className={`absolute top-12 right-4 z-20 w-64 border rounded-xl p-3 shadow-2xl backdrop-blur-md ${
-            theme === "light"
-              ? "bg-white/95 border-slate-300 text-slate-900 shadow-slate-300"
-              : "bg-slate-950/95 border-slate-800 text-slate-200"
-          }`}
-        >
+        <div className="absolute top-12 right-4 z-40 w-64 p-3 rounded-xl shadow-xl border backdrop-blur-md animate-fade-in transition-all">
           <div
             className={`flex items-center justify-between border-b pb-2 mb-2 ${
               theme === "light" ? "border-slate-200" : "border-slate-800"
@@ -642,7 +649,7 @@ export function CadViewerCanvas({
 
         {/* BARRA DE INSPECCIÓN CAD TÉCNICA (HUD COMPACTO EN UNA SOLA LÍNEA) */}
         {hoveredSalidaInfo ? (
-          <div className={`absolute ${modalAmpliado ? "bottom-8" : "bottom-4"} left-1/2 -translate-x-1/2 z-50 bg-white/95 text-slate-900 border border-slate-300/80 shadow-[0_8px_30px_rgba(0,0,0,0.15)] backdrop-blur-md rounded-md px-4 py-1.5 flex items-center space-x-4 max-w-[92%] whitespace-nowrap text-xs font-sans select-none pointer-events-none animate-fade-in`}>
+          <div className={`absolute ${modalAmpliado ? "bottom-8" : "bottom-4"} left-1/2 -translate-x-1/2 z-50 bg-white/95 text-slate-900 border border-slate-300/80 shadow-[0_8px_30px_rgba(0,0,0,0.15)] backdrop-blur-md rounded-md px-4 py-1.5 flex items-center space-x-4 max-w-[92%] whitespace-nowrap text-xs font-sans select-none pointer-events-none transition-all duration-300 ease-out transform translate-y-0 animate-fade-in`}>
             {/* TAG DE POSICIÓN */}
             <div className="flex items-center space-x-2 shrink-0">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
@@ -685,10 +692,10 @@ export function CadViewerCanvas({
           </div>
         ) : (
           <div
-            className={`absolute ${modalAmpliado ? "bottom-8" : "bottom-4"} left-1/2 -translate-x-1/2 z-50 rounded-md px-4 py-1 text-[11px] font-mono text-center select-none pointer-events-none transition-colors ${
+            className={`absolute ${modalAmpliado ? "bottom-8" : "bottom-4"} left-1/2 -translate-x-1/2 z-50 rounded-md px-3.5 py-1 text-[10px] md:text-[11px] font-mono text-center select-none pointer-events-none whitespace-nowrap transition-all duration-300 ease-out transform translate-y-0 ${
               theme === "light"
-                ? "bg-slate-100/90 text-slate-700 border border-slate-300/80 shadow-sm backdrop-blur-sm opacity-90"
-                : "bg-slate-900/60 text-slate-400 border border-slate-700/40 shadow-sm backdrop-blur-sm opacity-70"
+                ? "bg-slate-100/95 text-slate-700 border border-slate-300/80 shadow-md backdrop-blur-sm opacity-90"
+                : "bg-slate-900/80 text-slate-400 border border-slate-700/60 shadow-md backdrop-blur-sm opacity-80"
             }`}
           >
             [CAD INSPECT] Pasa el cursor sobre cualquier línea o elemento para ver detalles técnicos
