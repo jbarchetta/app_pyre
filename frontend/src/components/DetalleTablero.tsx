@@ -38,23 +38,21 @@ import { ComponentePicker } from "./ComponentePicker";
 import { SeccionBlock } from "./SeccionBlock";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { useCerrarAlClickFuera } from "../hooks/useCerrarAlClickFuera";
+import type { ModoVisual, ModoVisualState } from "../utils/vistaStorage";
 
 interface SeccionConSalidas {
   seccion: Seccion;
   salidas: Salida[];
 }
 
-interface Vista {
-  zoom: number;
-  capas: Capas;
-}
-
 interface DetalleTableroProps {
   tablero: Tablero;
   onTableroActualizado: (tablero: Tablero) => void;
-  vista: Vista;
-  onZoomChange: (zoom: number) => void;
-  onCapasChange: (capas: Capas) => void;
+  obtenerVistaModo?: (modo: ModoVisual) => ModoVisualState;
+  onModoStateChange?: (modo: ModoVisual, cambios: Partial<ModoVisualState>) => void;
+  vista?: { zoom: number; capas: Capas };
+  onZoomChange?: (zoom: number) => void;
+  onCapasChange?: (capas: Capas) => void;
 }
 
 const TAB_PRINCIPAL = "principal";
@@ -74,6 +72,8 @@ const CATEGORIAS_ACCESORIOS = [
 export function DetalleTablero({
   tablero,
   onTableroActualizado,
+  obtenerVistaModo,
+  onModoStateChange,
   vista,
   onZoomChange,
   onCapasChange,
@@ -450,9 +450,11 @@ export function DetalleTablero({
               polos: tablero.interruptor_principal_polos,
             }}
             secciones={secciones}
-            zoom={vista.zoom}
+            obtenerVistaModo={obtenerVistaModo}
+            onModoStateChange={onModoStateChange}
+            zoom={vista?.zoom}
             onZoomChange={onZoomChange}
-            capas={vista.capas}
+            capas={vista?.capas}
             onCapasChange={onCapasChange}
             hoveredSalidaId={hoveredSalidaId}
             onSalidaHover={setHoveredSalidaId}

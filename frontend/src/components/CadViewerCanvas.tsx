@@ -21,10 +21,15 @@ import { generateBoardCadDocument, type InterruptorPrincipalInfo } from "../cad/
 import { CadCanvasEngine } from "../cad/engine/CadCanvasEngine";
 import type { Capas } from "./EsquemaVisual";
 
+import type { ModoVisual, ModoVisualState } from "../utils/vistaStorage";
+import { Button } from "./common/Button";
+
 interface CadViewerCanvasProps {
   tieneInterruptorPrincipal: boolean;
   interruptorPrincipal?: InterruptorPrincipalInfo | null;
   secciones: { seccion: Seccion; salidas: Salida[] }[];
+  obtenerVistaModo?: (modo: ModoVisual) => ModoVisualState;
+  onModoStateChange?: (modo: ModoVisual, cambios: Partial<ModoVisualState>) => void;
   zoom?: number;
   onZoomChange?: (zoom: number) => void;
   capas?: Capas;
@@ -49,9 +54,11 @@ export function CadViewerCanvas({
   tieneInterruptorPrincipal,
   interruptorPrincipal,
   secciones,
-  zoom = 1,
+  obtenerVistaModo,
+  onModoStateChange,
+  zoom: zoomProp = 1,
   onZoomChange,
-  capas = { codigos: true, embarrado: true },
+  capas: capasProp = { codigos: true, embarrado: true },
   onCapasChange,
   hoveredSalidaId,
   onSalidaHover,
@@ -69,13 +76,35 @@ export function CadViewerCanvas({
   useEffect(() => {
     if (modoVisualProp) setModoVisualState(modoVisualProp);
   }, [modoVisualProp]);
-  const [theme, setTheme] = useState<"dark" | "light">("dark");
-  const [showGrid, setShowGrid] = useState(true);
-  const [snapGrid, setSnapGrid] = useState(false);
-  const [panelCapasAbierto, setPanelCapasAbierto] = useState(false);
+
+  const estadoModoActual = obtenerVistaModo ? obtenerVistaModo(modoVisual) : null;
+
+  const zoomEfectivo = estadoModoActual ? estadoModoActual.zoom : zoomProp;
+  const capasEfectivas = estadoModoActual ? estadoModoActual.capas : capasProp;
+
+  const [themeLocal, setThemeLocal] = useState<"dark" | "light">("dark");
+  const [showGridLocal, setShowGridLocal] = useState(true);
+  const [snapGridLocal, setSnapGridLocal] = useState(false);
+  const [panelCapasAbiertoLocal, setPanelCapasAbiertoLocal] = useState(false);
+  const [herramientaMedirLocal, setHerramientaMedirLocal] = useState(false);
+
+  const theme = estadoModoActual?.theme ?? themeLocal;
+  const showGrid = estadoModoActual?.showGrid ?? showGridLocal;
+  const snapGrid = estadoModoActual?.snapGrid ?? snapGridLocal;
+  const herramientaMedir = estadoModoActual?.herramientaMedir ?? herramientaMedirLocal;
+  const panelCapasAbierto = estadoModoActual?.panelCapasAbierto ?? panelCapasAbiertoLocal;
+
   const [modalAmpliado, setModalAmpliado] = useState(false);
-  const [herramientaMedir, setHerramientaMedir] = useState(false);
   const [puntoInicioMedicion, setPuntoInicioMedicion] = useState<CadPoint | null>(null);
+
+  const updateModoState = useCallback(
+    (cambios: Partial<ModoVisualState>) => {
+      if (onModoStateChange) {
+        onModoStateChange(modoVisual, cambios);
+      }
+    },
+    [modoVisual, onModoStateChange]
+  );
 
   // Documento CAD generado paramétricamente
   const cadDoc = useMemo(() => {
@@ -90,11 +119,11 @@ export function CadViewerCanvas({
   }, [tieneInterruptorPrincipal, interruptorPrincipal, secciones, modoVisual, gabineteSugeridoAncho, gabineteSugeridoAlto]);
 
   // Estado de capas internas
-  const [capasInternas, setCapasInternas] = useState<Capas>(capas);
+  const [capasInternas, setCapasInternas] = useState<Capas>(capasEfectivas);
 
   useEffect(() => {
-    setCapasInternas(capas);
-  }, [capas]);
+    setCapasInternas(capasEfectivas);
+  }, [capasEfectivas]);
 
   const activeLayerIds = useMemo(() => {
     const active = new Set<string>();
@@ -146,19 +175,19 @@ export function CadViewerCanvas({
   }, [canvasHoveredId, secciones, interruptorPrincipal]);
 
   // Transformación de Viewport (Zoom y Pan)
-  const [transform, setTransform] = useState<ViewportTransform>({ zoom, panX: 50, panY: 50 });
+  const [transform, setTransform] = useState<ViewportTransform>({ zoom: zoomEfectivo, panX: 50, panY: 50 });
 
   // Sincronizar zoom prop desde el padre usando zoomAtPoint al centro del contenedor
   useEffect(() => {
     setTransform((t) => {
-      const targetZoom = limitar(zoom);
+      const targetZoom = limitar(zoomEfectivo);
       if (Math.abs(t.zoom - targetZoom) < 0.005) return t;
       const w = containerRef.current?.clientWidth || window.innerWidth || 800;
       const h = containerRef.current?.clientHeight || window.innerHeight || 600;
       const centerPixel = { x: w / 2, y: h / 2 };
       return zoomAtPoint(centerPixel, t, targetZoom);
     });
-  }, [zoom]);
+  }, [zoomEfectivo]);
 
   const [mousePosPx, setMousePosPx] = useState<{ x: number; y: number } | null>(null);
 
@@ -193,6 +222,7 @@ export function CadViewerCanvas({
         const targetZoom = limitar(prevTransform.zoom * zoomFactor);
         const nextTransform = zoomAtPoint(pixel, prevTransform, targetZoom);
         if (onZoomChangeRef.current) onZoomChangeRef.current(nextTransform.zoom);
+        updateModoState({ zoom: nextTransform.zoom });
         return nextTransform;
       });
     };
@@ -201,7 +231,7 @@ export function CadViewerCanvas({
     return () => {
       el.removeEventListener("wheel", onWheelNative);
     };
-  }, []);
+  }, [updateModoState]);
 
   // Función para ajustar el dibujo a la pantalla (Fit Bounds) y notificar al padre
   const handleFitToScreen = useCallback(() => {
@@ -212,7 +242,8 @@ export function CadViewerCanvas({
     if (onZoomChangeRef.current) {
       onZoomChangeRef.current(nextTransform.zoom);
     }
-  }, [cadDoc.bounds]);
+    updateModoState({ zoom: nextTransform.zoom });
+  }, [cadDoc.bounds, updateModoState]);
 
   // Fit to screen inicial EXCLUSIVAMENTE al cambiar de modo visual topográfico / unifilar
   useEffect(() => {
@@ -266,6 +297,7 @@ export function CadViewerCanvas({
     if (onZoomChange) {
       onZoomChange(nextTransform.zoom);
     }
+    updateModoState({ zoom: nextTransform.zoom });
   };
 
   const resetZoom = () => {
@@ -436,87 +468,73 @@ export function CadViewerCanvas({
 
         {/* Switch de Tema Dark / Light y Modos CAD */}
         <div className="flex items-center space-x-2">
-          <button
-            onClick={() => setTheme((t) => (t === "dark" ? "light" : "dark"))}
-            className={`px-2.5 py-1 rounded-md border text-xs flex items-center space-x-1 font-medium transition-colors ${
-              theme === "light"
-                ? "bg-amber-100 border-amber-300 text-amber-900 hover:bg-amber-200 font-bold"
-                : "bg-slate-800 border-slate-700 text-sky-300 hover:bg-slate-700 font-bold"
-            }`}
+          <Button
+            size="xs"
+            variant={theme === "light" ? "secondary" : "cad-tool"}
+            icon={theme === "light" ? <SunIcon className="w-3.5 h-3.5 text-amber-500" /> : <MoonIcon className="w-3.5 h-3.5 text-sky-400" />}
+            onClick={() => {
+              const nextTheme = theme === "dark" ? "light" : "dark";
+              setThemeLocal(nextTheme);
+              updateModoState({ theme: nextTheme });
+            }}
             title="Cambiar Tema Dark / Light"
           >
-            {theme === "light" ? <SunIcon className="w-4 h-4 text-amber-600" /> : <MoonIcon className="w-4 h-4 text-sky-400" />}
-            <span>{theme === "light" ? "Light" : "Dark"}</span>
-          </button>
+            {theme === "light" ? "Light" : "Dark"}
+          </Button>
 
-          <button
-            onClick={() => setShowGrid((g) => !g)}
-            className={`px-2.5 py-1 rounded-md border text-xs font-mono transition-colors ${
-              theme === "light"
-                ? showGrid
-                  ? "bg-sky-100 border-sky-400 text-sky-900 font-bold"
-                  : "bg-white border-slate-300 text-slate-600 hover:bg-slate-100 hover:text-slate-900"
-                : showGrid
-                  ? "bg-sky-950/70 border-sky-600 text-sky-400 font-bold"
-                  : "border-slate-700 text-slate-400 hover:bg-slate-800 hover:text-slate-200"
-            }`}
+          <Button
+            size="xs"
+            variant={showGrid ? "cad-tool-active" : "cad-tool"}
+            onClick={() => {
+              const nextGrid = !showGrid;
+              setShowGridLocal(nextGrid);
+              updateModoState({ showGrid: nextGrid });
+            }}
             title={showGrid ? "Desactivar Grilla CAD" : "Activar Grilla CAD"}
           >
             GRID
-          </button>
+          </Button>
 
-          <button
-            onClick={() => setSnapGrid((s) => !s)}
-            className={`px-2.5 py-1 rounded-md border text-xs font-mono transition-colors ${
-              theme === "light"
-                ? snapGrid
-                  ? "bg-amber-100 border-amber-400 text-amber-900 font-bold"
-                  : "bg-white border-slate-300 text-slate-600 hover:bg-slate-100 hover:text-slate-900"
-                : snapGrid
-                  ? "bg-yellow-950/70 border-yellow-600 text-yellow-400 font-bold"
-                  : "border-slate-700 text-slate-400 hover:bg-slate-800 hover:text-slate-200"
-            }`}
+          <Button
+            size="xs"
+            variant={snapGrid ? "cad-tool-active" : "cad-tool"}
+            onClick={() => {
+              const nextSnap = !snapGrid;
+              setSnapGridLocal(nextSnap);
+              updateModoState({ snapGrid: nextSnap });
+            }}
             title={snapGrid ? "Desactivar Snap a Grilla (10mm)" : "Activar Snap a Grilla (10mm)"}
           >
             SNAP
-          </button>
+          </Button>
 
-          <button
+          <Button
+            size="xs"
+            variant={herramientaMedir ? "cad-tool-active" : "cad-tool"}
+            icon={<AdjustmentsHorizontalIcon className="w-3.5 h-3.5" />}
             onClick={() => {
-              setHerramientaMedir((m) => !m);
+              const nextMedir = !herramientaMedir;
+              setHerramientaMedirLocal(nextMedir);
               setPuntoInicioMedicion(null);
+              updateModoState({ herramientaMedir: nextMedir });
             }}
-            className={`px-2.5 py-1 rounded-md border text-xs flex items-center space-x-1 transition-colors ${
-              theme === "light"
-                ? herramientaMedir
-                  ? "bg-pink-100 border-pink-400 text-pink-900 font-bold"
-                  : "bg-white border-slate-300 text-slate-600 hover:bg-slate-100 hover:text-slate-900"
-                : herramientaMedir
-                  ? "bg-pink-950/70 border-pink-600 text-pink-300 font-bold"
-                  : "border-slate-700 text-slate-400 hover:bg-slate-800 hover:text-slate-200"
-            }`}
           >
-            <AdjustmentsHorizontalIcon className="w-3.5 h-3.5" />
-            <span>Medir</span>
-          </button>
+            Medir
+          </Button>
 
-          <button
-            onClick={() => setPanelCapasAbierto((p) => !p)}
-            aria-label="Capas"
-            className={`p-1.5 rounded-md flex items-center space-x-1 transition-colors ${
-              theme === "light"
-                ? panelCapasAbierto
-                  ? "bg-sky-100 text-sky-900 border border-sky-300 font-bold"
-                  : "text-slate-700 hover:bg-slate-200 hover:text-slate-950"
-                : panelCapasAbierto
-                  ? "bg-slate-800 text-sky-400 border border-slate-700 font-bold"
-                  : "text-slate-300 hover:bg-slate-800 hover:text-white"
-            }`}
+          <Button
+            size="xs"
+            variant={panelCapasAbierto ? "cad-tool-active" : "cad-tool"}
+            icon={<Square3Stack3DIcon className="w-3.5 h-3.5" />}
+            onClick={() => {
+              const nextPanel = !panelCapasAbierto;
+              setPanelCapasAbiertoLocal(nextPanel);
+              updateModoState({ panelCapasAbierto: nextPanel });
+            }}
             title="Gestor de Capas CAD"
           >
-            <Square3Stack3DIcon className="w-4 h-4" />
-            <span>Capas</span>
-          </button>
+            Capas
+          </Button>
 
           {!modalAmpliado && (
             <button
@@ -609,7 +627,10 @@ export function CadViewerCanvas({
               <span>Capas CAD (Layers)</span>
             </h4>
             <button
-              onClick={() => setPanelCapasAbierto(false)}
+              onClick={() => {
+                setPanelCapasAbiertoLocal(false);
+                updateModoState({ panelCapasAbierto: false });
+              }}
               className={theme === "light" ? "text-slate-400 hover:text-slate-800 text-xs" : "text-slate-500 hover:text-white text-xs"}
             >
               ✕

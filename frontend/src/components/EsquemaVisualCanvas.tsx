@@ -12,10 +12,15 @@ import { EsquemaVisual } from "./EsquemaVisual";
 import type { Salida, Seccion } from "../api/client";
 import type { Capas, InterruptorPrincipalInfo } from "./EsquemaVisual";
 
+import type { ModoVisual, ModoVisualState } from "../utils/vistaStorage";
+import { Button } from "./common/Button";
+
 interface EsquemaVisualCanvasProps {
   tieneInterruptorPrincipal: boolean;
   interruptorPrincipal?: InterruptorPrincipalInfo | null;
   secciones: { seccion: Seccion; salidas: Salida[] }[];
+  obtenerVistaModo?: (modo: ModoVisual) => ModoVisualState;
+  onModoStateChange?: (modo: ModoVisual, cambios: Partial<ModoVisualState>) => void;
   zoom?: number;
   onZoomChange?: (zoom: number) => void;
   capas?: Capas;
@@ -53,9 +58,11 @@ export function EsquemaVisualCanvas({
   tieneInterruptorPrincipal,
   interruptorPrincipal,
   secciones,
-  zoom = 1,
+  obtenerVistaModo,
+  onModoStateChange,
+  zoom: zoomProp = 1,
   onZoomChange,
-  capas = { codigos: true, embarrado: true },
+  capas: capasProp = { codigos: true, embarrado: true },
   onCapasChange,
   hoveredSalidaId,
   onSalidaHover,
@@ -77,17 +84,27 @@ export function EsquemaVisualCanvas({
   const svgAreaRef = useRef<HTMLDivElement>(null);
   const modalAreaRef = useRef<HTMLDivElement>(null);
 
+  const estadoBloquesActual = obtenerVistaModo ? obtenerVistaModo("bloques") : null;
+  const zoomEfectivo = estadoBloquesActual ? estadoBloquesActual.zoom : zoomProp;
+  const capasEfectivas = estadoBloquesActual ? estadoBloquesActual.capas : capasProp;
+
   const handleZoomChange = (nuevoZoom: number) => {
     const z = limitar(nuevoZoom);
+    if (onModoStateChange) {
+      onModoStateChange("bloques", { zoom: z });
+    }
     if (onZoomChange) onZoomChange(z);
   };
 
   const handleCapasChange = (nuevasCapas: Capas) => {
+    if (onModoStateChange) {
+      onModoStateChange("bloques", { capas: nuevasCapas });
+    }
     if (onCapasChange) onCapasChange(nuevasCapas);
   };
 
-  const zoomRef = useRef(zoom);
-  zoomRef.current = zoom;
+  const zoomRef = useRef(zoomEfectivo);
+  zoomRef.current = zoomEfectivo;
 
   const onZoomChangeRef = useRef(onZoomChange);
   onZoomChangeRef.current = onZoomChange;
@@ -141,8 +158,8 @@ export function EsquemaVisualCanvas({
 
   const handleMouseMove = (e: React.MouseEvent) => {
     if (!isDragging || !dragStartRef.current) return;
-    const dx = (e.clientX - dragStartRef.current.x) / zoom;
-    const dy = (e.clientY - dragStartRef.current.y) / zoom;
+    const dx = (e.clientX - dragStartRef.current.x) / zoomEfectivo;
+    const dy = (e.clientY - dragStartRef.current.y) / zoomEfectivo;
     setPanX(dragStartRef.current.panX - dx);
     setPanY(dragStartRef.current.panY - dy);
   };
@@ -199,52 +216,48 @@ export function EsquemaVisualCanvas({
   // Controles superiores de vista (Zoom, Capas, Pantalla completa)
   const renderControlesSVG = (esModal: boolean) => (
     <div className="flex items-center gap-1">
-      <button
-        type="button"
+      <Button
+        size="xs"
+        variant="ghost"
+        icon={<MagnifyingGlassMinusIcon className="w-4 h-4" />}
         aria-label="Alejar"
-        onClick={() => handleZoomChange(zoom - ZOOM_PASO)}
-        className="p-1.5 text-gray-600 hover:text-abb-red rounded hover:bg-gray-200 transition"
+        onClick={() => handleZoomChange(zoomEfectivo - ZOOM_PASO)}
         title="Alejar (-)"
-      >
-        <MagnifyingGlassMinusIcon className="w-4 h-4" />
-      </button>
-      <button
-        type="button"
-        aria-label="Ajustar zoom"
-        title="Restablecer vista a 100%"
-        className="border border-gray-300 px-2 py-0.5 font-mono text-xs rounded hover:bg-gray-200 transition font-bold"
+      />
+      <Button
+        size="xs"
+        variant="secondary"
         onClick={resetPanAndZoom}
+        title="Restablecer vista a 100%"
+        aria-label="Ajustar zoom"
       >
-        {Math.round(zoom * 100)}%
-      </button>
-      <button
-        type="button"
+        <span className="font-mono text-xs font-bold">{Math.round(zoomEfectivo * 100)}%</span>
+      </Button>
+      <Button
+        size="xs"
+        variant="ghost"
+        icon={<MagnifyingGlassPlusIcon className="w-4 h-4" />}
         aria-label="Acercar"
-        onClick={() => handleZoomChange(zoom + ZOOM_PASO)}
-        className="p-1.5 text-gray-600 hover:text-abb-red rounded hover:bg-gray-200 transition"
+        onClick={() => handleZoomChange(zoomEfectivo + ZOOM_PASO)}
         title="Acercar (+)"
-      >
-        <MagnifyingGlassPlusIcon className="w-4 h-4" />
-      </button>
-      <button
-        type="button"
+      />
+      <Button
+        size="xs"
+        variant={panelCapasAbierto ? "secondary" : "ghost"}
+        icon={<Square3Stack3DIcon className="w-4 h-4" />}
         aria-label="Capas"
         onClick={() => setPanelCapasAbierto((abierto) => !abierto)}
-        className="p-1.5 text-gray-600 hover:text-abb-red rounded hover:bg-gray-200 transition"
-        title="Capas del esquema"
-      >
-        <Square3Stack3DIcon className="w-4 h-4" />
-      </button>
+        title="Gestor de Capas"
+      />
       {!esModal && (
-        <button
-          type="button"
+        <Button
+          size="xs"
+          variant="ghost"
+          icon={<ArrowsPointingOutIcon className="w-4 h-4" />}
           aria-label="Pantalla completa"
           onClick={() => setModalAmpliado(true)}
-          className="p-1.5 text-gray-600 hover:text-abb-red rounded hover:bg-gray-200 transition"
           title="Pantalla completa"
-        >
-          <ArrowsPointingOutIcon className="w-4 h-4" />
-        </button>
+        />
       )}
     </div>
   );
@@ -387,8 +400,8 @@ export function EsquemaVisualCanvas({
                 <label className="flex items-center gap-1.5 cursor-pointer">
                   <input
                     type="checkbox"
-                    checked={capas.codigos}
-                    onChange={(e) => handleCapasChange({ ...capas, codigos: e.target.checked })}
+                    checked={capasEfectivas.codigos}
+                    onChange={(e) => handleCapasChange({ ...capasEfectivas, codigos: e.target.checked })}
                     className="accent-abb-red"
                   />
                   Amperios / Etiquetas
@@ -396,8 +409,8 @@ export function EsquemaVisualCanvas({
                 <label className="flex items-center gap-1.5 cursor-pointer">
                   <input
                     type="checkbox"
-                    checked={capas.embarrado}
-                    onChange={(e) => handleCapasChange({ ...capas, embarrado: e.target.checked })}
+                    checked={capasEfectivas.embarrado}
+                    onChange={(e) => handleCapasChange({ ...capasEfectivas, embarrado: e.target.checked })}
                     className="accent-abb-red"
                   />
                   Embarrado General
@@ -422,10 +435,10 @@ export function EsquemaVisualCanvas({
                 tieneInterruptorPrincipal={tieneInterruptorPrincipal}
                 interruptorPrincipal={interruptorPrincipal}
                 secciones={secciones}
-                zoom={zoom}
+                zoom={zoomEfectivo}
                 panX={panX}
                 panY={panY}
-                capas={capas}
+                capas={capasEfectivas}
                 hoveredSalidaId={hoveredSalidaId}
                 onSalidaHover={(id) => {
                   setCanvasHoveredId(id);
@@ -440,7 +453,7 @@ export function EsquemaVisualCanvas({
 
           {/* Modal Ampliado Pantalla Completa para SVG Bloques */}
           {modalAmpliado && (
-            <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4 backdrop-blur-sm">
+            <div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4 backdrop-blur-sm animate-fade-in">
               <div className="w-full h-full max-w-7xl max-h-[94vh] bg-white rounded-xl shadow-2xl overflow-hidden flex flex-col border border-gray-300 relative">
                 <div className="flex items-center justify-between bg-industrial-gray px-4 py-3 border-b border-surface-stroke">
                   <span className="font-mono text-sm font-bold uppercase tracking-wider text-gray-800 flex items-center gap-2">
@@ -476,10 +489,10 @@ export function EsquemaVisualCanvas({
                     tieneInterruptorPrincipal={tieneInterruptorPrincipal}
                     interruptorPrincipal={interruptorPrincipal}
                     secciones={secciones}
-                    zoom={zoom}
+                    zoom={zoomEfectivo}
                     panX={panX}
                     panY={panY}
-                    capas={capas}
+                    capas={capasEfectivas}
                     hoveredSalidaId={hoveredSalidaId}
                     onSalidaHover={(id) => {
                       setCanvasHoveredId(id);
@@ -504,9 +517,11 @@ export function EsquemaVisualCanvas({
           tieneInterruptorPrincipal={tieneInterruptorPrincipal}
           interruptorPrincipal={interruptorPrincipal}
           secciones={secciones}
-          zoom={zoom}
+          obtenerVistaModo={obtenerVistaModo}
+          onModoStateChange={onModoStateChange}
+          zoom={zoomProp}
           onZoomChange={onZoomChange}
-          capas={capas}
+          capas={capasProp}
           onCapasChange={onCapasChange}
           hoveredSalidaId={hoveredSalidaId}
           onSalidaHover={onSalidaHover}

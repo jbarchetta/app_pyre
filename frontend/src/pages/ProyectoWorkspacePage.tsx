@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import {
   ArrowLeftIcon,
@@ -14,15 +14,24 @@ import {
   listarTableros,
   obtenerProyecto,
   CATEGORIAS_INTERRUPTORES,
+  fetchCurrentUser,
   type ComponenteBusqueda,
   type Proyecto,
   type Tablero,
+  type Usuario,
 } from "../api/client";
 import { ComponentePicker } from "../components/ComponentePicker";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { DetalleTablero } from "../components/DetalleTablero";
-import type { Capas } from "../components/EsquemaVisual";
 import { useCerrarAlClickFuera } from "../hooks/useCerrarAlClickFuera";
+import {
+  cargarEstadosVistaUsuario,
+  guardarEstadosVistaUsuario,
+  obtenerEstadoModo,
+  DEFAULTS_POR_MODO,
+  type ModoVisual,
+  type ModoVisualState,
+} from "../utils/vistaStorage";
 
 // Icc estándar de arranque para no bloquear la creación del tablero — el
 // analista lo puede editar desde el detalle del tablero si el estudio
@@ -44,7 +53,6 @@ export function ProyectoWorkspacePage() {
   const [tableroABorrar, setTableroABorrar] = useState<Tablero | null>(null);
   const [borrandoTablero, setBorrandoTablero] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [confirmandoDescarteEdicion, setConfirmandoDescarteEdicion] = useState(false);
   const triggerRef = useRef<HTMLElement | null>(null);
   const modalNuevoTableroRef = useRef(false);
   const tableroEnEdicionIdRef = useRef<string | null>(null);
@@ -57,18 +65,33 @@ export function ProyectoWorkspacePage() {
     tableroEnEdicionIdRef.current = tableroEnEdicion ? tableroEnEdicion.id : null;
   }, [tableroEnEdicion]);
 
-  const VISTA_POR_DEFECTO: { zoom: number; capas: Capas } = { zoom: 1, capas: { codigos: true, embarrado: true } };
-  const [vistaEstado, setVistaEstado] = useState<Record<string, { zoom: number; capas: Capas }>>({});
+  const [currentUser, setCurrentUser] = useState<Usuario | null>(null);
+  const [estadosModos, setEstadosModos] = useState<Record<string, Record<ModoVisual, ModoVisualState>>>({});
 
   useEffect(() => {
+    fetchCurrentUser().then((u) => {
+      if (u) {
+        setCurrentUser(u);
+        setEstadosModos(cargarEstadosVistaUsuario(u.id));
+      }
+    });
+  }, []);
+
+  const cargar = useCallback(async () => {
     if (!id) return;
-    obtenerProyecto(id)
-      .then(setProyecto)
-      .catch(() => setError("No se pudo cargar el proyecto"));
-    listarTableros(id)
-      .then(setTableros)
-      .catch(() => setError("No se pudieron cargar los tableros"));
+    try {
+      const p = await obtenerProyecto(id);
+      setProyecto(p);
+      const list = await listarTableros(id);
+      setTableros(list);
+    } catch (err) {
+      console.error(err);
+    }
   }, [id]);
+
+  useEffect(() => {
+    cargar();
+  }, [cargar]);
 
   useEffect(() => {
     if (!modalNuevoTablero && !tableroEnEdicion) return;
@@ -98,20 +121,7 @@ export function ProyectoWorkspacePage() {
   }
 
   function solicitarCierreModales() {
-    if (tableroEnEdicion) {
-      setConfirmandoDescarteEdicion(true);
-    } else {
-      cerrarModales();
-    }
-  }
-
-  function confirmarDescarteEdicion() {
-    setConfirmandoDescarteEdicion(false);
     cerrarModales();
-  }
-
-  function cancelarDescarteEdicion() {
-    setConfirmandoDescarteEdicion(false);
   }
 
   const { onMouseDown: onMouseDownModal, onClick: onClickModal } = useCerrarAlClickFuera(solicitarCierreModales);
@@ -174,20 +184,39 @@ export function ProyectoWorkspacePage() {
     : (tableros[0]?.id ?? null);
   const tableroActivo = tableros.find((t) => t.id === tableroActivoId) ?? null;
 
-  function obtenerVista(tableroId: string) {
-    return vistaEstado[tableroId] ?? VISTA_POR_DEFECTO;
+  function obtenerVistaModo(tableroId: string, modo: ModoVisual): ModoVisualState {
+    return obtenerEstadoModo(estadosModos, tableroId, modo);
   }
 
   function handleTableroActualizado(actualizado: Tablero) {
     setTableros((actuales) => (actuales ?? []).map((t) => (t.id === actualizado.id ? actualizado : t)));
   }
 
-  function handleZoomChange(tableroId: string, zoom: number) {
-    setVistaEstado((actual) => ({ ...actual, [tableroId]: { ...obtenerVista(tableroId), zoom } }));
-  }
+  function handleModoStateChange(
+    tableroId: string,
+    modo: ModoVisual,
+    cambios: Partial<ModoVisualState>
+  ) {
+    setEstadosModos((actuales) => {
+      const deTablero = actuales[tableroId] ?? {
+        bloques: { ...DEFAULTS_POR_MODO.bloques },
+        unifilar: { ...DEFAULTS_POR_MODO.unifilar },
+        topografico: { ...DEFAULTS_POR_MODO.topografico },
+      };
+      const actualModo = deTablero[modo] ?? { ...DEFAULTS_POR_MODO[modo] };
+      const nuevoModoState = { ...actualModo, ...cambios };
 
-  function handleCapasChange(tableroId: string, capas: Capas) {
-    setVistaEstado((actual) => ({ ...actual, [tableroId]: { ...obtenerVista(tableroId), capas } }));
+      const nuevosEstados = {
+        ...actuales,
+        [tableroId]: {
+          ...deTablero,
+          [modo]: nuevoModoState,
+        },
+      };
+
+      guardarEstadosVistaUsuario(currentUser?.id, nuevosEstados);
+      return nuevosEstados;
+    });
   }
 
   return (
@@ -201,16 +230,14 @@ export function ProyectoWorkspacePage() {
             </Link>
             <span>/</span>
             <span className="font-medium text-gray-800">{proyecto.nombre}</span>
-          </div>
-          <h1 className="text-2xl font-bold text-gray-900">{proyecto.nombre}</h1>
-          <p className="text-xs text-gray-600">
-            Cliente: <span className="font-medium text-gray-800">{proyecto.cliente}</span>
-            {proyecto.codigo_obra && (
-              <span className="ml-2 font-mono bg-gray-100 px-1.5 py-0.5 rounded text-gray-700">
-                Obra: {proyecto.codigo_obra}
-              </span>
+            {tableroActivo && (
+              <>
+                <span>/</span>
+                <span className="font-mono font-bold text-abb-red">{tableroActivo.nombre}</span>
+              </>
             )}
-          </p>
+          </div>
+          <h1 className="text-xl font-bold text-gray-900">{proyecto.nombre}</h1>
         </div>
 
         <Link
@@ -222,77 +249,69 @@ export function ProyectoWorkspacePage() {
         </Link>
       </div>
 
-      <div className="flex flex-wrap items-center gap-1 border-b border-surface-stroke">
-        {tableros.length > 0 && (
-          <div role="tablist" aria-label="Tableros del proyecto" className="flex flex-wrap gap-1">
-            {tableros.map((tablero) => (
-              <button
-                key={tablero.id}
-                role="tab"
-                type="button"
-                aria-selected={tablero.id === tableroActivoId}
-                onClick={() => handleSeleccionarTablero(tablero.id)}
-                className={`px-4 py-2 text-sm font-bold uppercase tracking-wider transition ${
-                  tablero.id === tableroActivoId
-                    ? "border-b-2 border-abb-red text-abb-red bg-red-50/20"
-                    : "text-gray-600 hover:text-gray-900"
-                }`}
-              >
-                {tablero.nombre}
-              </button>
-            ))}
-          </div>
-        )}
-        <div className="ml-auto flex gap-3 px-2 text-on-background py-1">
-          {tableroActivo && (
-            <>
-              <button
-                type="button"
-                aria-label="Renombrar tablero activo"
-                onClick={(e) => {
-                  triggerRef.current = e.currentTarget;
-                  setNombreTableroEdit(tableroActivo.nombre);
-                  setTableroEnEdicion(tableroActivo);
-                }}
-                className="hover:text-abb-red p-1"
-                title="Renombrar tablero"
-              >
-                <PencilIcon className="w-4 h-4" />
-              </button>
-              <button
-                type="button"
-                aria-label="Borrar tablero activo"
-                onClick={(e) => {
-                  triggerRef.current = e.currentTarget;
-                  setTableroABorrar(tableroActivo);
-                }}
-                className="hover:text-abb-red p-1"
-                title="Borrar tablero"
-              >
-                <TrashIcon className="w-4 h-4" />
-              </button>
-            </>
-          )}
+      {/* Tabs list of tableros */}
+      <div className="flex flex-wrap items-center justify-between border-b border-surface-stroke pb-2 gap-2">
+        <div role="tablist" aria-label="Tableros del proyecto" className="flex flex-wrap items-center gap-2">
+          {tableros.map((t) => {
+            const isActivo = t.id === tableroActivoId;
+            return (
+              <div key={t.id} className="group relative flex items-center">
+                <button
+                  role="tab"
+                  aria-selected={isActivo}
+                  onClick={() => handleSeleccionarTablero(t.id)}
+                  className={`px-4 py-2 text-sm font-medium rounded-t-lg transition flex items-center gap-2 border-t border-x ${
+                    isActivo
+                      ? "bg-white text-abb-red shadow-sm border-surface-stroke font-bold"
+                      : "bg-gray-100 hover:bg-gray-200 text-gray-700 border-transparent"
+                  }`}
+                >
+                  {t.nombre}
+                </button>
+                <button
+                  type="button"
+                  title="Editar nombre"
+                  aria-label={isActivo ? "Renombrar tablero activo" : `Editar ${t.nombre}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setTableroEnEdicion(t);
+                    setNombreTableroEdit(t.nombre);
+                  }}
+                  className="hidden group-hover:block p-1 text-gray-400 hover:text-gray-700 absolute right-6 top-2 z-10"
+                >
+                  <PencilIcon className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  type="button"
+                  title="Eliminar tablero"
+                  aria-label={isActivo ? "Borrar tablero activo" : `Eliminar ${t.nombre}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setTableroABorrar(t);
+                  }}
+                  className="hidden group-hover:block p-1 text-gray-400 hover:text-red-600 absolute right-1 top-2 z-10"
+                >
+                  <TrashIcon className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            );
+          })}
           <button
             type="button"
             aria-label="Nuevo tablero"
-            onClick={(e) => {
-              triggerRef.current = e.currentTarget;
+            onClick={() => {
               setModalNuevoTablero(true);
             }}
-            className="inline-flex items-center gap-1 bg-abb-red hover:bg-red-700 text-white text-xs font-semibold px-3 py-1.5 rounded transition shadow-sm"
+            className="px-3 py-2 text-sm font-medium text-gray-600 hover:text-abb-red hover:bg-gray-100 rounded-t-lg transition flex items-center gap-1"
           >
             <PlusIcon className="w-4 h-4" />
-            Nuevo Tablero
+            <span>Nuevo Tablero</span>
           </button>
         </div>
       </div>
 
-      {tableroActivo === null ? (
-        <div className="my-12 text-center border-2 border-dashed border-gray-300 rounded-xl p-12 bg-white shadow-sm max-w-2xl mx-auto space-y-4">
-          <div className="w-16 h-16 bg-red-50 text-abb-red rounded-full flex items-center justify-center mx-auto text-3xl font-bold">
-            <BuildingOffice2Icon className="w-8 h-8" />
-          </div>
+      {tableros.length === 0 || !tableroActivo ? (
+        <div className="flex flex-col items-center justify-center p-12 text-center border-2 border-dashed border-gray-300 rounded-xl bg-gray-50">
           <div>
             <h2 className="text-xl font-bold text-gray-900">Este proyecto aún no tiene tableros</h2>
             <p className="text-sm text-gray-600 mt-1 max-w-md mx-auto">
@@ -316,9 +335,8 @@ export function ProyectoWorkspacePage() {
           key={tableroActivo.id}
           tablero={tableroActivo}
           onTableroActualizado={handleTableroActualizado}
-          vista={obtenerVista(tableroActivo.id)}
-          onZoomChange={(zoom) => handleZoomChange(tableroActivo.id, zoom)}
-          onCapasChange={(capas) => handleCapasChange(tableroActivo.id, capas)}
+          obtenerVistaModo={(modo) => obtenerVistaModo(tableroActivo.id, modo)}
+          onModoStateChange={(modo, cambios) => handleModoStateChange(tableroActivo.id, modo, cambios)}
         />
       )}
 
@@ -371,7 +389,7 @@ export function ProyectoWorkspacePage() {
         />
       )}
 
-      {tableroEnEdicion && !confirmandoDescarteEdicion && (
+      {tableroEnEdicion && (
         <div className="fixed inset-0 z-20 flex items-center justify-center bg-black/40" onMouseDown={onMouseDownModal} onClick={onClickModal}>
           <form
             onSubmit={handleRenombrarTablero}
@@ -402,15 +420,6 @@ export function ProyectoWorkspacePage() {
         </div>
       )}
 
-      {tableroEnEdicion && confirmandoDescarteEdicion && (
-        <ConfirmDialog
-          titulo="¿Descartar cambios?"
-          mensaje="Vas a perder los cambios que hiciste."
-          textoConfirmar="Descartar"
-          onConfirm={confirmarDescarteEdicion}
-          onCancel={cancelarDescarteEdicion}
-        />
-      )}
 
       {tableroABorrar && (
         <ConfirmDialog
