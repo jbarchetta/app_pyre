@@ -148,12 +148,15 @@ export function CadViewerCanvas({
   // Transformación de Viewport (Zoom y Pan)
   const [transform, setTransform] = useState<ViewportTransform>({ zoom, panX: 50, panY: 50 });
 
-  // Sincronizar zoom prop desde el padre solo si difiere significativamente
+  // Sincronizar zoom prop desde el padre usando zoomAtPoint al centro del contenedor
   useEffect(() => {
     setTransform((t) => {
       const targetZoom = limitar(zoom);
-      if (Math.abs(t.zoom - targetZoom) < 0.01) return t;
-      return { ...t, zoom: targetZoom };
+      if (Math.abs(t.zoom - targetZoom) < 0.005) return t;
+      const w = containerRef.current?.clientWidth || window.innerWidth || 800;
+      const h = containerRef.current?.clientHeight || window.innerHeight || 600;
+      const centerPixel = { x: w / 2, y: h / 2 };
+      return zoomAtPoint(centerPixel, t, targetZoom);
     });
   }, [zoom]);
 
@@ -200,12 +203,15 @@ export function CadViewerCanvas({
     };
   }, []);
 
-  // Función para ajustar el dibujo a la pantalla (Fit Bounds)
+  // Función para ajustar el dibujo a la pantalla (Fit Bounds) y notificar al padre
   const handleFitToScreen = useCallback(() => {
     const w = containerRef.current?.clientWidth || window.innerWidth || 800;
     const h = containerRef.current?.clientHeight || window.innerHeight || 600;
     const nextTransform = calculateFitToScreen(cadDoc.bounds, w, h, 40);
     setTransform(nextTransform);
+    if (onZoomChangeRef.current) {
+      onZoomChangeRef.current(nextTransform.zoom);
+    }
   }, [cadDoc.bounds]);
 
   // Fit to screen inicial EXCLUSIVAMENTE al cambiar de modo visual topográfico / unifilar
@@ -227,19 +233,21 @@ export function CadViewerCanvas({
     });
   }, [cadDoc, transform, mousePosPx, theme, showGrid, activeLayerIds, hoveredSalidaId, canvasHoveredId, herramientaMedir, puntoInicioMedicion]);
 
+  // Zoom incremental focalizado al centro de la pantalla
   const changeZoom = (delta: number) => {
-    const nuevoZoom = limitar(transform.zoom + delta);
-    setTransform((t) => ({ ...t, zoom: nuevoZoom }));
+    const targetZoom = limitar(transform.zoom + delta);
+    const w = containerRef.current?.clientWidth || window.innerWidth || 800;
+    const h = containerRef.current?.clientHeight || window.innerHeight || 600;
+    const centerPixel = { x: w / 2, y: h / 2 };
+    const nextTransform = zoomAtPoint(centerPixel, transform, targetZoom);
+    setTransform(nextTransform);
     if (onZoomChange) {
-      onZoomChange(nuevoZoom);
+      onZoomChange(nextTransform.zoom);
     }
   };
 
   const resetZoom = () => {
-    setTransform((t) => ({ ...t, zoom: 1 }));
-    if (onZoomChange) {
-      onZoomChange(1);
-    }
+    handleFitToScreen();
   };
 
   // Eventos de Mouse
