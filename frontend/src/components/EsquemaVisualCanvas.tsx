@@ -178,11 +178,15 @@ export function EsquemaVisualCanvas({
     for (const sec of secciones) {
       const found = sec.salidas.find((sal) => sal.id === canvasHoveredId);
       if (found) {
+        const codComercial = found.componente_codigo_comercial || found.componente_codigo;
+        const corrienteNum = Number(found.corriente_nominal_a) || Number(found.carga_valor) || 0;
+        const corrienteDisplay = corrienteNum > 0 ? `${corrienteNum}A` : found.carga_valor ? `${found.carga_valor}A` : "-";
+
         return {
           tag: found.posicion_codigo || `Salida ${(found.orden ?? found.posicion_orden ?? 0) + 1}`,
-          titulo: found.componente_descripcion || found.descripcion_personalizada || "Interruptor de Salida",
-          codigo: found.componente_codigo_comercial || found.componente_id || "Sin catálogo",
-          corriente: `${found.corriente_nominal_a || 0}A`,
+          titulo: found.componente_descripcion || found.descripcion_personalizada || found.etiqueta || "Interruptor de Salida",
+          codigo: codComercial || null,
+          corriente: corrienteDisplay,
           polos: found.formato || "-",
           curva: found.curva || "C",
           seccion: sec.seccion.nombre,
@@ -387,13 +391,13 @@ export function EsquemaVisualCanvas({
                     <CpuChipIcon className="w-5 h-5 text-abb-red" />
                     Blueprint Bloques (Pantalla Completa)
                   </span>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 ml-auto">
                     {renderControlesSVG(true)}
                     <button
                       type="button"
                       aria-label="Cerrar modal de pantalla completa"
                       onClick={() => setModalAmpliado(false)}
-                      className="p-1.5 text-gray-600 hover:text-abb-red rounded hover:bg-gray-200 transition ml-2"
+                      className="p-1.5 text-gray-600 hover:text-abb-red rounded hover:bg-gray-200 transition border-l border-gray-300 pl-3 ml-1"
                       title="Cerrar (Esc)"
                     >
                       <XMarkIcon className="w-5 h-5" />
@@ -443,9 +447,12 @@ export function EsquemaVisualCanvas({
                       </div>
 
                       <div className="flex flex-col">
-                        <span className="font-bold text-slate-900 text-sm tracking-normal truncate max-w-xs">{hoveredSalidaInfo.titulo}</span>
+                        <span className="font-semibold text-slate-900 text-sm tracking-normal max-w-md leading-snug">{hoveredSalidaInfo.titulo}</span>
                         <span className="text-[11px] text-slate-500 font-mono mt-0.5">
-                          FILA: <strong className="text-slate-800">{hoveredSalidaInfo.seccion}</strong> | CÓD: <strong className="text-amber-700 font-semibold">{hoveredSalidaInfo.codigo}</strong>
+                          FILA: <strong className="text-slate-800">{hoveredSalidaInfo.seccion}</strong>
+                          {hoveredSalidaInfo.codigo && (
+                            <> | CÓD: <strong className="text-amber-700 font-semibold">{hoveredSalidaInfo.codigo}</strong></>
+                          )}
                         </span>
                       </div>
 
@@ -465,7 +472,7 @@ export function EsquemaVisualCanvas({
                       </div>
                     </div>
                   ) : (
-                    <div className="absolute bottom-12 left-1/2 -translate-x-1/2 z-50 bg-slate-900/60 text-slate-400 border border-slate-700/40 shadow-sm backdrop-blur-sm rounded-md px-4 py-1.5 text-[11px] font-mono text-center opacity-70 select-none pointer-events-none">
+                    <div className="absolute bottom-12 left-1/2 -translate-x-1/2 z-50 bg-slate-100/90 text-slate-700 border border-slate-300/80 shadow-sm backdrop-blur-sm rounded-md px-4 py-1.5 text-[11px] font-mono text-center opacity-90 select-none pointer-events-none">
                       [CAD INSPECT] Pasa el cursor sobre cualquier línea o elemento para ver detalles técnicos
                     </div>
                   )}

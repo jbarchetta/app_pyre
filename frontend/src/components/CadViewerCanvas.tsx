@@ -126,11 +126,15 @@ export function CadViewerCanvas({
     for (const sec of secciones) {
       const found = sec.salidas.find((sal) => sal.id === canvasHoveredId);
       if (found) {
+        const codComercial = found.componente_codigo_comercial || found.componente_codigo;
+        const corrienteNum = Number(found.corriente_nominal_a) || Number(found.carga_valor) || 0;
+        const corrienteDisplay = corrienteNum > 0 ? `${corrienteNum}A` : found.carga_valor ? `${found.carga_valor}A` : "-";
+
         return {
           tag: found.posicion_codigo || `Salida ${(found.orden ?? found.posicion_orden ?? 0) + 1}`,
-          titulo: found.componente_descripcion || found.descripcion_personalizada || "Interruptor de Salida",
-          codigo: found.componente_codigo_comercial || found.componente_id || "Sin catálogo",
-          corriente: `${found.corriente_nominal_a || 0}A`,
+          titulo: found.componente_descripcion || found.descripcion_personalizada || found.etiqueta || "Interruptor de Salida",
+          codigo: codComercial || null,
+          corriente: corrienteDisplay,
           polos: found.formato || "-",
           curva: found.curva || "C",
           seccion: sec.seccion.nombre,
@@ -502,41 +506,53 @@ export function CadViewerCanvas({
           </button>
         </div>
 
-        {/* Acciones de Exportación Profesional */}
-        <div className="relative">
-          <button
-            onClick={() => setMenuExportarAbierto((v) => !v)}
-            className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold rounded-lg flex items-center space-x-1.5 shadow-sm transition-colors text-xs"
-          >
-            <DocumentArrowDownIcon className="w-4 h-4 text-slate-950" />
-            <span>Exportar</span>
-            <ChevronDownIcon className="w-3.5 h-3.5 text-slate-950" />
-          </button>
+        {/* Acciones de Exportación Profesional y Cierre de Pantalla Completa */}
+        <div className="flex items-center space-x-3">
+          <div className="relative">
+            <button
+              onClick={() => setMenuExportarAbierto((v) => !v)}
+              className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold rounded-lg flex items-center space-x-1.5 shadow-sm transition-colors text-xs"
+            >
+              <DocumentArrowDownIcon className="w-4 h-4 text-slate-950" />
+              <span>Exportar</span>
+              <ChevronDownIcon className="w-3.5 h-3.5 text-slate-950" />
+            </button>
 
-          {menuExportarAbierto && (
-            <div className="absolute right-0 mt-2 w-48 bg-slate-950 border border-slate-700 text-slate-100 rounded-xl shadow-2xl z-50 overflow-hidden py-1 backdrop-blur-xl">
-              <button
-                onClick={() => {
-                  setMenuExportarAbierto(false);
-                  downloadDxfFile(cadDoc, `tablero_pyre_${modoVisual}.dxf`);
-                }}
-                className="w-full text-left px-3.5 py-2.5 hover:bg-slate-800 flex items-center space-x-2.5 text-xs font-medium transition-colors"
-              >
-                <span className="px-1.5 py-0.5 bg-amber-500/20 text-amber-400 font-mono text-[10px] font-bold rounded">DXF</span>
-                <span>Exportar AutoCAD (.dxf)</span>
-              </button>
+            {menuExportarAbierto && (
+              <div className="absolute right-0 mt-2 w-48 bg-slate-950 border border-slate-700 text-slate-100 rounded-xl shadow-2xl z-50 overflow-hidden py-1 backdrop-blur-xl">
+                <button
+                  onClick={() => {
+                    setMenuExportarAbierto(false);
+                    downloadDxfFile(cadDoc, `tablero_pyre_${modoVisual}.dxf`);
+                  }}
+                  className="w-full text-left px-3.5 py-2.5 hover:bg-slate-800 flex items-center space-x-2.5 text-xs font-medium transition-colors"
+                >
+                  <span className="px-1.5 py-0.5 bg-amber-500/20 text-amber-400 font-mono text-[10px] font-bold rounded">DXF</span>
+                  <span>Exportar AutoCAD (.dxf)</span>
+                </button>
 
-              <button
-                onClick={() => {
-                  setMenuExportarAbierto(false);
-                  exportarPdfProfesional(cadDoc, `tablero_pyre_${modoVisual}.pdf`, canvasRef.current, theme);
-                }}
-                className="w-full text-left px-3.5 py-2.5 hover:bg-slate-800 flex items-center space-x-2.5 text-xs font-medium transition-colors border-t border-slate-800"
-              >
-                <span className="px-1.5 py-0.5 bg-rose-500/20 text-rose-400 font-mono text-[10px] font-bold rounded">PDF</span>
-                <span>Exportar Plano PDF (.pdf)</span>
-              </button>
-            </div>
+                <button
+                  onClick={() => {
+                    setMenuExportarAbierto(false);
+                    exportarPdfProfesional(cadDoc, `tablero_pyre_${modoVisual}.pdf`, canvasRef.current, theme);
+                  }}
+                  className="w-full text-left px-3.5 py-2.5 hover:bg-slate-800 flex items-center space-x-2.5 text-xs font-medium transition-colors border-t border-slate-800"
+                >
+                  <span className="px-1.5 py-0.5 bg-rose-500/20 text-rose-400 font-mono text-[10px] font-bold rounded">PDF</span>
+                  <span>Exportar Plano PDF (.pdf)</span>
+                </button>
+              </div>
+            )}
+          </div>
+
+          {modalAmpliado && (
+            <button
+              onClick={() => setModalAmpliado(false)}
+              className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-md transition border-l border-slate-300 dark:border-slate-800 pl-3.5 ml-2"
+              title="Cerrar Pantalla Completa (Esc)"
+            >
+              <XMarkIcon className="w-5 h-5" />
+            </button>
           )}
         </div>
       </div>
@@ -636,9 +652,12 @@ export function CadViewerCanvas({
             </div>
 
             <div className="flex flex-col">
-              <span className="font-bold text-slate-900 text-sm tracking-normal truncate max-w-xs">{hoveredSalidaInfo.titulo}</span>
+              <span className="font-semibold text-slate-900 text-sm tracking-normal max-w-md leading-snug">{hoveredSalidaInfo.titulo}</span>
               <span className="text-[11px] text-slate-500 font-mono mt-0.5">
-                FILA: <strong className="text-slate-800">{hoveredSalidaInfo.seccion}</strong> | CÓD: <strong className="text-amber-700 font-semibold">{hoveredSalidaInfo.codigo}</strong>
+                FILA: <strong className="text-slate-800">{hoveredSalidaInfo.seccion}</strong>
+                {hoveredSalidaInfo.codigo && (
+                  <> | CÓD: <strong className="text-amber-700 font-semibold">{hoveredSalidaInfo.codigo}</strong></>
+                )}
               </span>
             </div>
 
@@ -658,7 +677,13 @@ export function CadViewerCanvas({
             </div>
           </div>
         ) : modalAmpliado ? (
-          <div className="absolute bottom-12 left-1/2 -translate-x-1/2 z-50 bg-slate-900/60 text-slate-400 border border-slate-700/40 shadow-sm backdrop-blur-sm rounded-md px-4 py-1.5 text-[11px] font-mono text-center opacity-70 select-none pointer-events-none">
+          <div
+            className={`absolute bottom-12 left-1/2 -translate-x-1/2 z-50 rounded-md px-4 py-1.5 text-[11px] font-mono text-center select-none pointer-events-none transition-colors ${
+              theme === "light"
+                ? "bg-slate-100/90 text-slate-700 border border-slate-300/80 shadow-sm backdrop-blur-sm opacity-90"
+                : "bg-slate-900/60 text-slate-400 border border-slate-700/40 shadow-sm backdrop-blur-sm opacity-70"
+            }`}
+          >
             [CAD INSPECT] Pasa el cursor sobre cualquier línea o elemento para ver detalles técnicos
           </div>
         ) : null}
