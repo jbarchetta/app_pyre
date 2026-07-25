@@ -13,7 +13,7 @@ import {
 } from "@heroicons/react/24/outline";
 import type { Salida, Seccion } from "../api/client";
 import type { CadPoint, ViewportTransform } from "../cad/core/types";
-import { zoomAtPoint, calculateFitToScreen, screenToWorld } from "../cad/core/transform";
+import { zoomAtPoint, calculateFitToScreen, screenToWorld, centerOnScreen } from "../cad/core/transform";
 import { findPrimitiveAtPoint, snapToGrid } from "../cad/core/hitTest";
 import { downloadDxfFile } from "../cad/core/dxfExporter";
 import { exportarPdfProfesional } from "../cad/core/pdfExporter";
@@ -148,13 +148,20 @@ export function CadViewerCanvas({
   // Transformación de Viewport (Zoom y Pan)
   const [transform, setTransform] = useState<ViewportTransform>({ zoom, panX: 50, panY: 50 });
 
-  // Recalcular centrado al alternar entre vista comprimida y pantalla completa
+  // Centra el dibujo en el contenedor manteniendo el nivel de zoom intacto
+  const handleCenterDesign = useCallback(() => {
+    const w = containerRef.current?.clientWidth || window.innerWidth || 800;
+    const h = containerRef.current?.clientHeight || window.innerHeight || 600;
+    setTransform((t) => centerOnScreen(cadDoc.bounds, t.zoom, w, h));
+  }, [cadDoc.bounds]);
+
+  // Centrar dibujo SIN cambiar zoom al alternar pantalla completa
   useEffect(() => {
     const timer = setTimeout(() => {
-      setTransform((t) => ({ ...t, panX: 50, panY: 50 }));
+      handleCenterDesign();
     }, 60);
     return () => clearTimeout(timer);
-  }, [modalAmpliado]);
+  }, [modalAmpliado, handleCenterDesign]);
 
   // Sincronizar zoom prop desde el padre solo si difiere significativamente
   useEffect(() => {
@@ -216,11 +223,11 @@ export function CadViewerCanvas({
     setTransform(nextTransform);
   }, [cadDoc.bounds]);
 
-  // Auto fit EXCLUSIVAMENTE al cambiar de modo visual o al alternar pantalla completa
+  // Fit to screen inicial EXCLUSIVAMENTE al cambiar de modo visual topográfico / unifilar
   useEffect(() => {
     handleFitToScreen();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [modoVisual, modalAmpliado]);
+  }, [modoVisual]);
 
   // Ciclo de renderizado
   useEffect(() => {

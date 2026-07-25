@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { worldToScreen, screenToWorld, calculateFitToScreen, zoomAtPoint } from "./transform";
+import { worldToScreen, screenToWorld, calculateFitToScreen, zoomAtPoint, centerOnScreen } from "./transform";
 import type { CadBounds, ViewportTransform } from "./types";
 
 describe("transform module", () => {
@@ -36,5 +36,17 @@ describe("transform module", () => {
     const converted = worldToScreen({ x: 200, y: 150 }, next);
     expect(converted.x).toBeCloseTo(200);
     expect(converted.y).toBeCloseTo(150);
+  });
+
+  it("centers bounds on screen without changing zoom", () => {
+    const bounds: CadBounds = { minX: 0, minY: 0, maxX: 100, maxY: 50 };
+    const currentZoom = 2.5;
+
+    const next = centerOnScreen(bounds, currentZoom, 800, 600);
+
+    expect(next.zoom).toBe(2.5);
+    // worldCenter = (50, 25). panX = 400 - 50*2.5 = 275, panY = 300 - 25*2.5 = 237.5
+    expect(next.panX).toBe(275);
+    expect(next.panY).toBe(237.5);
   });
 });

@@ -68,3 +68,24 @@ export function zoomAtPoint(
     panY: newPanY,
   };
 }
+
+/**
+ * Centra los límites del dibujo en el contenedor manteniendo el nivel de zoom actual.
+ */
+export function centerOnScreen(
+  bounds: CadBounds,
+  zoom: number,
+  containerWidth: number,
+  containerHeight: number
+): ViewportTransform {
+  const widthMm = Math.max(10, bounds.maxX - bounds.minX);
+  const heightMm = Math.max(10, bounds.maxY - bounds.minY);
+
+  const worldCenterX = bounds.minX + widthMm / 2;
+  const worldCenterY = bounds.minY + heightMm / 2;
+
+  const panX = containerWidth / 2 - worldCenterX * zoom;
+  const panY = containerHeight / 2 - worldCenterY * zoom;
+
+  return { zoom, panX, panY };
+}
