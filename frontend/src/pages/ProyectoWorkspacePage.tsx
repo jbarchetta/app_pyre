@@ -22,6 +22,7 @@ import {
 import { ComponentePicker } from "../components/ComponentePicker";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { DetalleTablero } from "../components/DetalleTablero";
+import { Button } from "../components/common/Button";
 import { useCerrarAlClickFuera } from "../hooks/useCerrarAlClickFuera";
 import {
   cargarEstadosVistaUsuario,
@@ -239,12 +240,10 @@ export function ProyectoWorkspacePage() {
           <h1 className="text-xl font-bold text-gray-900">{proyecto.nombre}</h1>
         </div>
 
-        <Link
-          to="/proyectos"
-          className="self-start sm:self-auto inline-flex items-center gap-1.5 px-3 py-1.5 border border-gray-300 rounded text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 hover:border-gray-400 transition"
-        >
-          <ArrowLeftIcon className="w-4 h-4" />
-          Volver a Proyectos
+        <Link to="/proyectos">
+          <Button variant="outline" size="sm" icon={<ArrowLeftIcon className="w-4 h-4 text-slate-600" />}>
+            Volver a Proyectos
+          </Button>
         </Link>
       </div>
 

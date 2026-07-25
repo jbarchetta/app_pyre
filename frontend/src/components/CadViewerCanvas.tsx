@@ -555,14 +555,17 @@ export function CadViewerCanvas({
         {/* Acciones de Exportación Profesional y Cierre de Pantalla Completa */}
         <div className="flex items-center space-x-3">
           <div className="relative">
-            <button
+            <Button
+              size="xs"
+              variant="primary"
+              icon={<DocumentArrowDownIcon className="w-3.5 h-3.5" />}
               onClick={() => setMenuExportarAbierto((v) => !v)}
-              className="px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-slate-950 font-bold rounded-lg flex items-center space-x-1.5 shadow-sm transition-colors text-xs"
             >
-              <DocumentArrowDownIcon className="w-4 h-4 text-slate-950" />
-              <span>Exportar</span>
-              <ChevronDownIcon className="w-3.5 h-3.5 text-slate-950" />
-            </button>
+              <span className="flex items-center gap-1">
+                <span>Exportar</span>
+                <ChevronDownIcon className="w-3 h-3" />
+              </span>
+            </Button>
 
             {menuExportarAbierto && (
               <div className="absolute right-0 mt-2 w-48 bg-slate-950 border border-slate-700 text-slate-100 rounded-xl shadow-2xl z-50 overflow-hidden py-1 backdrop-blur-xl">
@@ -592,20 +595,16 @@ export function CadViewerCanvas({
           </div>
 
           {modalAmpliado && (
-            <button
-              type="button"
+            <Button
+              size="xs"
+              variant="secondary"
+              icon={<XMarkIcon className="w-3.5 h-3.5" />}
               onClick={() => setModalAmpliado(false)}
-              className={`px-2.5 py-1 rounded-lg border font-mono text-xs flex items-center space-x-1.5 transition-all duration-200 shadow-sm ${
-                theme === "light"
-                  ? "bg-slate-200/90 hover:bg-red-50 border-slate-300 text-slate-700 hover:text-abb-red"
-                  : "bg-slate-800 hover:bg-red-950/60 border-slate-700 text-slate-200 hover:text-red-400"
-              }`}
               title="Salir de Pantalla Completa (Esc)"
               aria-label="Salir de pantalla completa"
             >
-              <XMarkIcon className="w-4 h-4" />
-              <span>CERRAR</span>
-            </button>
+              Cerrar
+            </Button>
           )}
         </div>
       </div>

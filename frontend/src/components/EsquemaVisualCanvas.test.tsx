@@ -125,16 +125,16 @@ describe("EsquemaVisualCanvas", () => {
     );
 
     // Initial state is "Bloques"
-    expect(screen.getByRole("button", { name: "Bloques" })).toHaveClass("text-abb-red");
-    expect(screen.getByRole("button", { name: "Unifilar" })).not.toHaveClass("text-abb-red");
+    expect(screen.getByRole("button", { name: "Bloques" })).toHaveClass("bg-abb-red");
+    expect(screen.getByRole("button", { name: "Unifilar" })).not.toHaveClass("bg-abb-red");
 
     // Click on Unifilar
     await userEvent.click(screen.getByRole("button", { name: "Unifilar" }));
-    expect(screen.getByRole("button", { name: "Unifilar" })).toHaveClass("text-abb-red");
-    expect(screen.getByRole("button", { name: "Bloques" })).not.toHaveClass("text-abb-red");
+    expect(screen.getByRole("button", { name: "Unifilar" })).toHaveClass("bg-abb-red");
+    expect(screen.getByRole("button", { name: "Bloques" })).not.toHaveClass("bg-abb-red");
 
     // Click on Topográfico
     await userEvent.click(screen.getByRole("button", { name: "Topográfico" }));
-    expect(screen.getByRole("button", { name: "Topográfico" })).toHaveClass("text-abb-red");
+    expect(screen.getByRole("button", { name: "Topográfico" })).toHaveClass("bg-abb-red");
   });
 });

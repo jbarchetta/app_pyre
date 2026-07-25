@@ -37,6 +37,7 @@ import { EsquemaVisualCanvas } from "./EsquemaVisualCanvas";
 import { ComponentePicker } from "./ComponentePicker";
 import { SeccionBlock } from "./SeccionBlock";
 import { ConfirmDialog } from "./ConfirmDialog";
+import { Button } from "./common/Button";
 import { useCerrarAlClickFuera } from "../hooks/useCerrarAlClickFuera";
 import type { ModoVisual, ModoVisualState } from "../utils/vistaStorage";
 
@@ -631,13 +632,13 @@ export function DetalleTablero({
               aria-label="Principal"
               type="button"
               onClick={() => setTabSeleccionadoRaw(TAB_PRINCIPAL)}
-              className={`px-3 py-1.5 text-xs font-mono font-bold uppercase tracking-wider rounded-lg transition-all duration-150 ${
+              className={`px-3 py-1.5 text-xs font-sans rounded-lg transition-all duration-150 ${
                 tabActivo === TAB_PRINCIPAL
-                  ? "bg-white text-slate-900 shadow-sm border border-slate-200/30"
-                  : "text-slate-500 hover:text-slate-900 hover:bg-white/40"
+                  ? "bg-white text-slate-900 shadow-2xs border border-slate-200/60 font-semibold"
+                  : "text-slate-500 hover:text-slate-900 hover:bg-white/50 font-medium"
               }`}
             >
-              <span aria-hidden="true" className="opacity-40 font-mono mr-1">00</span>
+              <span aria-hidden="true" className="opacity-50 font-mono text-[11px] mr-1.5">00</span>
               <span>Principal</span>
             </button>
             {(secciones ?? []).map(({ seccion, salidas }, idx) => {
@@ -651,15 +652,15 @@ export function DetalleTablero({
                   aria-label={seccion.nombre}
                   type="button"
                   onClick={() => setTabSeleccionadoRaw(seccion.id)}
-                  className={`px-3 py-1.5 text-xs font-mono font-bold uppercase tracking-wider rounded-lg transition-all duration-150 flex items-center gap-1 ${
+                  className={`px-3 py-1.5 text-xs font-sans rounded-lg transition-all duration-150 flex items-center gap-1.5 ${
                     isSelected
-                      ? "bg-white text-slate-900 shadow-sm border border-slate-200/30"
-                      : "text-slate-500 hover:text-slate-900 hover:bg-white/40"
+                      ? "bg-white text-slate-900 shadow-2xs border border-slate-200/60 font-semibold"
+                      : "text-slate-500 hover:text-slate-900 hover:bg-white/50 font-medium"
                   }`}
                 >
-                  <span aria-hidden="true" className="opacity-40 font-mono mr-1">{sNum}</span>
+                  <span aria-hidden="true" className="opacity-50 font-mono text-[11px]">{sNum}</span>
                   <span className="truncate max-w-[120px]">{seccion.nombre}</span>
-                  <span className="ml-1 text-[9px] bg-slate-200/80 text-slate-700 px-1.5 py-0.5 rounded-full font-bold" aria-hidden="true">
+                  <span className="ml-1 text-[10px] bg-slate-200/80 text-slate-700 px-1.5 py-0.2 rounded-full font-semibold font-mono" aria-hidden="true">
                     {salidas.length}
                   </span>
                 </button>
@@ -671,46 +672,43 @@ export function DetalleTablero({
           <div className="flex items-center gap-1.5 shrink-0 px-1 sm:ml-auto">
             {tabActivo !== TAB_PRINCIPAL && seccionSeleccionada && (
               <>
-                <button
-                  type="button"
+                <Button
+                  size="icon"
+                  variant="secondary"
                   aria-label="Renombrar fila activa"
                   onClick={(e) => {
                     ultimoTriggerRef.current = e.currentTarget;
                     setNombreFilaEdit(seccionSeleccionada.seccion.nombre);
                     setFilaEnEdicion(seccionSeleccionada.seccion);
                   }}
-                  className="p-2 text-slate-500 hover:text-abb-red hover:bg-slate-100 border border-slate-200 rounded-lg transition-all shadow-sm bg-white"
                   title="Renombrar sub-sección activa"
-                >
-                  <PencilIcon className="w-4 h-4" />
-                </button>
-                <button
-                  type="button"
+                  icon={<PencilIcon className="w-4 h-4 text-slate-600" />}
+                />
+                <Button
+                  size="icon"
+                  variant="danger"
                   aria-label="Borrar fila activa"
                   onClick={(e) => {
                     ultimoTriggerRef.current = e.currentTarget;
                     setFilaABorrar(seccionSeleccionada.seccion);
                   }}
-                  className="p-2 text-red-500 hover:text-red-700 hover:bg-red-50 border border-red-100 rounded-lg transition-all shadow-sm bg-white"
                   title="Eliminar sub-sección activa"
-                >
-                  <TrashIcon className="w-4 h-4" />
-                </button>
+                  icon={<TrashIcon className="w-4 h-4 text-red-600" />}
+                />
               </>
             )}
-            <button
-              type="button"
+            <Button
+              size="icon"
+              variant="primary"
               aria-label="Nueva fila"
               onClick={(e) => {
                 ultimoTriggerRef.current = e.currentTarget;
                 setNombreNuevaFila("");
                 setModalNuevaFila(true);
               }}
-              className="p-2 text-white bg-abb-red hover:bg-red-700 rounded-lg transition-all shadow-sm flex items-center justify-center"
               title="Nueva sub-sección"
-            >
-              <PlusIcon className="w-4 h-4" />
-            </button>
+              icon={<PlusIcon className="w-4 h-4 text-white" />}
+            />
           </div>
         </div>
 

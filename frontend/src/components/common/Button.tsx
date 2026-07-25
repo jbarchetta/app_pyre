@@ -21,19 +21,19 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
 
 const variantStyles: Record<ButtonVariant, string> = {
   primary:
-    "bg-slate-900 text-white hover:bg-slate-800 active:bg-slate-950 border border-slate-900 shadow-2xs focus:ring-2 focus:ring-slate-400 font-medium",
+    "bg-abb-red text-white hover:bg-red-700 active:bg-red-800 border border-red-600 shadow-2xs focus:ring-2 focus:ring-red-400 font-semibold",
   secondary:
     "bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300 hover:text-slate-900 shadow-2xs font-medium",
   outline:
-    "bg-transparent border border-slate-300 text-slate-600 hover:bg-slate-100 hover:text-slate-900 font-medium",
+    "bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 hover:border-slate-400 font-medium shadow-2xs",
   ghost:
     "bg-transparent text-slate-600 hover:bg-slate-100 hover:text-slate-900 font-medium",
   danger:
-    "bg-red-600 text-white hover:bg-red-700 active:bg-red-800 font-medium shadow-2xs border border-red-600",
+    "bg-red-50 text-red-700 border border-red-200 hover:bg-red-100 hover:border-red-300 font-medium shadow-2xs",
   "cad-tool":
-    "bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white border border-slate-700 font-mono text-xs",
+    "bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white border border-slate-700 font-sans text-xs font-medium",
   "cad-tool-active":
-    "bg-indigo-600 text-white border border-indigo-500 font-mono text-xs shadow-inner font-semibold",
+    "bg-abb-red text-white border border-red-600 font-sans text-xs font-semibold shadow-inner",
 };
 
 const sizeStyles: Record<ButtonSize, string> = {

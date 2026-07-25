@@ -327,10 +327,10 @@ export function EsquemaVisualCanvas({
           <button
             type="button"
             onClick={() => setModoVisualState("bloques")}
-            className={`px-3 py-1 text-xs font-mono font-bold rounded-md transition-colors ${
+            className={`px-3 py-1 text-xs font-sans rounded-md transition-all ${
               modoVisualState === "bloques"
-                ? "bg-abb-red text-white text-abb-red shadow-sm"
-                : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+                ? "bg-abb-red text-white font-semibold shadow-2xs"
+                : "text-slate-600 hover:text-slate-900 hover:bg-slate-100 font-medium"
             }`}
           >
             Bloques
@@ -338,10 +338,10 @@ export function EsquemaVisualCanvas({
           <button
             type="button"
             onClick={() => setModoVisualState("topografico")}
-            className={`px-3 py-1 text-xs font-mono font-bold rounded-md transition-colors ${
+            className={`px-3 py-1 text-xs font-sans rounded-md transition-all ${
               modoVisualState === "topografico"
-                ? "bg-abb-red text-white text-abb-red shadow-sm"
-                : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+                ? "bg-abb-red text-white font-semibold shadow-2xs"
+                : "text-slate-600 hover:text-slate-900 hover:bg-slate-100 font-medium"
             }`}
           >
             Topográfico
@@ -349,10 +349,10 @@ export function EsquemaVisualCanvas({
           <button
             type="button"
             onClick={() => setModoVisualState("unifilar")}
-            className={`px-3 py-1 text-xs font-mono font-bold rounded-md transition-colors ${
+            className={`px-3 py-1 text-xs font-sans rounded-md transition-all ${
               modoVisualState === "unifilar"
-                ? "bg-abb-red text-white text-abb-red shadow-sm"
-                : "text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+                ? "bg-abb-red text-white font-semibold shadow-2xs"
+                : "text-slate-600 hover:text-slate-900 hover:bg-slate-100 font-medium"
             }`}
           >
             Unifilar
@@ -367,15 +367,15 @@ export function EsquemaVisualCanvas({
           </div>
 
           {panelLateralColapsado && onTogglePanelLateral && (
-            <button
-              type="button"
+            <Button
+              variant="secondary"
+              size="xs"
+              icon={<ArrowsPointingOutIcon className="w-3.5 h-3.5 text-abb-red" />}
               onClick={onTogglePanelLateral}
-              className="flex items-center gap-1.5 px-3 py-1 text-xs font-mono font-bold rounded-lg border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 shadow-sm transition ml-2"
               title="Expandir tarjetas laterales"
             >
-              <ArrowsPointingOutIcon className="w-4 h-4 text-abb-red" />
-              <span className="hidden md:inline">EXPANDIR TARJETAS</span>
-            </button>
+              Expandir tarjetas laterales
+            </Button>
           )}
         </div>
       </div>
