@@ -183,8 +183,10 @@ export class CadCanvasEngine {
       ctx.shadowColor = "#0284C7";
       ctx.shadowBlur = 8;
     } else if (isHovered) {
-      ctx.strokeStyle = "#D97706";
-      ctx.lineWidth = 2.5;
+      ctx.strokeStyle = "#10B981";
+      ctx.lineWidth = Math.max(2.5, (prim.lineWidth || 1.5) * transform.zoom * 1.4);
+      ctx.shadowColor = "#10B981";
+      ctx.shadowBlur = 10;
     } else {
       ctx.strokeStyle = color;
       ctx.lineWidth = Math.max(1, (prim.lineWidth || 1.5) * transform.zoom);

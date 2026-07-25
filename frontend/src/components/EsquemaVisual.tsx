@@ -211,8 +211,7 @@ export function EsquemaVisual({
             <line x1={q1X - 6} y1={46} x2={q1X + 6} y2={46} stroke="#0f172a" strokeWidth={2.5} />
             <line x1={q1X + 6} y1={46} x2={q1X + 24} y2={46} stroke="#0f172a" strokeWidth={1.0} />
             <text x={q1X + 9} y={43} fontSize={11} fontFamily="monospace" fontWeight="bold" fill="#0f172a">
-              {Number(interruptorPrincipal?.polos || 4) >= 4 ? "4x" : "3x"}
-              {Number(interruptorPrincipal?.corriente_nominal_a || 63) <= 32 ? "6" : Number(interruptorPrincipal?.corriente_nominal_a || 63) <= 63 ? "16" : "35"} mm²
+              {Number(interruptorPrincipal?.corriente_nominal_a || 63) <= 32 ? "6" : Number(interruptorPrincipal?.corriente_nominal_a || 63) <= 63 ? "16" : Number(interruptorPrincipal?.corriente_nominal_a || 63) <= 125 ? "35" : "70"} mm²
             </text>
 
             {/* Símbolo Termomagnético de Q1 */}
@@ -237,8 +236,7 @@ export function EsquemaVisual({
             <line x1={q1X - 6} y1={88} x2={q1X + 6} y2={88} stroke="#0f172a" strokeWidth={2.5} />
             <line x1={q1X + 6} y1={88} x2={q1X + 24} y2={88} stroke="#0f172a" strokeWidth={1.0} />
             <text x={q1X + 9} y={85} fontSize={11} fontFamily="monospace" fontWeight="bold" fill="#0f172a">
-              {Number(interruptorPrincipal?.polos || 4) >= 4 ? "4x" : "3x"}
-              {Number(interruptorPrincipal?.corriente_nominal_a || 63) <= 32 ? "6" : Number(interruptorPrincipal?.corriente_nominal_a || 63) <= 63 ? "16" : "35"} mm²
+              {Number(interruptorPrincipal?.corriente_nominal_a || 63) <= 32 ? "6" : Number(interruptorPrincipal?.corriente_nominal_a || 63) <= 63 ? "16" : Number(interruptorPrincipal?.corriente_nominal_a || 63) <= 125 ? "35" : "70"} mm²
             </text>
 
             {/* Dot de conexión verde (r=4.0, 20% más pequeño) */}

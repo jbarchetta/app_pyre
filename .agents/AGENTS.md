@@ -10,9 +10,10 @@
 
 2. **Interruptor Principal General (Q1)**:
    - **Símbolo**: Utiliza el mismo símbolo termomagnético normalizado (seccionador con cruz 'X', gatillo y stubs de empalme) en reemplazo del antiguo cuadrado genérico.
+   - **Largo Ampliado (+25mm en Ambas Líneas)**: El tramo de entrada superior y el tramo de salida inferior de Q1 se amplían **+25mm cada uno**, fijando `Y_MAIN_BREAKER = 115mm` y `Y_DISTRIBUTION_BUS = 210mm` para un maquetado amplio y despejado.
    - **Flecha Entrante**: Al inicio de la línea de acometida (aguas arriba del Q1) se renderiza una punta de flecha entrante ($\downarrow$) que indica la alimentación del cliente.
    - **Textos Descriptivos**: Aplica la misma estructura de 3 líneas descriptivas a la izquierda del símbolo (Línea 1: TAG `Q1` en 6.5mm Bold, Línea 2: `ABB <Modelo>` en 6.0mm Bold con ABB en rojo, Línea 3: `<Código SAP>` en 6.0mm Normal).
-   - **Polos y Calibres Duplicados**: Incorpora símbolos de polos y calibres de cable (`4x16 mm²`, `4x35 mm²`) tanto **aguas arriba** como **aguas abajo** de Q1, ampliando la distancia vertical a 90mm para un maquetado desahogado.
+   - **Polos y Calibres Duplicados**: Incorpora símbolos de polos y calibres de cable (`16 mm²`, `35 mm²`, `70 mm²`) tanto **aguas arriba** como **aguas abajo** de Q1.
    - **Conexión**: Se conecta centrado con respecto al embarrado distribuidor con un dot verde `r = 4.0px`.
 
 3. **Reubicación de Símbolos de Polos/Fases**:
@@ -45,8 +46,16 @@
 11. **Dots de Conexión de Ramales (-20% de tamaño)**:
    - Los nodos de conexión al embarrado se renderizan rellenos del mismo **Verde** de las líneas (`#10B981` / `#059669`) con radio compacto `r = 4.0px`.
 
-12. **Calibres de Cables (+1mm de elevación sobre guía)**:
-   - Las etiquetas de calibre del cable (superiores e inferiores) se fijan en fuente **6.0mm Bold** y se elevan **1mm por encima** de la línea guía horizontal.
+12. **Formato de Calibre del Cable (Únicamente mm² sin prefijos)**:
+   - Las etiquetas de calibre del cable muestran **exclusivamente la sección transversal del conductor** (ej. `70 mm²`, `35 mm²`, `16 mm²`, `6 mm²`, `4 mm²`) eliminando el prefijo de polos (`4x` / `3x`). Se posicionan en fuente **6.0mm Bold** elevadas 1mm sobre la guía horizontal.
 
 13. **Contenedor Transparente de Texto al Pie**:
    - El contenedor del pie es **100% transparente sin bordes ni fondos visibles** (`fill="none"`, `stroke="none"`).
+
+14. **Menú Desplegable de Exportación (DXF y PDF Profesional, Sin PNG)**:
+   - Se elimina permanentemente la opción de exportación a PNG.
+   - Se reemplaza por un botón desplegable profesional con las opciones de descarga **`Exportar AutoCAD (.dxf)`** y **`Exportar Plano PDF (.pdf)`** (PDF vectorial con cuadro de rotulación de ingeniería).
+
+15. **Sincronización Hover Tabla vs. Ventana CAD**:
+   - Al pasar el cursor por las filas de la tabla de componentes se **ilumina en verde brillante resplandeciente (`#10B981`) la línea de circuito** en el plano CAD sin abrir el modal flotante.
+   - El modal flotante HUD solo se despliega cuando el puntero del ratón se desplaza activamente **dentro de la ventana de diseño CAD**.

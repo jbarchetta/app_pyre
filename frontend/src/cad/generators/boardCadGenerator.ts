@@ -25,26 +25,25 @@ export interface BoardCadGeneratorParams {
 // =========================================================================
 export const UNIFILAR_LAYOUT = {
   Y_BUSBAR: 0,            // Acometida Inicial de Entrada
-  Y_MAIN_BREAKER: 90,     // Interruptor Principal General Q1 (ampliado para ticks y calibres)
-  Y_DISTRIBUTION_BUS: 160,// Embarrado de Cobre L1-L2-L3-N
-  Y_BRANCH_DEVICES: 300,  // Disyuntores de Salidas (Línea superior ampliada a 140mm)
-  Y_TERMINALS: 440,       // Regleta de Borneras X1 (Línea inferior ampliada a 140mm)
-  Y_LABELS_BOTTOM: 500,   // Textos descriptivos al pie
+  Y_MAIN_BREAKER: 115,    // Interruptor Principal General Q1 (+25mm ampliado en línea superior)
+  Y_DISTRIBUTION_BUS: 210,// Embarrado de Cobre L1-L2-L3-N (+25mm ampliado en línea inferior)
+  Y_BRANCH_DEVICES: 350,  // Disyuntores de Salidas
+  Y_TERMINALS: 490,       // Regleta de Borneras X1
+  Y_LABELS_BOTTOM: 550,   // Textos descriptivos al pie
 
   OFFSET_X_TEXT: -15,     // Desplazamiento a la IZQUIERDA (-15mm) para descripciones de interruptor
   COLUMN_STEP_X: 120,     // Paso constante entre columnas de 120mm
   X_INITIAL: 100,         // Coordenada X inicial de la primera columna
 };
 
-function calcularCalibreAcometida(amp: number, polos: number): string {
-  const pStr = polos >= 4 ? "4x" : polos === 3 ? "3x" : "2x";
-  if (amp <= 25) return `${pStr}4 mm²`;
-  if (amp <= 32) return `${pStr}6 mm²`;
-  if (amp <= 40) return `${pStr}10 mm²`;
-  if (amp <= 63) return `${pStr}16 mm²`;
-  if (amp <= 80) return `${pStr}25 mm²`;
-  if (amp <= 125) return `${pStr}35 mm²`;
-  return `${pStr}70 mm²`;
+function calcularCalibreAcometida(amp: number, _polos?: number): string {
+  if (amp <= 25) return "4 mm²";
+  if (amp <= 32) return "6 mm²";
+  if (amp <= 40) return "10 mm²";
+  if (amp <= 63) return "16 mm²";
+  if (amp <= 80) return "25 mm²";
+  if (amp <= 125) return "35 mm²";
+  return "70 mm²";
 }
 
 export function wrapText(text: string, maxCharsPerLine: number = 20): string {

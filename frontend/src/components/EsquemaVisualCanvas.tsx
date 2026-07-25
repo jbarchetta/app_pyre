@@ -159,12 +159,14 @@ export function EsquemaVisualCanvas({
     setPanY(0);
   };
 
-  // Información de la Salida hovered para sincronización con la tabla
+  const [canvasHoveredId, setCanvasHoveredId] = useState<string | null>(null);
+
+  // Información de la Salida hovered ÚNICAMENTE cuando se hace hover dentro de la ventana de diseño
   const hoveredSalidaInfo = useMemo(() => {
-    if (!hoveredSalidaId) return null;
-    if (hoveredSalidaId === "main-breaker") {
+    if (!canvasHoveredId) return null;
+    if (canvasHoveredId === "main-breaker") {
       return {
-        tag: "MAIN BREAKER",
+        tag: "Q1 MAIN",
         titulo: interruptorPrincipal?.descripcion || "Interruptor Principal Cabecera",
         codigo: interruptorPrincipal?.codigo_comercial || interruptorPrincipal?.codigo || "-",
         corriente: interruptorPrincipal?.corriente_nominal_a ? `${interruptorPrincipal.corriente_nominal_a}A` : "-",
@@ -174,7 +176,7 @@ export function EsquemaVisualCanvas({
       };
     }
     for (const sec of secciones) {
-      const found = sec.salidas.find((sal) => sal.id === hoveredSalidaId);
+      const found = sec.salidas.find((sal) => sal.id === canvasHoveredId);
       if (found) {
         return {
           tag: found.posicion_codigo || `Salida ${(found.orden ?? found.posicion_orden ?? 0) + 1}`,
@@ -189,7 +191,7 @@ export function EsquemaVisualCanvas({
       }
     }
     return null;
-  }, [hoveredSalidaId, secciones, interruptorPrincipal]);
+  }, [canvasHoveredId, secciones, interruptorPrincipal]);
 
   // Controles superiores de vista (Zoom, Capas, Pantalla completa)
   const renderControlesSVG = (esModal: boolean) => (
@@ -367,7 +369,10 @@ export function EsquemaVisualCanvas({
                 panY={panY}
                 capas={capas}
                 hoveredSalidaId={hoveredSalidaId}
-                onSalidaHover={onSalidaHover}
+                onSalidaHover={(id) => {
+                  setCanvasHoveredId(id);
+                  if (onSalidaHover) onSalidaHover(id);
+                }}
                 onSalidaClick={onSalidaClick}
               />
             </div>
@@ -416,7 +421,10 @@ export function EsquemaVisualCanvas({
                     panY={panY}
                     capas={capas}
                     hoveredSalidaId={hoveredSalidaId}
-                    onSalidaHover={onSalidaHover}
+                    onSalidaHover={(id) => {
+                      setCanvasHoveredId(id);
+                      if (onSalidaHover) onSalidaHover(id);
+                    }}
                     onSalidaClick={(salida) => {
                       if (onSalidaClick) onSalidaClick(salida);
                       setModalAmpliado(false);
