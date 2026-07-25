@@ -233,6 +233,28 @@ export function CadViewerCanvas({
     });
   }, [cadDoc, transform, mousePosPx, theme, showGrid, activeLayerIds, hoveredSalidaId, canvasHoveredId, herramientaMedir, puntoInicioMedicion]);
 
+  // ResizeObserver para re-renderizar de inmediato ante cualquier cambio de dimensión del contenedor
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+
+    const observer = new ResizeObserver(() => {
+      if (engineRef.current && canvasRef.current) {
+        engineRef.current.render(cadDoc, transform, mousePosPx, {
+          theme,
+          showGrid,
+          activeLayerIds,
+          hoveredDataId: hoveredSalidaId || canvasHoveredId,
+          measurementToolActive: herramientaMedir,
+          measureStartPoint: puntoInicioMedicion,
+        });
+      }
+    });
+
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [cadDoc, transform, mousePosPx, theme, showGrid, activeLayerIds, hoveredSalidaId, canvasHoveredId, herramientaMedir, puntoInicioMedicion]);
+
   // Zoom incremental focalizado al centro de la pantalla
   const changeZoom = (delta: number) => {
     const targetZoom = limitar(transform.zoom + delta);
@@ -343,15 +365,15 @@ export function CadViewerCanvas({
 
   return (
     <div
-      className={`transition-all duration-200 ${
+      className={
         modalAmpliado
-          ? `fixed inset-0 z-50 w-screen h-screen flex flex-col p-2 ${
+          ? `fixed inset-0 z-50 w-screen h-screen flex flex-col p-2 animate-fade-in ${
               theme === "light" ? "bg-slate-100 text-slate-900" : "bg-slate-950 text-slate-200"
             }`
           : `relative flex flex-col w-full h-[620px] rounded-xl overflow-hidden border shadow-2xl ${
               theme === "light" ? "bg-white border-slate-300 text-slate-900" : "bg-slate-900 border-slate-800 text-slate-200"
             }`
-      }`}
+      }
     >
       {/* BARRA DE HERRAMIENTAS CAD */}
       <div
