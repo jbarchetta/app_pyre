@@ -642,7 +642,7 @@ export function CadViewerCanvas({
 
         {/* BARRA DE INSPECCIÓN CAD TÉCNICA (HUD COMPACTO EN UNA SOLA LÍNEA) */}
         {hoveredSalidaInfo ? (
-          <div className={`absolute ${modalAmpliado ? "bottom-10" : "bottom-5"} left-1/2 -translate-x-1/2 z-50 bg-white/95 text-slate-900 border border-slate-300/80 shadow-[0_8px_30px_rgba(0,0,0,0.15)] backdrop-blur-md rounded-md px-4 py-1.5 flex items-center space-x-4 max-w-[92%] whitespace-nowrap text-xs font-sans select-none pointer-events-none animate-fade-in`}>
+          <div className={`absolute ${modalAmpliado ? "bottom-8" : "bottom-4"} left-1/2 -translate-x-1/2 z-50 bg-white/95 text-slate-900 border border-slate-300/80 shadow-[0_8px_30px_rgba(0,0,0,0.15)] backdrop-blur-md rounded-md px-4 py-1.5 flex items-center space-x-4 max-w-[92%] whitespace-nowrap text-xs font-sans select-none pointer-events-none animate-fade-in`}>
             {/* TAG DE POSICIÓN */}
             <div className="flex items-center space-x-2 shrink-0">
               <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
@@ -683,9 +683,9 @@ export function CadViewerCanvas({
               )}
             </div>
           </div>
-        ) : modalAmpliado ? (
+        ) : (
           <div
-            className={`absolute ${modalAmpliado ? "bottom-10" : "bottom-5"} left-1/2 -translate-x-1/2 z-50 rounded-md px-4 py-1 text-[11px] font-mono text-center select-none pointer-events-none transition-colors ${
+            className={`absolute ${modalAmpliado ? "bottom-8" : "bottom-4"} left-1/2 -translate-x-1/2 z-50 rounded-md px-4 py-1 text-[11px] font-mono text-center select-none pointer-events-none transition-colors ${
               theme === "light"
                 ? "bg-slate-100/90 text-slate-700 border border-slate-300/80 shadow-sm backdrop-blur-sm opacity-90"
                 : "bg-slate-900/60 text-slate-400 border border-slate-700/40 shadow-sm backdrop-blur-sm opacity-70"
@@ -693,7 +693,7 @@ export function CadViewerCanvas({
           >
             [CAD INSPECT] Pasa el cursor sobre cualquier línea o elemento para ver detalles técnicos
           </div>
-        ) : null}
+        )}
       </div>
     </div>
   );

@@ -3,7 +3,6 @@ import {
   MagnifyingGlassMinusIcon,
   MagnifyingGlassPlusIcon,
   ArrowsPointingOutIcon,
-  ArrowsPointingInIcon,
   Square3Stack3DIcon,
   XMarkIcon,
   CpuChipIcon,
@@ -236,21 +235,76 @@ export function EsquemaVisualCanvas({
       >
         <Square3Stack3DIcon className="w-4 h-4" />
       </button>
-      <button
-        type="button"
-        aria-label={esModal ? "Salir de pantalla completa" : "Pantalla completa"}
-        onClick={() => setModalAmpliado(!esModal)}
-        className="p-1.5 text-gray-600 hover:text-abb-red rounded hover:bg-gray-200 transition ml-1"
-        title={esModal ? "Salir de pantalla completa (Esc)" : "Ampliar a pantalla completa"}
-      >
-        {esModal ? (
-          <ArrowsPointingInIcon className="w-4 h-4" />
-        ) : (
+      {!esModal && (
+        <button
+          type="button"
+          aria-label="Pantalla completa"
+          onClick={() => setModalAmpliado(true)}
+          className="p-1.5 text-gray-600 hover:text-abb-red rounded hover:bg-gray-200 transition"
+          title="Pantalla completa"
+        >
           <ArrowsPointingOutIcon className="w-4 h-4" />
-        )}
-      </button>
+        </button>
+      )}
     </div>
   );
+
+  const renderHudBar = (isModal: boolean) => {
+    if (!hoveredSalidaInfo) {
+      if (isModal) {
+        return (
+          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-50 bg-slate-100/90 text-slate-700 border border-slate-300/80 shadow-sm backdrop-blur-sm rounded-md px-4 py-1 text-[11px] font-mono text-center opacity-90 select-none pointer-events-none">
+            [CAD INSPECT] Pasa el cursor sobre cualquier línea o elemento para ver detalles técnicos
+          </div>
+        );
+      }
+      return null;
+    }
+
+    return (
+      <div className={`absolute ${isModal ? "bottom-8" : "bottom-4"} left-1/2 -translate-x-1/2 z-50 bg-white/95 text-slate-900 border border-slate-300/80 shadow-[0_8px_30px_rgba(0,0,0,0.15)] backdrop-blur-md rounded-md px-4 py-1.5 flex items-center space-x-4 max-w-[92%] whitespace-nowrap text-xs font-sans select-none pointer-events-none animate-fade-in`}>
+        {/* TAG DE POSICIÓN */}
+        <div className="flex items-center space-x-2 shrink-0">
+          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+          <span className="bg-slate-100 text-emerald-800 border border-emerald-300 font-mono font-bold px-2 py-0.5 rounded text-[11px] uppercase tracking-wider">
+            {hoveredSalidaInfo.tag}
+          </span>
+        </div>
+
+        <div className="h-4 w-[1px] bg-slate-200 shrink-0" />
+
+        {/* DESCRIPCIÓN TÉCNICA Y CÓDIGO COMERCIAL */}
+        <div className="flex items-center space-x-2 truncate max-w-lg shrink">
+          <span className="font-semibold text-slate-900 text-xs truncate">{hoveredSalidaInfo.titulo}</span>
+          {hoveredSalidaInfo.codigo && (
+            <span className="text-[11px] font-mono text-amber-800 font-bold bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200 shrink-0">
+              {hoveredSalidaInfo.codigo}
+            </span>
+          )}
+        </div>
+
+        <div className="h-4 w-[1px] bg-slate-200 shrink-0" />
+
+        {/* MÉTRICAS TÉCNICAS (CALIBRE, POLOS, CABLE) */}
+        <div className="flex items-center space-x-3 text-xs font-mono shrink-0">
+          <div className="flex items-center space-x-1">
+            <span className="text-[10px] text-slate-400 font-sans uppercase">Calibre:</span>
+            <strong className="text-emerald-700 font-bold">{hoveredSalidaInfo.corriente}</strong>
+          </div>
+          <div className="flex items-center space-x-1 border-l border-slate-200 pl-3">
+            <span className="text-[10px] text-slate-400 font-sans uppercase">Polos:</span>
+            <strong className="text-sky-700 font-bold">{hoveredSalidaInfo.polos}</strong>
+          </div>
+          {hoveredSalidaInfo.cable !== "-" && (
+            <div className="flex items-center space-x-1 border-l border-slate-200 pl-3">
+              <span className="text-[10px] text-slate-400 font-sans uppercase">Cable:</span>
+              <strong className="text-purple-700 font-bold">{hoveredSalidaInfo.cable}</strong>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className="w-full flex flex-col space-y-3">
@@ -355,7 +409,7 @@ export function EsquemaVisualCanvas({
             <div
               ref={svgAreaRef}
               style={{ overscrollBehavior: "contain", touchAction: "none" }}
-              className={`flex min-h-[380px] max-h-[70vh] justify-center overflow-hidden bg-slate-50/50 ${
+              className={`flex min-h-[380px] max-h-[70vh] justify-center overflow-hidden bg-slate-50/50 relative ${
                 isDragging ? "cursor-grabbing" : "cursor-grab"
               }`}
               onMouseDown={handleMouseDown}
@@ -379,6 +433,8 @@ export function EsquemaVisualCanvas({
                 }}
                 onSalidaClick={onSalidaClick}
               />
+              {/* HUD Inspector en modo SVG normal */}
+              {renderHudBar(false)}
             </div>
           </div>
 
@@ -436,53 +492,7 @@ export function EsquemaVisualCanvas({
                   />
 
                   {/* BARRA DE INSPECCIÓN CAD TÉCNICA (HUD COMPACTO EN UNA SOLA LÍNEA) */}
-                  {hoveredSalidaInfo ? (
-                    <div className={`absolute ${modalAmpliado ? "bottom-10" : "bottom-5"} left-1/2 -translate-x-1/2 z-50 bg-white/95 text-slate-900 border border-slate-300/80 shadow-[0_8px_30px_rgba(0,0,0,0.15)] backdrop-blur-md rounded-md px-4 py-1.5 flex items-center space-x-4 max-w-[92%] whitespace-nowrap text-xs font-sans select-none pointer-events-none animate-fade-in`}>
-                      {/* TAG DE POSICIÓN */}
-                      <div className="flex items-center space-x-2 shrink-0">
-                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                        <span className="bg-slate-100 text-emerald-800 border border-emerald-300 font-mono font-bold px-2 py-0.5 rounded text-[11px] uppercase tracking-wider">
-                          {hoveredSalidaInfo.tag}
-                        </span>
-                      </div>
-
-                      <div className="h-4 w-[1px] bg-slate-200 shrink-0" />
-
-                      {/* DESCRIPCIÓN TÉCNICA Y CÓDIGO COMERCIAL */}
-                      <div className="flex items-center space-x-2 truncate max-w-lg shrink">
-                        <span className="font-semibold text-slate-900 text-xs truncate">{hoveredSalidaInfo.titulo}</span>
-                        {hoveredSalidaInfo.codigo && (
-                          <span className="text-[11px] font-mono text-amber-800 font-bold bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200 shrink-0">
-                            {hoveredSalidaInfo.codigo}
-                          </span>
-                        )}
-                      </div>
-
-                      <div className="h-4 w-[1px] bg-slate-200 shrink-0" />
-
-                      {/* MÉTRICAS TÉCNICAS (CALIBRE, POLOS, CABLE) EN FILA COMPACTA */}
-                      <div className="flex items-center space-x-3 text-xs font-mono shrink-0">
-                        <div className="flex items-center space-x-1">
-                          <span className="text-[10px] text-slate-400 font-sans uppercase">Calibre:</span>
-                          <strong className="text-emerald-700 font-bold">{hoveredSalidaInfo.corriente}</strong>
-                        </div>
-                        <div className="flex items-center space-x-1 border-l border-slate-200 pl-3">
-                          <span className="text-[10px] text-slate-400 font-sans uppercase">Polos:</span>
-                          <strong className="text-sky-700 font-bold">{hoveredSalidaInfo.polos}</strong>
-                        </div>
-                        {hoveredSalidaInfo.cable !== "-" && (
-                          <div className="flex items-center space-x-1 border-l border-slate-200 pl-3">
-                            <span className="text-[10px] text-slate-400 font-sans uppercase">Cable:</span>
-                            <strong className="text-purple-700 font-bold">{hoveredSalidaInfo.cable}</strong>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  ) : (
-                    <div className={`absolute ${modalAmpliado ? "bottom-10" : "bottom-5"} left-1/2 -translate-x-1/2 z-50 bg-slate-100/90 text-slate-700 border border-slate-300/80 shadow-sm backdrop-blur-sm rounded-md px-4 py-1 text-[11px] font-mono text-center opacity-90 select-none pointer-events-none`}>
-                      [CAD INSPECT] Pasa el cursor sobre cualquier línea o elemento para ver detalles técnicos
-                    </div>
-                  )}
+                  {renderHudBar(true)}
                 </div>
               </div>
             </div>
