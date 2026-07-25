@@ -246,7 +246,9 @@ export class CadCanvasEngine {
         const pos = worldToScreen({ x: prim.x, y: prim.y }, transform);
         ctx.fillStyle = isSelected || isHovered ? "#D97706" : color;
         const fontSizePx = Math.max(5, prim.fontSize * transform.zoom * 1.6);
-        ctx.font = `${prim.weight === "bold" ? "600 " : ""}${fontSizePx}px "ISOCPEUR", "JetBrains Mono", monospace, sans-serif`;
+        const fontStyleStr = prim.fontStyle === "italic" ? "italic " : "";
+        const fontWeightStr = prim.weight === "bold" ? "600 " : "";
+        ctx.font = `${fontStyleStr}${fontWeightStr}${fontSizePx}px "ISOCPEUR", "JetBrains Mono", monospace, sans-serif`;
         ctx.textAlign = prim.align || "left";
         ctx.textBaseline = prim.baseline || "alphabetic";
 

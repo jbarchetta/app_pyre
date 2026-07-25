@@ -72,6 +72,7 @@ export interface TextPrimitive extends BasePrimitive {
   baseline?: "top" | "middle" | "bottom";
   rotation?: number; // grados
   weight?: "normal" | "bold";
+  fontStyle?: "normal" | "italic";
 }
 
 export interface DimensionPrimitive extends BasePrimitive {

@@ -618,9 +618,10 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
           color: "auto",
         });
 
-        // Texto Explicativo Completo del Circuito (sin truncar a 15 caracteres, multilínea 6.5mm Bold)
-        const rawEtiqueta = salida.etiqueta || salida.descripcion_personalizada || (salida.componente_id ? "" : "RESERVA");
-        const fullTextUsuario = rawEtiqueta ? wrapText(rawEtiqueta.toUpperCase(), 20) : "RESERVA";
+        // Texto Explicativo Completo del Circuito ("Sin Referencia" en negrita y cursiva cuando no hay etiqueta)
+        const rawEtiqueta = salida.etiqueta || salida.descripcion_personalizada;
+        const isSinReferencia = !rawEtiqueta;
+        const fullTextUsuario = isSinReferencia ? "Sin Referencia" : wrapText(rawEtiqueta.toUpperCase(), 20);
 
         primitives.push({
           id: `load-txt-lbl-${salida.id}`,
@@ -631,6 +632,7 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
           text: fullTextUsuario,
           fontSize: 6.5,
           weight: "bold",
+          fontStyle: isSinReferencia ? "italic" : "normal",
           align: "center",
           color: "auto",
         });

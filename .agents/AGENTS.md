@@ -21,7 +21,8 @@
    - El bloque de texto del pie (referencia de posición `F1.1`, etiqueta explicativa del circuito) se eleva **10mm hacia arriba** directamente debajo del borne.
 
 6. **Texto Explicativo del Pie (Sin Truncar y Multi-línea)**:
-   - El texto explicativo de la salida (etiqueta del circuito ingresada por el usuario o reserva) se despliega **completo sin recortarse a 15 caracteres**. Se ajusta de forma multilínea llenando el ancho del contenedor.
+   - El texto explicativo de la salida (etiqueta del circuito ingresada por el usuario) se despliega **completo sin recortarse a 15 caracteres**. Se ajusta de forma multilínea llenando el ancho del contenedor.
+   - En caso de que la salida no posea etiqueta o referencia personalizada, en su lugar se despliega el texto **`Sin Referencia`** formateado en **Negrita y Cursiva** (`weight: "bold"`, `fontStyle: "italic"`).
    - Las antiguas líneas inferiores de polos/amperaje (`32A / 2P`) y código SAP secundario quedan **eliminadas** del contenedor del pie.
 
 7. **Referencia de Ubicación (`F<fila>.<posicion>`)**:

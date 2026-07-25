@@ -488,10 +488,11 @@ export function EsquemaVisual({
                       {codeAuto}
                     </text>
 
-                    {/* Texto Explicativo Completo del Circuito (Multilinea sin recortar a 15 caracteres) */}
+                    {/* Texto Explicativo Completo del Circuito ("Sin Referencia" en negrita y cursiva cuando no hay etiqueta) */}
                     {(() => {
-                      const rawText = salida.etiqueta || salida.descripcion_personalizada || (salida.componente_id ? "" : "RESERVA");
-                      const fullTextStr = rawText ? rawText.toUpperCase() : "RESERVA";
+                      const rawText = salida.etiqueta || salida.descripcion_personalizada;
+                      const isSinRef = !rawText;
+                      const fullTextStr = isSinRef ? "Sin Referencia" : rawText.toUpperCase();
                       const words = fullTextStr.trim().split(/\s+/);
                       const lines: string[] = [];
                       let curr = "";
@@ -511,8 +512,9 @@ export function EsquemaVisual({
                           y={cardY + 79}
                           fontSize={13}
                           fontFamily="sans-serif"
-                          fontWeight={salida.etiqueta ? "bold" : "normal"}
-                          fill={isDirectHover ? "#b91c1c" : salida.etiqueta ? "#1f2937" : "#d97706"}
+                          fontWeight="bold"
+                          fontStyle={isSinRef ? "italic" : "normal"}
+                          fill={isDirectHover ? "#b91c1c" : isSinRef ? "#64748b" : "#1f2937"}
                           textAnchor="middle"
                         >
                           {lines.map((lineStr, idx) => (
