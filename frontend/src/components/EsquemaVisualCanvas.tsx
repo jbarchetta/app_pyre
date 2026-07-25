@@ -132,12 +132,6 @@ export function EsquemaVisualCanvas({
     };
   }, [modalAmpliado]);
 
-  // Auto-centrar el esquema al alternar entre vista normal y pantalla completa
-  useEffect(() => {
-    setPanX(0);
-    setPanY(0);
-  }, [modalAmpliado]);
-
   const handleMouseDown = (e: React.MouseEvent) => {
     if (e.button === 0) {
       setIsDragging(true);
