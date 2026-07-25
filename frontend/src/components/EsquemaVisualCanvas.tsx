@@ -371,9 +371,9 @@ export function EsquemaVisualCanvas({
       {modoVisualState === "bloques" ? (
         /* VISTA ORIGINAL DE BLOQUES (BLUEPRINT SVG) SIN MANDOS DE DISEÑO CAD */
         <>
-          <div className="border border-surface-stroke bg-white rounded-xl shadow-sm overflow-hidden flex flex-col">
+          <div className="border border-surface-stroke bg-white rounded-xl shadow-2xl overflow-hidden flex flex-col h-[620px]">
             {/* Cabecera del Blueprint Bloques */}
-            <div className="flex items-center justify-between border-b border-surface-stroke bg-industrial-gray px-4 py-2.5 min-h-[42px]">
+            <div className="flex items-center justify-between border-b border-surface-stroke bg-industrial-gray px-4 py-2.5 min-h-[42px] shrink-0">
               <span className="font-mono text-xs font-bold uppercase tracking-wider text-gray-700 flex items-center gap-2">
                 <CpuChipIcon className="w-4 h-4 text-abb-red" />
                 Blueprint Bloques (Esquema SVG)
@@ -383,7 +383,7 @@ export function EsquemaVisualCanvas({
 
             {/* Panel desplegable de capas */}
             {panelCapasAbierto && (
-              <div className="flex gap-4 border-b border-surface-stroke px-4 py-2.5 bg-gray-50 text-xs font-medium">
+              <div className="flex gap-4 border-b border-surface-stroke px-4 py-2.5 bg-gray-50 text-xs font-medium shrink-0">
                 <label className="flex items-center gap-1.5 cursor-pointer">
                   <input
                     type="checkbox"
@@ -409,7 +409,7 @@ export function EsquemaVisualCanvas({
             <div
               ref={svgAreaRef}
               style={{ overscrollBehavior: "contain", touchAction: "none" }}
-              className={`flex min-h-[380px] max-h-[70vh] justify-center overflow-hidden bg-slate-50/50 relative ${
+              className={`flex-1 w-full justify-center overflow-hidden bg-slate-50/50 relative ${
                 isDragging ? "cursor-grabbing" : "cursor-grab"
               }`}
               onMouseDown={handleMouseDown}
