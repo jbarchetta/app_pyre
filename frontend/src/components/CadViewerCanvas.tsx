@@ -629,7 +629,7 @@ export function CadViewerCanvas({
       <div
         ref={containerRef}
         style={{ overscrollBehavior: "contain", touchAction: "none" }}
-        className="flex-1 w-full h-full relative cursor-crosshair"
+        className="flex-1 w-full relative cursor-crosshair overflow-hidden"
       >
         <canvas
           ref={canvasRef}
