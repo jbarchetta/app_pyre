@@ -25,16 +25,27 @@ export interface BoardCadGeneratorParams {
 // =========================================================================
 export const UNIFILAR_LAYOUT = {
   Y_BUSBAR: 0,            // Acometida Inicial de Entrada
-  Y_MAIN_BREAKER: 60,     // Interruptor Principal General Q1
-  Y_DISTRIBUTION_BUS: 120,// Embarrado de Cobre L1-L2-L3-N
-  Y_BRANCH_DEVICES: 260,  // Disyuntores de Salidas (Línea superior ampliada a 140mm)
-  Y_TERMINALS: 400,       // Regleta de Borneras X1 (Línea inferior ampliada a 140mm)
-  Y_LABELS_BOTTOM: 460,   // Textos descriptivos al pie
+  Y_MAIN_BREAKER: 90,     // Interruptor Principal General Q1 (ampliado para ticks y calibres)
+  Y_DISTRIBUTION_BUS: 160,// Embarrado de Cobre L1-L2-L3-N
+  Y_BRANCH_DEVICES: 300,  // Disyuntores de Salidas (Línea superior ampliada a 140mm)
+  Y_TERMINALS: 440,       // Regleta de Borneras X1 (Línea inferior ampliada a 140mm)
+  Y_LABELS_BOTTOM: 500,   // Textos descriptivos al pie
 
   OFFSET_X_TEXT: -15,     // Desplazamiento a la IZQUIERDA (-15mm) para descripciones de interruptor
   COLUMN_STEP_X: 120,     // Paso constante entre columnas de 120mm
   X_INITIAL: 100,         // Coordenada X inicial de la primera columna
 };
+
+function calcularCalibreAcometida(amp: number, polos: number): string {
+  const pStr = polos >= 4 ? "4x" : polos === 3 ? "3x" : "2x";
+  if (amp <= 25) return `${pStr}4 mm²`;
+  if (amp <= 32) return `${pStr}6 mm²`;
+  if (amp <= 40) return `${pStr}10 mm²`;
+  if (amp <= 63) return `${pStr}16 mm²`;
+  if (amp <= 80) return `${pStr}25 mm²`;
+  if (amp <= 125) return `${pStr}35 mm²`;
+  return `${pStr}70 mm²`;
+}
 
 export function wrapText(text: string, maxCharsPerLine: number = 20): string {
   if (!text) return "";
@@ -224,55 +235,221 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
     const busbarEndX = X_INITIAL + busbarLength;
     const X_main_center = (busbarStartX + busbarEndX) / 2;
 
+    // Punta de flecha entrante en el inicio de la línea de ingreso (Y_BUSBAR = 0mm)
     primitives.push({
-      id: "unifilar-feed-line",
+      id: "unifilar-feed-arrow1",
+      layerId: "4_Unifilar",
+      type: "line",
+      start: { x: X_main_center - 5, y: Y_BUSBAR + 4 },
+      end: { x: X_main_center, y: Y_BUSBAR + 12 },
+      lineWidth: 1.8,
+    });
+    primitives.push({
+      id: "unifilar-feed-arrow2",
+      layerId: "4_Unifilar",
+      type: "line",
+      start: { x: X_main_center + 5, y: Y_BUSBAR + 4 },
+      end: { x: X_main_center, y: Y_BUSBAR + 12 },
+      lineWidth: 1.8,
+    });
+
+    // Líneas de acometida principal
+    primitives.push({
+      id: "unifilar-feed-line-top",
       layerId: "4_Unifilar",
       type: "line",
       start: { x: X_main_center, y: Y_BUSBAR },
-      end: { x: X_main_center, y: Y_DISTRIBUTION_BUS },
-      lineWidth: 1.5,
+      end: { x: X_main_center, y: Y_MAIN_BREAKER - 16 },
+      lineWidth: 1.8,
     });
 
     primitives.push({
-      id: "unifilar-feed-label",
-      layerId: "6_Cotas_Textos",
-      type: "text",
-      x: X_main_center + OFFSET_X_TEXT,
-      y: Y_BUSBAR + 15,
-      text: "ACOMETIDA PRINCIPAL\n3F + N (380V/220V)",
-      fontSize: 6.0,
-      weight: "bold",
-      align: "right",
+      id: "unifilar-feed-line-bot",
+      layerId: "4_Unifilar",
+      type: "line",
+      start: { x: X_main_center, y: Y_MAIN_BREAKER + 16 },
+      end: { x: X_main_center, y: Y_DISTRIBUTION_BUS },
+      lineWidth: 1.8,
     });
 
-    // Interruptor Principal General Q1 en Y_MAIN_BREAKER (= 60mm) centrado en el distribuidor
+    // Interruptor Principal General Q1 en Y_MAIN_BREAKER (= 90mm) centrado en el distribuidor
     if (tieneInterruptorPrincipal) {
-      const mainPoles = interruptorPrincipal?.polos || 4;
-      const mainAmp = interruptorPrincipal?.corriente_nominal_a || 63;
+      const mainPoles = Number(interruptorPrincipal?.polos || 4);
+      const mainAmp = Number(interruptorPrincipal?.corriente_nominal_a || 63);
+      const mainCalibreStr = calcularCalibreAcometida(mainAmp, mainPoles);
+
+      // Ticks de Polos SUPERIORES (Aguas Arriba del Q1)
+      agregarTicksPolos(primitives, "main", "top", X_main_center, Y_BUSBAR + 28, mainPoles === 4 ? "tetrapolar" : mainPoles === 3 ? "tripolar" : "bipolar");
+
+      // Símbolo de Calibre del Cable SUPERIOR (Aguas Arriba)
+      const cableTopMainY = Y_BUSBAR + 52;
       primitives.push({
-        id: "unifilar-main-symbol",
-        layerId: "4_Unifilar",
-        type: "symbol",
-        x: X_main_center,
-        y: Y_MAIN_BREAKER,
-        symbolType: "breaker_main",
-        label: `Q1 MAIN (${mainAmp}A / ${mainPoles}P)`,
-        sublabel: interruptorPrincipal?.codigo || "ABB Tmax T1",
-        dataId: "main-breaker",
-        interactive: true,
+        id: "unifilar-main-cable-top-line",
+        layerId: "6_Cotas_Textos",
+        type: "line",
+        start: { x: X_main_center - 6, y: cableTopMainY },
+        end: { x: X_main_center + 6, y: cableTopMainY },
+        lineWidth: 2.5,
+        color: "auto",
+      });
+      primitives.push({
+        id: "unifilar-main-cable-top-guide",
+        layerId: "6_Cotas_Textos",
+        type: "line",
+        start: { x: X_main_center + 6, y: cableTopMainY },
+        end: { x: X_main_center + 24, y: cableTopMainY },
+        lineWidth: 1.0,
+        color: "auto",
+      });
+      primitives.push({
+        id: "unifilar-main-cable-top-txt",
+        layerId: "6_Cotas_Textos",
+        type: "text",
+        x: X_main_center + 9,
+        y: cableTopMainY - 2.0,
+        text: mainCalibreStr,
+        fontSize: 6.0,
+        weight: "bold",
+        align: "left",
+        color: "auto",
       });
 
-      // Texto de especificación desplazado a la IZQUIERDA (-15mm, RIGHT ALIGN)
+      // Símbolo del Interruptor Principal Termomagnético Q1 en Y_MAIN_BREAKER (= 90mm)
       primitives.push({
-        id: "unifilar-main-spec-txt",
+        id: "unifilar-main-stub-top",
+        layerId: "4_Unifilar",
+        type: "line",
+        start: { x: X_main_center, y: Y_MAIN_BREAKER - 16 },
+        end: { x: X_main_center, y: Y_MAIN_BREAKER - 10 },
+        lineWidth: 1.8,
+        color: "auto",
+      });
+      primitives.push({
+        id: "unifilar-main-stub-bot",
+        layerId: "4_Unifilar",
+        type: "line",
+        start: { x: X_main_center, y: Y_MAIN_BREAKER + 10 },
+        end: { x: X_main_center, y: Y_MAIN_BREAKER + 16 },
+        lineWidth: 1.8,
+        color: "auto",
+      });
+      primitives.push({
+        id: "unifilar-main-arm",
+        layerId: "4_Unifilar",
+        type: "line",
+        start: { x: X_main_center, y: Y_MAIN_BREAKER + 10 },
+        end: { x: X_main_center - 7, y: Y_MAIN_BREAKER - 6 },
+        lineWidth: 1.8,
+        color: "auto",
+      });
+      primitives.push({
+        id: "unifilar-main-cross1",
+        layerId: "4_Unifilar",
+        type: "line",
+        start: { x: X_main_center - 2, y: Y_MAIN_BREAKER - 9 },
+        end: { x: X_main_center + 2, y: Y_MAIN_BREAKER - 5 },
+        lineWidth: 1.8,
+        color: "auto",
+      });
+      primitives.push({
+        id: "unifilar-main-cross2",
+        layerId: "4_Unifilar",
+        type: "line",
+        start: { x: X_main_center + 2, y: Y_MAIN_BREAKER - 9 },
+        end: { x: X_main_center - 2, y: Y_MAIN_BREAKER - 5 },
+        lineWidth: 1.8,
+        color: "auto",
+      });
+      primitives.push({
+        id: "unifilar-main-trigger",
+        layerId: "4_Unifilar",
+        type: "line",
+        start: { x: X_main_center - 5, y: Y_MAIN_BREAKER - 2 },
+        end: { x: X_main_center - 8, y: Y_MAIN_BREAKER + 2 },
+        lineWidth: 1.2,
+        color: "auto",
+      });
+
+      // TEXTOS DESCRIPTIVOS A LA IZQUIERDA DE Q1 (-15mm, RIGHT ALIGN)
+      // Linea 1: TAG (Q1) (6.5mm Bold)
+      primitives.push({
+        id: "unifilar-main-txt-tag",
         layerId: "6_Cotas_Textos",
         type: "text",
         x: X_main_center + OFFSET_X_TEXT,
-        y: Y_MAIN_BREAKER + 5,
-        text: `Q1 MAIN: ${mainAmp}A (${mainPoles}P)\n${interruptorPrincipal?.codigo || "ABB T1"}`,
+        y: Y_MAIN_BREAKER - 12,
+        text: "Q1",
+        fontSize: 6.5,
+        weight: "bold",
+        align: "right",
+        dataId: "main-breaker",
+        interactive: true,
+        color: "auto",
+      });
+
+      // Linea 2: Designación de Tipo (ABB precedido en rojo, 6.0mm Bold)
+      const mainModelo = interruptorPrincipal?.codigo_comercial || "Tmax XT1";
+      primitives.push({
+        id: "unifilar-main-txt-type",
+        layerId: "6_Cotas_Textos",
+        type: "text",
+        x: X_main_center + OFFSET_X_TEXT,
+        y: Y_MAIN_BREAKER - 2,
+        text: `ABB ${mainModelo}`,
         fontSize: 6.0,
         weight: "bold",
         align: "right",
+        color: "auto",
+      });
+
+      // Linea 3: Código SAP (6.0mm Normal)
+      const mainSapCode = interruptorPrincipal?.codigo || "1SDA066791R1";
+      primitives.push({
+        id: "unifilar-main-txt-sap",
+        layerId: "6_Cotas_Textos",
+        type: "text",
+        x: X_main_center + OFFSET_X_TEXT,
+        y: Y_MAIN_BREAKER + 8,
+        text: mainSapCode,
+        fontSize: 6.0,
+        align: "right",
+        color: "auto",
+      });
+
+      // Ticks de Polos INFERIORES (Aguas Abajo del Q1)
+      agregarTicksPolos(primitives, "main", "bot", X_main_center, Y_MAIN_BREAKER + 28, mainPoles === 4 ? "tetrapolar" : mainPoles === 3 ? "tripolar" : "bipolar");
+
+      // Símbolo de Calibre del Cable INFERIOR (Aguas Abajo)
+      const cableBotMainY = Y_MAIN_BREAKER + 50;
+      primitives.push({
+        id: "unifilar-main-cable-bot-line",
+        layerId: "6_Cotas_Textos",
+        type: "line",
+        start: { x: X_main_center - 6, y: cableBotMainY },
+        end: { x: X_main_center + 6, y: cableBotMainY },
+        lineWidth: 2.5,
+        color: "auto",
+      });
+      primitives.push({
+        id: "unifilar-main-cable-bot-guide",
+        layerId: "6_Cotas_Textos",
+        type: "line",
+        start: { x: X_main_center + 6, y: cableBotMainY },
+        end: { x: X_main_center + 24, y: cableBotMainY },
+        lineWidth: 1.0,
+        color: "auto",
+      });
+      primitives.push({
+        id: "unifilar-main-cable-bot-txt",
+        layerId: "6_Cotas_Textos",
+        type: "text",
+        x: X_main_center + 9,
+        y: cableBotMainY - 2.0,
+        text: mainCalibreStr,
+        fontSize: 6.0,
+        weight: "bold",
+        align: "left",
+        color: "auto",
       });
 
       // Dot de conexión de la acometida principal al centro del distribuidor

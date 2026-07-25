@@ -197,31 +197,50 @@ export function EsquemaVisual({
         {tieneInterruptorPrincipal && (
           <g>
             {/* Input line from Client */}
-            <line x1={q1X} y1={10} x2={q1X} y2={50} stroke="#059669" strokeWidth={1.2} />
-            {/* Double arrowhead pointing down */}
-            <path d={`M ${q1X - 4} 20 L ${q1X} 25 L ${q1X + 4} 20`} fill="none" stroke="#059669" strokeWidth={1.2} />
-            <path d={`M ${q1X - 4} 27 L ${q1X} 32 L ${q1X + 4} 27`} fill="none" stroke="#059669" strokeWidth={1.2} />
-            <text x={q1X + 14} y={24} fontSize={11.5} fontFamily="sans-serif" fontWeight="bold" fill="#0f172a">CLIENTE</text>
-
-            {renderPhaseTicks(q1X, 38, interruptorPrincipal?.polos ?? 3)}
-            {renderBreakerSymbol(q1X, 50, false, true)}
-            <text x={q1X + 16} y={45} fontSize={14} fontFamily="monospace" fontWeight="bold" fill="#0f172a">Q1</text>
-            <text x={q1X + 16} y={58} fontSize={11} fontFamily="sans-serif" fill="#0f172a">
-              {mainAmperajeText} / {mainPolosText}
-            </text>
-            <text x={q1X + 16} y={70} fontSize={10} fontFamily="monospace" fill="#475569">
-              {mainCodigoAcortado}
-            </text>
+            <line x1={q1X} y1={10} x2={q1X} y2={fila1SubBusbarY} stroke="#059669" strokeWidth={1.8} />
             
-            {/* Direct vertical feed line from Q1 to Row 1 Busbar Center */}
-            <line
-              x1={q1X}
-              y1={65}
-              x2={q1X}
-              y2={fila1SubBusbarY}
-              stroke="#059669"
-              strokeWidth={1.5}
-            />
+            {/* Punta de flecha entrante en el inicio de la línea de ingreso */}
+            <path d={`M ${q1X - 4} 16 L ${q1X} 22 L ${q1X + 4} 16`} fill="none" stroke="#059669" strokeWidth={1.8} />
+            <path d={`M ${q1X - 4} 23 L ${q1X} 29 L ${q1X + 4} 23`} fill="none" stroke="#059669" strokeWidth={1.8} />
+            <text x={q1X + 14} y={24} fontSize={11.5} fontFamily="sans-serif" fontWeight="bold" fill="#0f172a">ACOMETIDA PRINCIPAL</text>
+
+            {/* Polos SUPERIORES (Aguas Arriba del Q1) */}
+            {renderPhaseTicks(q1X, 36, interruptorPrincipal?.polos ?? 4)}
+
+            {/* Símbolo de Calibre del Cable SUPERIOR (Aguas Arriba) */}
+            <line x1={q1X - 6} y1={46} x2={q1X + 6} y2={46} stroke="#0f172a" strokeWidth={2.5} />
+            <line x1={q1X + 6} y1={46} x2={q1X + 24} y2={46} stroke="#0f172a" strokeWidth={1.0} />
+            <text x={q1X + 9} y={43} fontSize={11} fontFamily="monospace" fontWeight="bold" fill="#0f172a">
+              {Number(interruptorPrincipal?.polos || 4) >= 4 ? "4x" : "3x"}
+              {Number(interruptorPrincipal?.corriente_nominal_a || 63) <= 32 ? "6" : Number(interruptorPrincipal?.corriente_nominal_a || 63) <= 63 ? "16" : "35"} mm²
+            </text>
+
+            {/* Símbolo Termomagnético de Q1 */}
+            {renderBreakerSymbol(q1X, 64, false, true)}
+
+            {/* Textos descriptivos de Q1: TAG, Designación ABB en rojo y Código SAP */}
+            <g transform={`translate(${q1X + 14}, ${54})`}>
+              <text x={0} y={0} fontSize={12.5} fontFamily="monospace" fontWeight="bold" fill="#0f172a">Q1</text>
+              <text x={0} y={13} fontSize={11.5} fontFamily="monospace">
+                <tspan fill="#dc2626" fontWeight="bold">ABB </tspan>
+                <tspan fill="#0f172a" fontWeight="bold">{interruptorPrincipal?.codigo_comercial || "Tmax XT1"}</tspan>
+              </text>
+              <text x={0} y={25} fontSize={11.5} fontFamily="monospace" fill="#64748b">
+                {interruptorPrincipal?.codigo || "1SDA066791R1"}
+              </text>
+            </g>
+
+            {/* Polos INFERIORES (Aguas Abajo del Q1) */}
+            {renderPhaseTicks(q1X, 76, interruptorPrincipal?.polos ?? 4)}
+
+            {/* Símbolo de Calibre del Cable INFERIOR (Aguas Abajo) */}
+            <line x1={q1X - 6} y1={88} x2={q1X + 6} y2={88} stroke="#0f172a" strokeWidth={2.5} />
+            <line x1={q1X + 6} y1={88} x2={q1X + 24} y2={88} stroke="#0f172a" strokeWidth={1.0} />
+            <text x={q1X + 9} y={85} fontSize={11} fontFamily="monospace" fontWeight="bold" fill="#0f172a">
+              {Number(interruptorPrincipal?.polos || 4) >= 4 ? "4x" : "3x"}
+              {Number(interruptorPrincipal?.corriente_nominal_a || 63) <= 32 ? "6" : Number(interruptorPrincipal?.corriente_nominal_a || 63) <= 63 ? "16" : "35"} mm²
+            </text>
+
             {/* Dot de conexión verde (r=4.0, 20% más pequeño) */}
             <circle cx={q1X} cy={fila1SubBusbarY} r={4.0} fill="#059669" />
           </g>

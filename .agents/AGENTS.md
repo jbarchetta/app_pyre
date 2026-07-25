@@ -8,32 +8,36 @@
    - **Línea 3 (Código SAP)**: Muestra el código de pedido / SAP de ABB (ej. `2CDS251001R0164`) en fuente **6.0mm Normal**.
    - **Línea Eliminada**: La línea antigua de corriente y polos (`32A 2P`) queda permanentemente **eliminada** de esta sección.
 
-2. **Reubicación de Símbolos de Polos/Fases**:
+2. **Interruptor Principal General (Q1)**:
+   - **Símbolo**: Utiliza el mismo símbolo termomagnético normalizado (seccionador con cruz 'X', gatillo y stubs de empalme) en reemplazo del antiguo cuadrado genérico.
+   - **Flecha Entrante**: Al inicio de la línea de acometida (aguas arriba del Q1) se renderiza una punta de flecha entrante ($\downarrow$) que indica la alimentación del cliente.
+   - **Textos Descriptivos**: Aplica la misma estructura de 3 líneas descriptivas a la izquierda del símbolo (Línea 1: TAG `Q1` en 6.5mm Bold, Línea 2: `ABB <Modelo>` en 6.0mm Bold con ABB en rojo, Línea 3: `<Código SAP>` en 6.0mm Normal).
+   - **Polos y Calibres Duplicados**: Incorpora símbolos de polos y calibres de cable (`4x16 mm²`, `4x35 mm²`) tanto **aguas arriba** como **aguas abajo** de Q1, ampliando la distancia vertical a 90mm para un maquetado desahogado.
+   - **Conexión**: Se conecta centrado con respecto al embarrado distribuidor con un dot verde `r = 4.0px`.
+
+3. **Reubicación de Símbolos de Polos/Fases**:
    - Los ticks/símbolos de polos tanto de las líneas **aguas arriba** como de las líneas **aguas abajo** del elemento se desplazan **10mm hacia abajo**.
 
-3. **Símbolo de Bornes Sin Fondo de Color**:
+4. **Símbolo de Bornes Sin Fondo de Color**:
    - El símbolo de bornera / borne de salida no posee fondo de color relleno (`fill="none"`).
 
-4. **Eliminación de Línea Aguas Abajo del Borne**:
+5. **Eliminación de Línea Aguas Abajo del Borne**:
    - Se elimina la línea conductora que se extendía por debajo del borne de salida.
 
-5. **Reubicación del Contenedor de Texto de Salida (+10mm Arriba)**:
+6. **Reubicación del Contenedor de Texto de Salida (+10mm Arriba)**:
    - El bloque de texto del pie (referencia de posición `F1.1`, etiqueta explicativa del circuito) se eleva **10mm hacia arriba** directamente debajo del borne.
 
-6. **Texto Explicativo del Pie (Sin Truncar y Multi-línea)**:
+7. **Texto Explicativo del Pie (Sin Truncar y Multi-línea)**:
    - El texto explicativo de la salida (etiqueta del circuito ingresada por el usuario) se despliega **completo sin recortarse a 15 caracteres**. Se ajusta de forma multilínea llenando el ancho del contenedor.
    - En caso de que la salida no posea etiqueta o referencia personalizada, en su lugar se despliega el texto **`Sin Referencia`** formateado en **Fuente Normal, Cursiva y Gris Atenuado** (`weight: "normal"`, `fontStyle: "italic"`, `color: "#94A3B8"`).
    - Las antiguas líneas inferiores de polos/amperaje (`32A / 2P`) y código SAP secundario quedan **eliminadas** del contenedor del pie.
 
-7. **Símbolos DXF con Líneas de Conexión**:
+8. **Símbolos DXF con Líneas de Conexión**:
    - Los símbolos de termomagnéticos y diferenciales (`abb_unif_term.dxf`) incorporan líneas de conexión de entrada (superior) y salida (inferior) que sirven como punto de empalme directo de los conductores verticalmente.
    - El símbolo de borne (`abb_unif_born.dxf`) únicamente posee línea de conexión superior. No posee conductor aguas abajo.
 
-8. **Referencia de Ubicación (`F<fila>.<posicion>`)**:
+9. **Referencia de Ubicación (`F<fila>.<posicion>`)**:
    - La etiqueta de posición por fila y salida (ej. `F1.1`, `F1.2`, `F2.1`) se ubica en el área descriptiva del pie en fuente **6.5mm Bold** (`12.5px`) y **nunca reemplaza el TAG del elemento**.
-
-9. **Conexión de Acometida Principal (Q1)**:
-   - El interruptor principal general (Q1) se conecta de forma totalmente centrada con respecto a la línea del barral principal distribuidor.
 
 10. **Color de Líneas de Potencia y Barral Principal**:
    - El barral / embarrado principal y las líneas de energía/potencia son de **Color Verde** (`#10B981` en CAD / `#059669` en SVG).
