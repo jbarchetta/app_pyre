@@ -22,23 +22,27 @@
 
 6. **Texto Explicativo del Pie (Sin Truncar y Multi-línea)**:
    - El texto explicativo de la salida (etiqueta del circuito ingresada por el usuario) se despliega **completo sin recortarse a 15 caracteres**. Se ajusta de forma multilínea llenando el ancho del contenedor.
-   - En caso de que la salida no posea etiqueta o referencia personalizada, en su lugar se despliega el texto **`Sin Referencia`** formateado en **Negrita y Cursiva** (`weight: "bold"`, `fontStyle: "italic"`).
+   - En caso de que la salida no posea etiqueta o referencia personalizada, en su lugar se despliega el texto **`Sin Referencia`** formateado en **Fuente Normal, Cursiva y Gris Atenuado** (`weight: "normal"`, `fontStyle: "italic"`, `color: "#94A3B8"`).
    - Las antiguas líneas inferiores de polos/amperaje (`32A / 2P`) y código SAP secundario quedan **eliminadas** del contenedor del pie.
 
-7. **Referencia de Ubicación (`F<fila>.<posicion>`)**:
+7. **Símbolos DXF con Líneas de Conexión**:
+   - Los símbolos de termomagnéticos y diferenciales (`abb_unif_term.dxf`) incorporan líneas de conexión de entrada (superior) y salida (inferior) que sirven como punto de empalme directo de los conductores verticalmente.
+   - El símbolo de borne (`abb_unif_born.dxf`) únicamente posee línea de conexión superior. No posee conductor aguas abajo.
+
+8. **Referencia de Ubicación (`F<fila>.<posicion>`)**:
    - La etiqueta de posición por fila y salida (ej. `F1.1`, `F1.2`, `F2.1`) se ubica en el área descriptiva del pie en fuente **6.5mm Bold** (`12.5px`) y **nunca reemplaza el TAG del elemento**.
 
-8. **Conexión de Acometida Principal (Q1)**:
+9. **Conexión de Acometida Principal (Q1)**:
    - El interruptor principal general (Q1) se conecta de forma totalmente centrada con respecto a la línea del barral principal distribuidor.
 
-9. **Color de Líneas de Potencia y Barral Principal**:
+10. **Color de Líneas de Potencia y Barral Principal**:
    - El barral / embarrado principal y las líneas de energía/potencia son de **Color Verde** (`#10B981` en CAD / `#059669` en SVG).
 
-10. **Dots de Conexión de Ramales (-20% de tamaño)**:
+11. **Dots de Conexión de Ramales (-20% de tamaño)**:
    - Los nodos de conexión al embarrado se renderizan rellenos del mismo **Verde** de las líneas (`#10B981` / `#059669`) con radio compacto `r = 4.0px`.
 
-11. **Calibres de Cables (+1mm de elevación sobre guía)**:
+12. **Calibres de Cables (+1mm de elevación sobre guía)**:
    - Las etiquetas de calibre del cable (superiores e inferiores) se fijan en fuente **6.0mm Bold** y se elevan **1mm por encima** de la línea guía horizontal.
 
-12. **Contenedor Transparente de Texto al Pie**:
+13. **Contenedor Transparente de Texto al Pie**:
    - El contenedor del pie es **100% transparente sin bordes ni fondos visibles** (`fill="none"`, `stroke="none"`).

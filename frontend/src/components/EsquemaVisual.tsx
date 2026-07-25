@@ -512,9 +512,9 @@ export function EsquemaVisual({
                           y={cardY + 79}
                           fontSize={13}
                           fontFamily="sans-serif"
-                          fontWeight="bold"
+                          fontWeight={isSinRef ? "normal" : "bold"}
                           fontStyle={isSinRef ? "italic" : "normal"}
-                          fill={isDirectHover ? "#b91c1c" : isSinRef ? "#64748b" : "#1f2937"}
+                          fill={isDirectHover ? "#b91c1c" : isSinRef ? "#94a3b8" : "#1f2937"}
                           textAnchor="middle"
                         >
                           {lines.map((lineStr, idx) => (

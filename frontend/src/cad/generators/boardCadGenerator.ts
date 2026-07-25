@@ -395,7 +395,29 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
           color: "auto",
         });
 
-        // Símbolo del Disyuntor / Diferencial en Y_BRANCH_DEVICES (= 260mm) (Símbolos en color adaptativo Auto: Negro en Light, Blanco en Dark)
+        // Símbolo del Disyuntor / Diferencial en Y_BRANCH_DEVICES (= 260mm) con Líneas de Conexión (DXF abb_unif_term.dxf)
+        // Stub de conexión superior (inicio de entrada)
+        primitives.push({
+          id: `sym-stub-top-${salida.id}`,
+          layerId: "4_Unifilar",
+          type: "line",
+          start: { x: X_col, y: Y_BRANCH_DEVICES - 16 },
+          end: { x: X_col, y: Y_BRANCH_DEVICES - 10 },
+          lineWidth: 1.8,
+          color: "auto",
+        });
+
+        // Stub de conexión inferior (comienzo de salida)
+        primitives.push({
+          id: `sym-stub-bot-${salida.id}`,
+          layerId: "4_Unifilar",
+          type: "line",
+          start: { x: X_col, y: Y_BRANCH_DEVICES + 10 },
+          end: { x: X_col, y: Y_BRANCH_DEVICES + 16 },
+          lineWidth: 1.8,
+          color: "auto",
+        });
+
         primitives.push({
           id: `sym-arm-${salida.id}`,
           layerId: "4_Unifilar",
@@ -497,13 +519,13 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
           color: "auto",
         });
 
-        // 4. Conductor Vertical Inferior AMPLIADO (260mm -> 400mm)
+        // 4. Conductor Vertical Inferior (conecta stub de salida con stub superior de borne)
         primitives.push({
           id: `wire-bottom-${salida.id}`,
           layerId: "4_Unifilar",
           type: "line",
-          start: { x: X_col, y: Y_BRANCH_DEVICES + 10 },
-          end: { x: X_col, y: Y_TERMINALS },
+          start: { x: X_col, y: Y_BRANCH_DEVICES + 16 },
+          end: { x: X_col, y: Y_TERMINALS - 6 },
           lineWidth: 1.2,
         });
 
@@ -546,7 +568,17 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
           color: "auto",
         });
 
-        // Bornera de Salida en Y_TERMINALS (= 400mm) (Sin fondo de color)
+        // Bornera de Salida en Y_TERMINALS (= 400mm) (Símbolo DXF abb_unif_born.dxf con línea de conexión superior única)
+        primitives.push({
+          id: `term-stub-top-${salida.id}`,
+          layerId: "5_Borneras",
+          type: "line",
+          start: { x: X_col, y: Y_TERMINALS - 6 },
+          end: { x: X_col, y: Y_TERMINALS },
+          lineWidth: 1.2,
+          color: "auto",
+        });
+
         primitives.push({
           id: `term-box-${salida.id}`,
           layerId: "5_Borneras",
@@ -618,7 +650,7 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
           color: "auto",
         });
 
-        // Texto Explicativo Completo del Circuito ("Sin Referencia" en negrita y cursiva cuando no hay etiqueta)
+        // Texto Explicativo Completo del Circuito ("Sin Referencia" en fuente normal, cursiva y gris atenuado cuando no hay etiqueta)
         const rawEtiqueta = salida.etiqueta || salida.descripcion_personalizada;
         const isSinReferencia = !rawEtiqueta;
         const fullTextUsuario = isSinReferencia ? "Sin Referencia" : wrapText(rawEtiqueta.toUpperCase(), 20);
@@ -631,10 +663,10 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
           y: Y_LABELS_POS - 1,
           text: fullTextUsuario,
           fontSize: 6.5,
-          weight: "bold",
+          weight: isSinReferencia ? "normal" : "bold",
           fontStyle: isSinReferencia ? "italic" : "normal",
           align: "center",
-          color: "auto",
+          color: isSinReferencia ? "#94A3B8" : "auto",
         });
       });
     });
