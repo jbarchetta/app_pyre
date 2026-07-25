@@ -207,10 +207,10 @@ export function EsquemaVisual({
             {/* Polos SUPERIORES (Aguas Arriba del Q1) */}
             {renderPhaseTicks(q1X, 36, interruptorPrincipal?.polos ?? 4)}
 
-            {/* Símbolo de Calibre del Cable SUPERIOR (Aguas Arriba) */}
-            <line x1={q1X - 6} y1={46} x2={q1X + 6} y2={46} stroke="#0f172a" strokeWidth={2.5} />
-            <line x1={q1X + 6} y1={46} x2={q1X + 24} y2={46} stroke="#0f172a" strokeWidth={1.0} />
-            <text x={q1X + 9} y={43} fontSize={11} fontFamily="monospace" fontWeight="bold" fill="#0f172a">
+            {/* Símbolo de Calibre del Cable SUPERIOR (Aguas Arriba) (Desplazado 15px hacia abajo) */}
+            <line x1={q1X - 6} y1={61} x2={q1X + 6} y2={61} stroke="#0f172a" strokeWidth={2.5} />
+            <line x1={q1X + 6} y1={61} x2={q1X + 48} y2={61} stroke="#0f172a" strokeWidth={1.0} />
+            <text x={q1X + 9} y={58} fontSize={11} fontFamily="monospace" fontWeight="bold" fill="#0f172a">
               {Number(interruptorPrincipal?.corriente_nominal_a || 63) <= 32 ? "6" : Number(interruptorPrincipal?.corriente_nominal_a || 63) <= 63 ? "16" : Number(interruptorPrincipal?.corriente_nominal_a || 63) <= 125 ? "35" : "70"} mm²
             </text>
 
@@ -232,10 +232,10 @@ export function EsquemaVisual({
             {/* Polos INFERIORES (Aguas Abajo del Q1) */}
             {renderPhaseTicks(q1X, 76, interruptorPrincipal?.polos ?? 4)}
 
-            {/* Símbolo de Calibre del Cable INFERIOR (Aguas Abajo) */}
-            <line x1={q1X - 6} y1={88} x2={q1X + 6} y2={88} stroke="#0f172a" strokeWidth={2.5} />
-            <line x1={q1X + 6} y1={88} x2={q1X + 24} y2={88} stroke="#0f172a" strokeWidth={1.0} />
-            <text x={q1X + 9} y={85} fontSize={11} fontFamily="monospace" fontWeight="bold" fill="#0f172a">
+            {/* Símbolo de Calibre del Cable INFERIOR (Aguas Abajo) (Desplazado 15px hacia abajo) */}
+            <line x1={q1X - 6} y1={103} x2={q1X + 6} y2={103} stroke="#0f172a" strokeWidth={2.5} />
+            <line x1={q1X + 6} y1={103} x2={q1X + 48} y2={103} stroke="#0f172a" strokeWidth={1.0} />
+            <text x={q1X + 9} y={100} fontSize={11} fontFamily="monospace" fontWeight="bold" fill="#0f172a">
               {Number(interruptorPrincipal?.corriente_nominal_a || 63) <= 32 ? "6" : Number(interruptorPrincipal?.corriente_nominal_a || 63) <= 63 ? "16" : Number(interruptorPrincipal?.corriente_nominal_a || 63) <= 125 ? "35" : "70"} mm²
             </text>
 

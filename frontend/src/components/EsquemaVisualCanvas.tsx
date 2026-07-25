@@ -433,38 +433,39 @@ export function EsquemaVisualCanvas({
 
                   {/* BARRA / BANNER DE SINCRONIZACIÓN DE TABLA EN HOVER (HUD CAD TÉCNICO) */}
                   {hoveredSalidaInfo ? (
-                    <div className="absolute bottom-12 left-1/2 -translate-x-1/2 z-50 bg-slate-950/95 text-slate-100 border border-emerald-500/50 shadow-[0_10px_35px_rgba(0,0,0,0.85)] backdrop-blur-xl rounded-lg px-4 py-2.5 flex items-center space-x-4 max-w-4xl animate-fade-in text-xs font-mono select-none pointer-events-none">
-                      <div className="flex items-center space-x-2 shrink-0 border-r border-slate-800 pr-3">
+                    /* TEMA CLARO ESPACIOSO (LIGHT HUD) */
+                    <div className="absolute bottom-12 left-1/2 -translate-x-1/2 z-50 bg-white/95 text-slate-900 border border-slate-200 shadow-[0_12px_40px_rgba(0,0,0,0.12)] backdrop-blur-xl rounded-md px-5 py-3 flex items-center space-x-6 max-w-4xl animate-fade-in text-xs font-sans tracking-wide select-none pointer-events-none">
+                      <div className="flex items-center space-x-2.5 shrink-0 border-r border-slate-200 pr-4">
                         <span className="w-2.5 h-2.5 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_#10b981]" />
-                        <span className="bg-emerald-950 text-emerald-300 border border-emerald-600/50 font-bold px-2 py-0.5 rounded text-[11px] uppercase tracking-wider">
+                        <span className="bg-slate-100 text-emerald-700 border border-emerald-300 font-mono font-bold px-2.5 py-1 rounded text-[11px] uppercase tracking-widest">
                           {hoveredSalidaInfo.tag}
                         </span>
                       </div>
 
                       <div className="flex flex-col">
-                        <span className="font-bold text-slate-100 truncate max-w-xs">{hoveredSalidaInfo.titulo}</span>
-                        <span className="text-[10px] text-slate-400">
-                          FILA: <strong className="text-slate-200">{hoveredSalidaInfo.seccion}</strong> | CÓD: <strong className="text-amber-400">{hoveredSalidaInfo.codigo}</strong>
+                        <span className="font-bold text-slate-900 text-sm tracking-normal truncate max-w-xs">{hoveredSalidaInfo.titulo}</span>
+                        <span className="text-[11px] text-slate-500 font-mono mt-0.5">
+                          FILA: <strong className="text-slate-800">{hoveredSalidaInfo.seccion}</strong> | CÓD: <strong className="text-amber-700 font-semibold">{hoveredSalidaInfo.codigo}</strong>
                         </span>
                       </div>
 
-                      <div className="flex items-center space-x-3 border-l border-slate-800 pl-3 shrink-0">
+                      <div className="flex items-center space-x-4 border-l border-slate-200 pl-4 shrink-0 font-mono">
                         <div className="text-center px-1">
-                          <span className="block text-[9px] text-slate-400 font-sans tracking-wider uppercase">Calibre</span>
-                          <span className="font-bold text-emerald-400">{hoveredSalidaInfo.corriente}</span>
+                          <span className="block text-[9px] text-slate-400 font-sans tracking-widest uppercase">Calibre</span>
+                          <span className="font-bold text-emerald-600 text-xs">{hoveredSalidaInfo.corriente}</span>
                         </div>
-                        <div className="text-center px-1 border-l border-slate-800/60">
-                          <span className="block text-[9px] text-slate-400 font-sans tracking-wider uppercase">Polos</span>
-                          <span className="font-bold text-sky-400">{hoveredSalidaInfo.polos}</span>
+                        <div className="text-center px-1 border-l border-slate-200">
+                          <span className="block text-[9px] text-slate-400 font-sans tracking-widest uppercase">Polos</span>
+                          <span className="font-bold text-sky-600 text-xs">{hoveredSalidaInfo.polos}</span>
                         </div>
-                        <div className="text-center px-1 border-l border-slate-800/60">
-                          <span className="block text-[9px] text-slate-400 font-sans tracking-wider uppercase">Cable</span>
-                          <span className="font-bold text-purple-300">{hoveredSalidaInfo.cable}</span>
+                        <div className="text-center px-1 border-l border-slate-200">
+                          <span className="block text-[9px] text-slate-400 font-sans tracking-widest uppercase">Cable</span>
+                          <span className="font-bold text-purple-600 text-xs">{hoveredSalidaInfo.cable}</span>
                         </div>
                       </div>
                     </div>
                   ) : (
-                    <div className="absolute bottom-12 left-1/2 -translate-x-1/2 z-50 bg-slate-950/85 text-slate-400 border border-slate-800 shadow-xl backdrop-blur-md rounded-full px-5 py-1.5 text-xs font-mono text-center select-none pointer-events-none">
+                    <div className="absolute bottom-12 left-1/2 -translate-x-1/2 z-50 bg-slate-900/60 text-slate-400 border border-slate-700/40 shadow-sm backdrop-blur-sm rounded-md px-4 py-1.5 text-[11px] font-mono text-center opacity-70 select-none pointer-events-none">
                       [CAD INSPECT] Pasa el cursor sobre cualquier línea o elemento para ver detalles técnicos
                     </div>
                   )}

@@ -280,8 +280,9 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
       // Ticks de Polos SUPERIORES (Aguas Arriba del Q1)
       agregarTicksPolos(primitives, "main", "top", X_main_center, Y_BUSBAR + 28, mainPoles === 4 ? "tetrapolar" : mainPoles === 3 ? "tripolar" : "bipolar");
 
-      // Símbolo de Calibre del Cable SUPERIOR (Aguas Arriba)
-      const cableTopMainY = Y_BUSBAR + 52;
+      // Símbolo de Calibre del Cable SUPERIOR (Aguas Arriba) (Desplazado 15mm hacia abajo)
+      const cableTopMainY = Y_BUSBAR + 67;
+      const guideTopWidth = Math.max(32, mainCalibreStr.length * 5.2);
       primitives.push({
         id: "unifilar-main-cable-top-line",
         layerId: "6_Cotas_Textos",
@@ -296,7 +297,7 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
         layerId: "6_Cotas_Textos",
         type: "line",
         start: { x: X_main_center + 6, y: cableTopMainY },
-        end: { x: X_main_center + 24, y: cableTopMainY },
+        end: { x: X_main_center + 6 + guideTopWidth, y: cableTopMainY },
         lineWidth: 1.0,
         color: "auto",
       });
@@ -313,7 +314,7 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
         color: "auto",
       });
 
-      // Símbolo del Interruptor Principal Termomagnético Q1 en Y_MAIN_BREAKER (= 90mm)
+      // Símbolo del Interruptor Principal Termomagnético Q1 en Y_MAIN_BREAKER (= 115mm)
       primitives.push({
         id: "unifilar-main-stub-top",
         layerId: "4_Unifilar",
@@ -418,8 +419,9 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
       // Ticks de Polos INFERIORES (Aguas Abajo del Q1)
       agregarTicksPolos(primitives, "main", "bot", X_main_center, Y_MAIN_BREAKER + 28, mainPoles === 4 ? "tetrapolar" : mainPoles === 3 ? "tripolar" : "bipolar");
 
-      // Símbolo de Calibre del Cable INFERIOR (Aguas Abajo)
-      const cableBotMainY = Y_MAIN_BREAKER + 50;
+      // Símbolo de Calibre del Cable INFERIOR (Aguas Abajo) (Desplazado 15mm hacia abajo)
+      const cableBotMainY = Y_MAIN_BREAKER + 65;
+      const guideBotWidth = Math.max(32, mainCalibreStr.length * 5.2);
       primitives.push({
         id: "unifilar-main-cable-bot-line",
         layerId: "6_Cotas_Textos",
@@ -434,7 +436,7 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
         layerId: "6_Cotas_Textos",
         type: "line",
         start: { x: X_main_center + 6, y: cableBotMainY },
-        end: { x: X_main_center + 24, y: cableBotMainY },
+        end: { x: X_main_center + 6 + guideBotWidth, y: cableBotMainY },
         lineWidth: 1.0,
         color: "auto",
       });
@@ -547,12 +549,14 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
           color: "auto",
         });
 
+        const guideWidthBranch = Math.max(32, cableCalibre.length * 5.2);
+
         primitives.push({
           id: `cable-top-guide-${salida.id}`,
           layerId: "6_Cotas_Textos",
           type: "line",
           start: { x: X_col + 6, y: cableTopY },
-          end: { x: X_col + 24, y: cableTopY },
+          end: { x: X_col + 6 + guideWidthBranch, y: cableTopY },
           lineWidth: 1.0,
           color: "auto",
         });
@@ -725,7 +729,7 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
           layerId: "6_Cotas_Textos",
           type: "line",
           start: { x: X_col + 6, y: cableBotY },
-          end: { x: X_col + 24, y: cableBotY },
+          end: { x: X_col + 6 + guideWidthBranch, y: cableBotY },
           lineWidth: 1.0,
           color: "auto",
         });
