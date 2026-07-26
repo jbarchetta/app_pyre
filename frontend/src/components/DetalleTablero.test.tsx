@@ -77,6 +77,38 @@ describe("DetalleTablero", () => {
     expect(screen.queryByRole("button", { name: /renombrar fila activa/i })).not.toBeInTheDocument();
   });
 
+  it("switches to the BOM / Cotización tab when clicked", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockImplementation((url: string) => {
+        if (url.includes("/tableros/t1/bom")) {
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({
+              tablero_id: "t1",
+              tablero_nombre: "TG1",
+              lineas: [],
+              total_items_count: 0,
+              costo_total: 0,
+              fecha_congelamiento: null,
+            }),
+          });
+        }
+        if (url.includes("/tableros/t1/secciones")) {
+          return Promise.resolve({ ok: true, json: async () => [] });
+        }
+        return Promise.resolve({ ok: true, json: async () => tablero });
+      }),
+    );
+    renderDetalle();
+
+    const bomTab = await screen.findByRole("tab", { name: "BOM / Cotización" });
+    await userEvent.click(bomTab);
+
+    expect(bomTab).toHaveAttribute("aria-selected", "true");
+    expect(await screen.findByText(/Lista de Materiales y Costeo \(BOM\)/i)).toBeInTheDocument();
+  });
+
   it("switches the visible sección when clicking another tab", async () => {
     vi.stubGlobal(
       "fetch",

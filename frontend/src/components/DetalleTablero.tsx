@@ -195,7 +195,7 @@ export function DetalleTablero({
   // ninguna fila real. "Principal" siempre puede elegirse a mano.
   const tabActivo =
     tabSeleccionadoRaw &&
-    (tabSeleccionadoRaw === TAB_PRINCIPAL || (secciones ?? []).some((s) => s.seccion.id === tabSeleccionadoRaw))
+    (tabSeleccionadoRaw === TAB_PRINCIPAL || tabSeleccionadoRaw === TAB_BOM || (secciones ?? []).some((s) => s.seccion.id === tabSeleccionadoRaw))
       ? tabSeleccionadoRaw
       : ((secciones ?? [])[0]?.seccion.id ?? TAB_PRINCIPAL);
   const seccionSeleccionada = (secciones ?? []).find((s) => s.seccion.id === tabActivo) ?? null;
