@@ -77,7 +77,7 @@ describe("DetalleTablero", () => {
     expect(screen.queryByRole("button", { name: /renombrar fila activa/i })).not.toBeInTheDocument();
   });
 
-  it("switches to the BOM / Cotización tab when clicked", async () => {
+  it("renders the BOM panel in the lateral panel", async () => {
     vi.stubGlobal(
       "fetch",
       vi.fn().mockImplementation((url: string) => {
@@ -102,11 +102,7 @@ describe("DetalleTablero", () => {
     );
     renderDetalle();
 
-    const bomTab = await screen.findByRole("tab", { name: "BOM / Cotización" });
-    await userEvent.click(bomTab);
-
-    expect(bomTab).toHaveAttribute("aria-selected", "true");
-    expect(await screen.findByText(/Lista de Materiales y Costeo \(BOM\)/i)).toBeInTheDocument();
+    expect(await screen.findByText(/LISTA DE MATERIALES \(BOM\)/i)).toBeInTheDocument();
   });
 
   it("switches the visible sección when clicking another tab", async () => {
@@ -189,7 +185,7 @@ describe("DetalleTablero", () => {
     renderDetalle();
 
     expect(await screen.findByRole("tab", { name: "Principal" })).toHaveAttribute("aria-selected", "true");
-    expect(screen.getAllByRole("tab")).toHaveLength(2);
+    expect(screen.getAllByRole("tab")).toHaveLength(1);
   });
 
   it("adds a new fila via the Nueva fila icon and modal, and activates it", async () => {
