@@ -217,7 +217,6 @@ export function EsquemaVisualCanvas({
     return null;
   }, [canvasHoveredId, secciones, interruptorPrincipal]);
 
-  const handleFitToScreen = () => resetPanAndZoom();
   const handleZoomIn = () => handleZoomChange(zoomEfectivo + ZOOM_PASO);
   const handleZoomOut = () => handleZoomChange(zoomEfectivo - ZOOM_PASO);
 
