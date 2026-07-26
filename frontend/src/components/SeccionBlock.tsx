@@ -337,18 +337,18 @@ export function SeccionBlock({
 }: SeccionBlockProps) {
   const [etiqueta, setEtiqueta] = useState("");
   const [cargaValor, setCargaValor] = useState("");
-  const [cargaUnidad, setCargaUnidad] = useState("A");
+  const cargaUnidad = "A";
   const [formato, setFormato] = useState<FormatoPolos>("unipolar");
   const [tipoProteccion, setTipoProteccion] = useState<TipoProteccion>("seccional_termomagnetico");
   const [sensibilidadMa, setSensibilidadMa] = useState<number>(30);
   const [admiteAccesorios, setAdmiteAccesorios] = useState<boolean>(false);
-  const cargaInvalidaEntero = cargaUnidad === "A" && cargaValor.trim() !== "" && Number(cargaValor) % 1 !== 0;
+  const cargaInvalidaEntero = cargaValor.trim() !== "" && Number(cargaValor) % 1 !== 0;
 
   const [error, setError] = useState<string | null>(null);
   const [salidaEnEdicion, setSalidaEnEdicion] = useState<Salida | null>(null);
   const [editEtiqueta, setEditEtiqueta] = useState("");
   const [editCargaValor, setEditCargaValor] = useState("");
-  const [editCargaUnidad, setEditCargaUnidad] = useState("A");
+  const editCargaUnidad = "A";
   const [editFormato, setEditFormato] = useState<FormatoPolos>("unipolar");
   const [editTipoProteccion, setEditTipoProteccion] = useState<TipoProteccion>("seccional_termomagnetico");
   const [editSensibilidadMa, setEditSensibilidadMa] = useState<number>(30);
@@ -542,7 +542,6 @@ export function SeccionBlock({
     setSalidaEnEdicion(salida);
     setEditEtiqueta(salida.etiqueta ?? "");
     setEditCargaValor(salida.carga_valor);
-    setEditCargaUnidad(salida.carga_unidad);
     const formatoValido =
       salida.tipo_proteccion === "seccional_diferencial" && (salida.formato === "unipolar" || salida.formato === "tripolar")
         ? salida.formato === "unipolar"
@@ -865,52 +864,25 @@ export function SeccionBlock({
 
           <div>
             <label htmlFor={`carga-${seccion.id}`} className="block text-xs font-semibold text-gray-700 mb-1">
-              Carga *
-            </label>
-            <input
-              id={`carga-${seccion.id}`}
-              autoFocus
-              placeholder="16"
-              value={cargaValor}
-              onChange={(e) => setCargaValor(e.target.value)}
-              required
-              className="w-28 text-sm border border-gray-300 rounded-md px-3 py-2 bg-white focus:border-abb-red focus:outline-none focus:ring-1 focus:ring-abb-red"
-            />
-            {cargaUnidad === "A" && (
-              <div className="flex flex-wrap gap-1 mt-1.5 max-w-[280px]">
-                {["6", "10", "16", "20", "25", "32", "40", "50", "63"].map((cal) => (
-                  <button
-                    key={cal}
-                    type="button"
-                    onClick={() => setCargaValor(cal)}
-                    className={`px-1.5 py-0.5 text-[10px] font-mono rounded border transition ${
-                      cargaValor === cal
-                        ? "bg-abb-red text-white border-abb-red font-bold"
-                        : "bg-slate-50 text-slate-700 border-slate-200 hover:border-abb-red hover:text-abb-red"
-                    }`}
-                  >
-                    {cal}A
-                  </button>
-                ))}
-              </div>
-            )}
-            {cargaInvalidaEntero && (
-              <p className="text-error text-[11px] mt-0.5">Entero requerido para Amperios</p>
-            )}
-          </div>
-
-          <div>
-            <label htmlFor={`unidad-${seccion.id}`} className="block text-xs font-semibold text-gray-700 mb-1">
-              Unidad
+              Calibre / Carga (A) *
             </label>
             <select
-              id={`unidad-${seccion.id}`}
-              value={cargaUnidad}
-              onChange={(e) => setCargaUnidad(e.target.value)}
-              className="min-w-[80px] text-sm border border-gray-300 rounded-md px-3 pr-8 py-2 bg-white focus:border-abb-red focus:outline-none focus:ring-1 focus:ring-abb-red"
+              id={`carga-${seccion.id}`}
+              value={cargaValor}
+              onChange={(e) => setCargaValor(e.target.value)}
+              className="min-w-[150px] text-sm font-mono font-bold border border-gray-300 rounded-md px-3 pr-8 py-2 bg-white focus:border-abb-red focus:outline-none focus:ring-1 focus:ring-abb-red"
             >
-              <option value="A">A</option>
-              <option value="kW">kW</option>
+              <option value="">Seleccionar calibre...</option>
+              {["6", "10", "16", "20", "25", "30", "32", "40", "50", "63", "80", "100", "125"].map((cal) => (
+                <option key={cal} value={cal}>
+                  {cal} A
+                </option>
+              ))}
+              {!["6", "10", "16", "20", "25", "30", "32", "40", "50", "63", "80", "100", "125"].includes(cargaValor) && cargaValor.trim() !== "" && (
+                <option value={cargaValor}>
+                  {cargaValor} A (Personalizado)
+                </option>
+              )}
             </select>
           </div>
 
@@ -1055,57 +1027,30 @@ export function SeccionBlock({
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <label htmlFor="edit-carga-valor" className="text-xs font-semibold text-gray-700">Carga</label>
-                <input
-                  id="edit-carga-valor"
-                  type="text"
-                  value={editCargaValor}
-                  onChange={(e) => {
-                    setEditCargaValor(e.target.value);
-                    handleEditSpecChange();
-                  }}
-                  className="w-full text-sm border border-gray-300 rounded px-3 py-1.5 focus:border-abb-red focus:outline-none"
-                />
-                {editCargaUnidad === "A" && (
-                  <div className="flex flex-wrap gap-1 mt-1">
-                    {["6", "10", "16", "20", "25", "32", "40", "50", "63"].map((cal) => (
-                      <button
-                        key={cal}
-                        type="button"
-                        onClick={() => {
-                          setEditCargaValor(cal);
-                          handleEditSpecChange();
-                        }}
-                        className={`px-1.5 py-0.5 text-[10px] font-mono rounded border transition ${
-                          editCargaValor === cal
-                            ? "bg-abb-red text-white border-abb-red font-bold"
-                            : "bg-slate-50 text-slate-700 border-slate-200 hover:border-abb-red hover:text-abb-red"
-                        }`}
-                      >
-                        {cal}A
-                      </button>
-                    ))}
-                  </div>
+            <div className="space-y-1">
+              <label htmlFor="edit-carga-valor" className="text-xs font-semibold text-gray-700">
+                Calibre / Carga Nominal (A) *
+              </label>
+              <select
+                id="edit-carga-valor"
+                value={editCargaValor}
+                onChange={(e) => {
+                  setEditCargaValor(e.target.value);
+                  handleEditSpecChange();
+                }}
+                className="w-full text-sm font-mono font-bold border border-gray-300 rounded px-3 py-2 bg-white focus:border-abb-red focus:outline-none"
+              >
+                {["6", "10", "16", "20", "25", "30", "32", "40", "50", "63", "80", "100", "125"].map((cal) => (
+                  <option key={cal} value={cal}>
+                    {cal} A (Estándar ABB)
+                  </option>
+                ))}
+                {!["6", "10", "16", "20", "25", "30", "32", "40", "50", "63", "80", "100", "125"].includes(editCargaValor) && editCargaValor.trim() !== "" && (
+                  <option value={editCargaValor}>
+                    {editCargaValor} A (Personalizado)
+                  </option>
                 )}
-              </div>
-
-              <div className="space-y-1">
-                <label htmlFor="edit-carga-unidad" className="text-xs font-semibold text-gray-700">Unidad</label>
-                <select
-                  id="edit-carga-unidad"
-                  value={editCargaUnidad}
-                  onChange={(e) => {
-                    setEditCargaUnidad(e.target.value);
-                    handleEditSpecChange();
-                  }}
-                  className="w-full text-sm border border-gray-300 rounded px-3 py-1.5 bg-white focus:border-abb-red focus:outline-none"
-                >
-                  <option value="A">A</option>
-                  <option value="kW">kW</option>
-                </select>
-              </div>
+              </select>
             </div>
 
             {editCargaInvalidaEntero && (

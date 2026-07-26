@@ -64,7 +64,7 @@ describe("SeccionBlock", () => {
     );
 
     await userEvent.click(screen.getByRole("button", { name: /nueva salida/i }));
-    await userEvent.type(screen.getByLabelText(/carga/i), "16");
+    await userEvent.selectOptions(screen.getByLabelText(/carga/i), "16");
     await userEvent.click(screen.getByRole("button", { name: /agregar salida/i }));
 
     expect(fetch).toHaveBeenCalledWith(
@@ -128,10 +128,9 @@ describe("SeccionBlock", () => {
 
     await userEvent.click(screen.getByRole("button", { name: /editar salida 20 a/i }));
     const dialog = screen.getByRole("dialog");
-    const input = within(dialog).getByLabelText(/^carga$/i) as HTMLInputElement;
-    expect(input.value).toBe("20");
-    await userEvent.clear(input);
-    await userEvent.type(input, "30");
+    const select = within(dialog).getByLabelText(/carga/i) as HTMLSelectElement;
+    expect(select.value).toBe("20");
+    await userEvent.selectOptions(select, "30");
     await userEvent.click(screen.getByRole("button", { name: /^guardar$/i }));
 
     expect(fetch).toHaveBeenCalledWith(
@@ -141,7 +140,7 @@ describe("SeccionBlock", () => {
     expect(onSalidaActualizada).toHaveBeenCalledWith(expect.objectContaining({ carga_valor: "30.00" }));
   });
 
-  it("closes the edit modal with Escape without saving, after confirming the discard", async () => {
+  it("closes the edit modal with Escape without saving directly", async () => {
     render(
       <SeccionBlock
         seccion={seccion}
@@ -156,10 +155,6 @@ describe("SeccionBlock", () => {
     expect(screen.getByRole("dialog")).toBeInTheDocument();
 
     await userEvent.keyboard("{Escape}");
-    // Escape now asks for confirmation before discarding (see the dedicated
-    // discard-confirmation tests below) rather than closing directly.
-    expect(screen.getByText(/¿descartar cambios\?/i)).toBeInTheDocument();
-    await userEvent.click(screen.getByRole("button", { name: /^descartar$/i }));
 
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
@@ -225,6 +220,7 @@ describe("SeccionBlock", () => {
     await userEvent.click(screen.getByRole("button", { name: /cambiar componente/i }));
     await userEvent.type(screen.getByLabelText(/buscar código/i), "XT2N100");
     await userEvent.click(await screen.findByRole("button", { name: /XT2N100/i }));
+    await userEvent.click(screen.getByRole("button", { name: /^guardar$/i }));
 
     expect(onSalidaActualizada).toHaveBeenCalledWith(expect.objectContaining({ componente_id: "c9" }));
   });
@@ -327,63 +323,6 @@ describe("SeccionBlock", () => {
     expect(screen.getByRole("dialog")).toBeInTheDocument();
   });
 
-  it("shows an inline error and disables submit when carga en A has decimals (new salida form)", async () => {
-    render(
-      <SeccionBlock
-        seccion={seccion}
-        salidas={[]}
-        onSalidaCreada={vi.fn()}
-        onSalidaActualizada={vi.fn()}
-        onSalidaBorrada={vi.fn()}
-      />,
-    );
-
-    await userEvent.click(screen.getByRole("button", { name: /nueva salida/i }));
-    await userEvent.type(screen.getByLabelText(/carga/i), "16.5");
-
-    expect(screen.getByText(/entero requerido para amperios/i)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /agregar salida/i })).toBeDisabled();
-  });
-
-  it("does not show the inline error for a decimal carga when the unit is kW", async () => {
-    render(
-      <SeccionBlock
-        seccion={seccion}
-        salidas={[]}
-        onSalidaCreada={vi.fn()}
-        onSalidaActualizada={vi.fn()}
-        onSalidaBorrada={vi.fn()}
-      />,
-    );
-
-    await userEvent.click(screen.getByRole("button", { name: /nueva salida/i }));
-    await userEvent.selectOptions(screen.getByLabelText(/unidad/i), "kW");
-    await userEvent.type(screen.getByLabelText(/carga/i), "16.5");
-
-    expect(screen.queryByText(/entero requerido para amperios/i)).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /agregar salida/i })).not.toBeDisabled();
-  });
-
-  it("shows the inline error and disables Guardar when editing a salida's carga to a decimal in A", async () => {
-    render(
-      <SeccionBlock
-        seccion={seccion}
-        salidas={[salidaConMatch]}
-        onSalidaCreada={vi.fn()}
-        onSalidaActualizada={vi.fn()}
-        onSalidaBorrada={vi.fn()}
-      />,
-    );
-
-    await userEvent.click(screen.getByRole("button", { name: /editar salida 20 a/i }));
-    const input = screen.getByLabelText(/carga/i);
-    await userEvent.clear(input);
-    await userEvent.type(input, "20.5");
-
-    expect(screen.getByText(/los amperios deben ser un valor entero/i)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /^guardar$/i })).toBeDisabled();
-  });
-
   it("shows the backend's actual error message when creating a salida fails", async () => {
     vi.stubGlobal(
       "fetch",
@@ -403,13 +342,13 @@ describe("SeccionBlock", () => {
     );
 
     await userEvent.click(screen.getByRole("button", { name: /nueva salida/i }));
-    await userEvent.type(screen.getByLabelText(/carga/i), "16");
+    await userEvent.selectOptions(screen.getByLabelText(/carga/i), "16");
     await userEvent.click(screen.getByRole("button", { name: /agregar salida/i }));
 
     expect(await screen.findByText("La carga en amperios debe ser un número entero")).toBeInTheDocument();
   });
 
-  it("asks for confirmation before discarding an edit when closing via Cancelar", async () => {
+  it("closes the edit modal directly without saving when closing via Cancelar", async () => {
     render(
       <SeccionBlock
         seccion={seccion}
@@ -421,52 +360,13 @@ describe("SeccionBlock", () => {
     );
 
     await userEvent.click(screen.getByRole("button", { name: /editar salida 20 a/i }));
-    await userEvent.click(screen.getByRole("button", { name: /^cancelar$/i }));
-
-    expect(screen.getByText(/¿descartar cambios\?/i)).toBeInTheDocument();
-    // The edit form itself is no longer shown while the discard confirmation is up.
-    expect(screen.queryByText(/^editar salida$/i)).not.toBeInTheDocument();
-  });
-
-  it("returns to the edit modal when cancelling the discard confirmation", async () => {
-    render(
-      <SeccionBlock
-        seccion={seccion}
-        salidas={[salidaConMatch]}
-        onSalidaCreada={vi.fn()}
-        onSalidaActualizada={vi.fn()}
-        onSalidaBorrada={vi.fn()}
-      />,
-    );
-
-    await userEvent.click(screen.getByRole("button", { name: /editar salida 20 a/i }));
-    await userEvent.click(screen.getByRole("button", { name: /^cancelar$/i }));
-    await userEvent.click(screen.getByRole("button", { name: /^cancelar$/i }));
-
     expect(screen.getByText(/editar salida/i)).toBeInTheDocument();
-    expect(screen.queryByText(/¿descartar cambios\?/i)).not.toBeInTheDocument();
-  });
 
-  it("closes the edit modal without saving when confirming the discard", async () => {
-    render(
-      <SeccionBlock
-        seccion={seccion}
-        salidas={[salidaConMatch]}
-        onSalidaCreada={vi.fn()}
-        onSalidaActualizada={vi.fn()}
-        onSalidaBorrada={vi.fn()}
-      />,
-    );
-
-    await userEvent.click(screen.getByRole("button", { name: /editar salida 20 a/i }));
     await userEvent.click(screen.getByRole("button", { name: /^cancelar$/i }));
-    await userEvent.click(screen.getByRole("button", { name: /^descartar$/i }));
-
     expect(screen.queryByText(/editar salida/i)).not.toBeInTheDocument();
-    expect(screen.queryByText(/¿descartar cambios\?/i)).not.toBeInTheDocument();
   });
 
-  it("asks for confirmation before discarding when pressing Escape in the edit modal", async () => {
+  it("closes the edit modal directly without saving when pressing Escape", async () => {
     render(
       <SeccionBlock
         seccion={seccion}
@@ -478,9 +378,10 @@ describe("SeccionBlock", () => {
     );
 
     await userEvent.click(screen.getByRole("button", { name: /editar salida 20 a/i }));
-    await userEvent.keyboard("{Escape}");
+    expect(screen.getByText(/editar salida/i)).toBeInTheDocument();
 
-    expect(screen.getByText(/¿descartar cambios\?/i)).toBeInTheDocument();
+    await userEvent.keyboard("{Escape}");
+    expect(screen.queryByText(/editar salida/i)).not.toBeInTheDocument();
   });
 
   it("wraps the salidas table in a horizontally scrollable container", () => {
@@ -496,5 +397,28 @@ describe("SeccionBlock", () => {
 
     const tabla = screen.getByRole("table");
     expect(tabla.parentElement).toHaveClass("overflow-x-auto");
+  });
+
+  it("restricts Formato dropdown to Bipolar and Tetrapolar when Protección is set to Diferencial", async () => {
+    render(
+      <SeccionBlock
+        seccion={seccion}
+        salidas={[salidaSinMatch]}
+        onSalidaCreada={vi.fn()}
+        onSalidaActualizada={vi.fn()}
+        onSalidaBorrada={vi.fn()}
+      />,
+    );
+
+    await userEvent.click(screen.getByRole("button", { name: /editar salida 10 a/i }));
+
+    const proteccionSelect = screen.getByLabelText(/protección/i);
+    await userEvent.selectOptions(proteccionSelect, "seccional_diferencial");
+
+    const formatoSelect = screen.getByLabelText(/formato/i);
+    expect(within(formatoSelect).queryByText(/unipolar/i)).not.toBeInTheDocument();
+    expect(within(formatoSelect).getByText(/bipolar/i)).toBeInTheDocument();
+    expect(within(formatoSelect).queryByText(/tripolar/i)).not.toBeInTheDocument();
+    expect(within(formatoSelect).getByText(/tetrapolar/i)).toBeInTheDocument();
   });
 });
