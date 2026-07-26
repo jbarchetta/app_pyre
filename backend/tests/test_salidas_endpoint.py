@@ -186,11 +186,12 @@ def test_listar_salidas_no_hace_n_mas_uno_queries(client, db_session, contador_q
 
 def test_listar_salidas_paginacion_sin_solapes(client, db_session):
     seccion_id = _setup_tablero(client, db_session, "salidas.pag@pyre.com")
+    calibres = ["10", "16", "25"]
     for i in range(3):
         client.post(
             f"/secciones/{seccion_id}/salidas",
             json={
-                "carga_valor": str(10 + i),
+                "carga_valor": calibres[i],
                 "carga_unidad": "A",
                 "formato": "unipolar",
                 "tipo_proteccion": "seccional_termomagnetico",
@@ -427,7 +428,36 @@ def test_duplicar_salida(client, db_session):
     assert body_dup["carga_valor"] == "16.00"
 
 
-def test_reordenar_salidas(client, db_session):
+def test_actualizar_salida_recalcula_componente_diferencial(client, db_session):
+    seccion_id = _setup_tablero(client, db_session, "salidas_dif.test@pyre.com")
+
+    res1 = client.post(
+        f"/secciones/{seccion_id}/salidas",
+        json={
+            "carga_valor": "16",
+            "carga_unidad": "A",
+            "formato": "unipolar",
+            "tipo_proteccion": "seccional_termomagnetico",
+        },
+    )
+    salida_id = res1.json()["id"]
+
+    res_patch = client.patch(
+        f"/salidas/{salida_id}",
+        json={
+            "tipo_proteccion": "seccional_diferencial",
+            "formato": "bipolar",
+            "sensibilidad_ma": 30,
+            "admite_accesorios": False,
+        },
+    )
+    assert res_patch.status_code == 200
+    body = res_patch.json()
+    assert body["tipo_proteccion"] == "seccional_diferencial"
+    assert body["formato"] == "bipolar"
+    assert body["sensibilidad_ma"] == 30
+    assert body["admite_accesorios"] is False
+    assert body["asignado_manualmente"] is False
     seccion_id = _setup_tablero(client, db_session, "salidas16.test@pyre.com")
     res1 = client.post(
         f"/secciones/{seccion_id}/salidas",
