@@ -237,6 +237,14 @@ def _proponer_componente_para_salida(
     return propuesto.id if propuesto else None
 
 
+CALIBRES_VALIDOS_ABB = {
+    Decimal("0.5"), Decimal("1"), Decimal("2"), Decimal("3"), Decimal("4"),
+    Decimal("6"), Decimal("10"), Decimal("13"), Decimal("16"), Decimal("20"),
+    Decimal("25"), Decimal("30"), Decimal("32"), Decimal("40"), Decimal("50"),
+    Decimal("63"), Decimal("80"), Decimal("100"), Decimal("125")
+}
+
+
 @router.post("/secciones/{seccion_id}/salidas", response_model=SalidaResponse, status_code=status.HTTP_201_CREATED)
 def crear_salida(
     seccion_id: uuid.UUID,
@@ -246,6 +254,12 @@ def crear_salida(
 ):
     seccion = obtener_seccion_autorizada(db, seccion_id, usuario)
     tablero = db.get(Tablero, seccion.tablero_id)
+
+    if payload.carga_valor not in CALIBRES_VALIDOS_ABB:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="El calibre de carga debe ser una corriente nominal comercial estándar."
+        )
 
     parametros = obtener_parametros(db)
     try:
@@ -316,6 +330,12 @@ def actualizar_salida(
     usuario: Usuario = Depends(require_role(RolUsuario.ANALISTA, RolUsuario.SUPERVISOR)),
 ):
     salida = obtener_salida_autorizada(db, salida_id, usuario)
+
+    if payload.carga_valor is not None and payload.carga_valor not in CALIBRES_VALIDOS_ABB:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="El calibre de carga debe ser una corriente nominal comercial estándar."
+        )
 
     cambios = payload.model_dump(exclude_unset=True)
     campos_recalculo = (

@@ -868,7 +868,7 @@ export function SeccionBlock({
             </label>
             <select
               id={`carga-${seccion.id}`}
-              value={cargaValor}
+              value={Math.round(Number(cargaValor) || 0) > 0 ? String(Math.round(Number(cargaValor))) : cargaValor}
               onChange={(e) => setCargaValor(e.target.value)}
               className="min-w-[150px] text-sm font-mono font-bold border border-gray-300 rounded-md px-3 pr-8 py-2 bg-white focus:border-abb-red focus:outline-none focus:ring-1 focus:ring-abb-red"
             >
@@ -878,11 +878,6 @@ export function SeccionBlock({
                   {cal} A
                 </option>
               ))}
-              {!["6", "10", "16", "20", "25", "30", "32", "40", "50", "63", "80", "100", "125"].includes(cargaValor) && cargaValor.trim() !== "" && (
-                <option value={cargaValor}>
-                  {cargaValor} A (Personalizado)
-                </option>
-              )}
             </select>
           </div>
 
@@ -1033,7 +1028,7 @@ export function SeccionBlock({
               </label>
               <select
                 id="edit-carga-valor"
-                value={editCargaValor}
+                value={Math.round(Number(editCargaValor) || 0) > 0 ? String(Math.round(Number(editCargaValor))) : editCargaValor}
                 onChange={(e) => {
                   setEditCargaValor(e.target.value);
                   handleEditSpecChange();
@@ -1045,11 +1040,6 @@ export function SeccionBlock({
                     {cal} A (Estándar ABB)
                   </option>
                 ))}
-                {!["6", "10", "16", "20", "25", "30", "32", "40", "50", "63", "80", "100", "125"].includes(editCargaValor) && editCargaValor.trim() !== "" && (
-                  <option value={editCargaValor}>
-                    {editCargaValor} A (Personalizado)
-                  </option>
-                )}
               </select>
             </div>
 
