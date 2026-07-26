@@ -79,7 +79,7 @@ export function CotizacionBomPage() {
   return (
     <div className="space-y-6">
       {/* Header General de la Vista de Cotización */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between border-b border-surface-stroke pb-4 gap-4">
+      <div className="flex flex-col md:flex-row md:items-start justify-between border-b border-slate-300 pb-4 gap-4">
         <div>
           <div className="flex items-center gap-2 text-xs font-mono font-bold text-abb-red uppercase tracking-wider mb-1">
             <svg className="w-4 h-4 text-abb-red" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -87,16 +87,30 @@ export function CotizacionBomPage() {
             </svg>
             MÓDULO DE COTIZACIÓN Y MATERIALES
           </div>
-          <h1 className="text-2xl font-extrabold text-slate-900 dark:text-white">
+          <h1 className="text-2xl font-black text-slate-900 tracking-tight">
             Lista de Materiales y Presupuesto (BOM)
           </h1>
-          <p className="text-xs text-slate-500 mt-1">
-            Gestión independiente de componentes, accesorios y precios congelados para proyectos de tableros PYRE.
-          </p>
+          
+          {/* Reference Image Tag Pills Bar */}
+          <div className="flex flex-wrap items-center gap-2 mt-3 text-xs font-mono">
+            <span className="px-3 py-1 bg-[#2C3645] text-white rounded-lg font-bold flex items-center gap-1.5 shadow-xs">
+              <span className="w-2 h-2 rounded-full bg-abb-red" />
+              Tags
+            </span>
+            <span className="px-3 py-1 bg-slate-200 text-slate-700 rounded-lg font-medium border border-slate-300">
+              Cotización Oficial
+            </span>
+            <span className="px-3 py-1 bg-slate-200 text-slate-700 rounded-lg font-medium border border-slate-300">
+              Validez 30 Días
+            </span>
+            <span className="px-3 py-1 bg-emerald-100 text-emerald-800 rounded-lg font-bold border border-emerald-300">
+              Precios Netos ABB
+            </span>
+          </div>
         </div>
 
         {/* Seleccionadores de Proyecto y Tablero */}
-        <div className="flex flex-wrap items-center gap-3 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 p-3 rounded-xl shadow-xs">
+        <div className="flex flex-wrap items-center gap-3 bg-white border border-slate-300 p-3.5 rounded-2xl shadow-sm">
           <div>
             <label htmlFor="select-proyecto-bom" className="block text-[10px] font-mono uppercase font-bold text-slate-500 mb-1">
               Proyecto
@@ -105,7 +119,7 @@ export function CotizacionBomPage() {
               id="select-proyecto-bom"
               value={proyectoSeleccionadoId}
               onChange={(e) => handleCambiarProyecto(e.target.value)}
-              className="border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-1.5 text-xs font-semibold text-slate-900 dark:text-white rounded-lg focus:ring-1 focus:ring-abb-red"
+              className="border border-slate-300 bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-900 rounded-lg focus:ring-1 focus:ring-abb-red"
             >
               {proyectos.map((p) => (
                 <option key={p.id} value={p.id}>
@@ -123,7 +137,7 @@ export function CotizacionBomPage() {
               id="select-tablero-bom"
               value={tableroSeleccionadoId}
               onChange={(e) => setTableroSeleccionadoId(e.target.value)}
-              className="border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-1.5 text-xs font-semibold text-slate-900 dark:text-white rounded-lg focus:ring-1 focus:ring-abb-red"
+              className="border border-slate-300 bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-900 rounded-lg focus:ring-1 focus:ring-abb-red"
             >
               <option value="todos">Todos los Tableros (Consolidado)</option>
               {tableros.map((t) => (

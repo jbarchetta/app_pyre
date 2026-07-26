@@ -18,19 +18,20 @@ function renderLayout() {
 describe("Layout", () => {
   it("renders active nav items as links to their route", () => {
     renderLayout();
-    expect(screen.getByRole("link", { name: "Proyectos" })).toHaveAttribute("href", "/proyectos");
-    expect(screen.getByRole("link", { name: "Catálogo" })).toHaveAttribute("href", "/catalogo");
-    expect(screen.getByRole("link", { name: "Parámetros de cálculo" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: /Proyectos/i })).toHaveAttribute("href", "/proyectos");
+    expect(screen.getByRole("link", { name: /Catálogo/i })).toHaveAttribute("href", "/catalogo");
+    expect(screen.getByRole("link", { name: /Parámetros/i })).toHaveAttribute(
       "href",
       "/parametros-calculo",
     );
   });
 
-  it("renders the Cotizador item as disabled, not a link", () => {
+  it("renders the Cotización (BOM) item as a active link", () => {
     renderLayout();
-    expect(screen.queryByRole("link", { name: /cotizador/i })).not.toBeInTheDocument();
-    expect(screen.getByText("Cotizador")).toBeInTheDocument();
-    expect(screen.getByText(/próximo módulo/i)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Cotización \(BOM\)/i })).toHaveAttribute(
+      "href",
+      "/cotizacion-bom",
+    );
   });
 
   it("renders the matched child route via Outlet", () => {
