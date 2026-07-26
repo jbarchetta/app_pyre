@@ -38,6 +38,7 @@ import { ComponentePicker } from "./ComponentePicker";
 import { SeccionBlock } from "./SeccionBlock";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { Button } from "./common/Button";
+import { BomPanel } from "./BomPanel";
 import { useCerrarAlClickFuera } from "../hooks/useCerrarAlClickFuera";
 import type { ModoVisual, ModoVisualState } from "../utils/vistaStorage";
 
@@ -57,6 +58,7 @@ interface DetalleTableroProps {
 }
 
 const TAB_PRINCIPAL = "principal";
+const TAB_BOM = "bom";
 
 const CATEGORIAS_ACCESORIOS = [
   "Interruptores automáticos en caja moldeada",
@@ -641,6 +643,21 @@ export function DetalleTablero({
               <span aria-hidden="true" className="opacity-50 font-mono text-[11px] mr-1.5">00</span>
               <span>Principal</span>
             </button>
+            <button
+              role="tab"
+              aria-selected={tabActivo === TAB_BOM}
+              aria-label="BOM / Cotización"
+              type="button"
+              onClick={() => setTabSeleccionadoRaw(TAB_BOM)}
+              className={`px-3 py-1.5 text-xs font-sans rounded-lg transition-all duration-150 flex items-center gap-1.5 ${
+                tabActivo === TAB_BOM
+                  ? "bg-white text-slate-900 shadow-2xs border border-slate-200/60 font-semibold"
+                  : "text-slate-500 hover:text-slate-900 hover:bg-white/50 font-medium"
+              }`}
+            >
+              <span aria-hidden="true" className="opacity-50 font-mono text-[11px]">BOM</span>
+              <span>BOM / Cotización</span>
+            </button>
             {(secciones ?? []).map(({ seccion, salidas }, idx) => {
               const sNum = (idx + 1).toString().padStart(2, "0");
               const isSelected = seccion.id === tabActivo;
@@ -713,7 +730,11 @@ export function DetalleTablero({
         </div>
 
         {/* Contenido de la Sección Activa */}
-        {tabActivo === TAB_PRINCIPAL ? (
+        {tabActivo === TAB_BOM ? (
+          <div className="p-4">
+            <BomPanel tableroId={tablero.id} tableroNombre={tablero.nombre} />
+          </div>
+        ) : tabActivo === TAB_PRINCIPAL ? (
           <div className="p-4 space-y-6">
             {/* Formulario de Configuración Física */}
             <div className="bg-slate-50 border border-surface-stroke rounded-xl p-4 shadow-sm">

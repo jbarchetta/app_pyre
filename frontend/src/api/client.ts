@@ -647,3 +647,62 @@ export async function eliminarReglaCablecanal(id: string): Promise<void> {
   });
   await lanzarSiNoOk(response, "No se pudo eliminar la regla de cablecanal");
 }
+
+export interface BomLineaItem {
+  id: string;
+  tablero_id: string;
+  componente_id: string;
+  componente_codigo: string;
+  componente_codigo_comercial: string | null;
+  componente_descripcion: string;
+  componente_categoria: string | null;
+  cantidad: number;
+  precio_unitario_congelado: number;
+  subtotal: number;
+  creado_en: string;
+}
+
+export interface BomResumenTablero {
+  tablero_id: string;
+  tablero_nombre: string;
+  lineas: BomLineaItem[];
+  total_items_count: number;
+  costo_total: number;
+  fecha_congelamiento: string | null;
+}
+
+export interface BomResumenProyecto {
+  proyecto_id: string;
+  proyecto_nombre: string;
+  tableros: BomResumenTablero[];
+  costo_total_proyecto: number;
+}
+
+export async function generarBomTablero(tableroId: string): Promise<BomResumenTablero> {
+  const response = await fetch(`${API_BASE_URL}/tableros/${tableroId}/bom/generar`, {
+    method: "POST",
+    credentials: "include",
+  });
+  await lanzarSiNoOk(response, "No se pudo generar la lista de materiales (BOM)");
+  return response.json();
+}
+
+export async function obtenerBomTablero(tableroId: string): Promise<BomResumenTablero> {
+  const response = await fetch(`${API_BASE_URL}/tableros/${tableroId}/bom`, { credentials: "include" });
+  await lanzarSiNoOk(response, "No se pudo obtener el BOM del tablero");
+  return response.json();
+}
+
+export async function obtenerBomProyecto(proyectoId: string): Promise<BomResumenProyecto> {
+  const response = await fetch(`${API_BASE_URL}/proyectos/${proyectoId}/bom`, { credentials: "include" });
+  await lanzarSiNoOk(response, "No se pudo obtener el BOM del proyecto");
+  return response.json();
+}
+
+export async function limpiarBomTablero(tableroId: string): Promise<void> {
+  const response = await fetch(`${API_BASE_URL}/tableros/${tableroId}/bom`, {
+    method: "DELETE",
+    credentials: "include",
+  });
+  await lanzarSiNoOk(response, "No se pudo eliminar el BOM del tablero");
+}

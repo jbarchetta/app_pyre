@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session
 from app.auth.dependencies import get_current_user, require_role
 from app.auth.ownership import obtener_proyecto_autorizado
 from app.database import get_db
-from app.models import Proyecto, RolUsuario, Salida, Seccion, Tablero, Usuario
+from app.models import BomLinea, Proyecto, RolUsuario, Salida, Seccion, Tablero, Usuario
 from app.routers.paginacion import LIMITE_POR_DEFECTO, acotar_paginacion
 
 router = APIRouter(prefix="/proyectos", tags=["proyectos"])
@@ -161,6 +161,7 @@ def eliminar_proyecto(
     # a mano acá, en orden hijo-a-padre, dentro de la misma transacción.
     tablero_ids = [t.id for t in db.query(Tablero.id).filter(Tablero.proyecto_id == proyecto_id)]
     if tablero_ids:
+        db.query(BomLinea).filter(BomLinea.tablero_id.in_(tablero_ids)).delete(synchronize_session=False)
         seccion_ids = [s.id for s in db.query(Seccion.id).filter(Seccion.tablero_id.in_(tablero_ids))]
         if seccion_ids:
             db.query(Salida).filter(Salida.seccion_id.in_(seccion_ids)).delete(synchronize_session=False)

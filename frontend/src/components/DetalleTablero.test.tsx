@@ -157,7 +157,7 @@ describe("DetalleTablero", () => {
     renderDetalle();
 
     expect(await screen.findByRole("tab", { name: "Principal" })).toHaveAttribute("aria-selected", "true");
-    expect(screen.getAllByRole("tab")).toHaveLength(1);
+    expect(screen.getAllByRole("tab")).toHaveLength(2);
   });
 
   it("adds a new fila via the Nueva fila icon and modal, and activates it", async () => {

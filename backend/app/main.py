@@ -4,7 +4,7 @@ from sqlalchemy import text
 
 from app.config import settings
 from app.database import engine
-from app.routers import auth, catalogo, health, parametros_calculo, proyectos, salidas, tableros
+from app.routers import auth, bom, catalogo, health, parametros_calculo, proyectos, salidas, tableros
 
 
 def _ejecutar_migraciones_ligeras():
@@ -15,11 +15,55 @@ def _ejecutar_migraciones_ligeras():
                     "ALTER TABLE salida ADD COLUMN IF NOT EXISTS alimentado_por_salida_id UUID REFERENCES salida(id) ON DELETE SET NULL;"
                 )
             )
+            conn.execute(
+                text(
+                    "ALTER TABLE salida ADD COLUMN IF NOT EXISTS sensibilidad_ma INTEGER;"
+                )
+            )
+            conn.execute(
+                text(
+                    "ALTER TABLE salida ADD COLUMN IF NOT EXISTS admite_accesorios BOOLEAN DEFAULT FALSE;"
+                )
+            )
     except Exception:
         pass
 
 
+def _asegurar_usuarios_semilla():
+    try:
+        from app.auth.security import hash_password
+        from app.database import SessionLocal
+        from app.models import RolUsuario, Usuario
+
+        db = SessionLocal()
+        try:
+            if db.query(Usuario).filter(Usuario.email == "analista@pyre.com").first() is None:
+                analista = Usuario(
+                    email="analista@pyre.com",
+                    nombre="Analista Demo",
+                    password_hash=hash_password("clave-demo-123"),
+                    rol=RolUsuario.ANALISTA,
+                )
+                db.add(analista)
+
+            if db.query(Usuario).filter(Usuario.email == "supervisor@pyre.com").first() is None:
+                supervisor = Usuario(
+                    email="supervisor@pyre.com",
+                    nombre="Supervisor Demo",
+                    password_hash=hash_password("clave-demo-123"),
+                    rol=RolUsuario.SUPERVISOR,
+                )
+                db.add(supervisor)
+
+            db.commit()
+        finally:
+            db.close()
+    except Exception as e:
+        print("Error al asegurar usuarios semilla:", e)
+
+
 _ejecutar_migraciones_ligeras()
+_asegurar_usuarios_semilla()
 
 app = FastAPI(title="Configurador de Tableros PYRE")
 
@@ -27,7 +71,13 @@ app = FastAPI(title="Configurador de Tableros PYRE")
 # estándar; el API solo usa estos. Origen único desde config.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[settings.frontend_origin],
+    allow_origins=list({
+        settings.frontend_origin,
+        "http://localhost:5180",
+        "http://127.0.0.1:5180",
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+    }),
     allow_credentials=True,
     allow_methods=["GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["Content-Type", "Authorization"],
@@ -57,3 +107,4 @@ app.include_router(proyectos.router)
 app.include_router(tableros.router)
 app.include_router(salidas.router)
 app.include_router(parametros_calculo.router)
+app.include_router(bom.router)
