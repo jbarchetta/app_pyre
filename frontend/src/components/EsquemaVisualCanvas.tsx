@@ -191,15 +191,18 @@ export function EsquemaVisualCanvas({
         cable: "-",
       };
     }
-    for (const sec of secciones) {
-      const found = sec.salidas.find((sal) => sal.id === canvasHoveredId);
-      if (found) {
+    for (let secIdx = 0; secIdx < secciones.length; secIdx++) {
+      const sec = secciones[secIdx];
+      const foundIdx = sec.salidas.findIndex((sal) => sal.id === canvasHoveredId);
+      if (foundIdx !== -1) {
+        const found = sec.salidas[foundIdx];
         const codComercial = found.componente_codigo_comercial || found.componente_codigo;
         const corrienteNum = Number(found.corriente_nominal_a) || Number(found.carga_valor) || 0;
         const corrienteDisplay = corrienteNum > 0 ? `${corrienteNum}A` : found.carga_valor ? `${found.carga_valor}A` : "-";
+        const posicionFallback = `F${secIdx + 1}.${foundIdx + 1}`;
 
         return {
-          tag: found.posicion_codigo || `Salida ${(found.orden ?? found.posicion_orden ?? 0) + 1}`,
+          tag: found.posicion_codigo || posicionFallback,
           titulo: found.componente_descripcion || found.descripcion_personalizada || found.etiqueta || "Interruptor de Salida",
           codigo: codComercial || null,
           corriente: corrienteDisplay,
@@ -207,13 +210,17 @@ export function EsquemaVisualCanvas({
           curva: found.curva || "C",
           seccion: sec.seccion.nombre,
           cable: found.seccion_cable_mm2 ? `${found.seccion_cable_mm2} mm²` : "-",
+          alimentadoPor: found.alimentado_por_codigo || null,
         };
       }
     }
     return null;
   }, [canvasHoveredId, secciones, interruptorPrincipal]);
 
-  // Controles superiores de vista (Zoom, Capas, Pantalla completa)
+  const handleFitToScreen = () => resetPanAndZoom();
+  const handleZoomIn = () => handleZoomChange(zoomEfectivo + ZOOM_PASO);
+  const handleZoomOut = () => handleZoomChange(zoomEfectivo - ZOOM_PASO);
+
   const renderControlesSVG = (esModal: boolean) => (
     <div className="flex items-center gap-1">
       <Button
@@ -221,7 +228,7 @@ export function EsquemaVisualCanvas({
         variant="ghost"
         icon={<MagnifyingGlassMinusIcon className="w-4 h-4" />}
         aria-label="Alejar"
-        onClick={() => handleZoomChange(zoomEfectivo - ZOOM_PASO)}
+        onClick={handleZoomOut}
         title="Alejar (-)"
       />
       <Button
@@ -238,7 +245,7 @@ export function EsquemaVisualCanvas({
         variant="ghost"
         icon={<MagnifyingGlassPlusIcon className="w-4 h-4" />}
         aria-label="Acercar"
-        onClick={() => handleZoomChange(zoomEfectivo + ZOOM_PASO)}
+        onClick={handleZoomIn}
         title="Acercar (+)"
       />
       <Button
@@ -262,11 +269,15 @@ export function EsquemaVisualCanvas({
     </div>
   );
 
-  const renderHudBar = (isModal: boolean) => {
+  const renderInfoHoverHUD = (isModal: boolean) => {
     if (!hoveredSalidaInfo) {
-      if (isModal) {
+      if (canvasHoveredId) {
         return (
-          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 z-50 bg-slate-100/95 text-slate-700 border border-slate-300/80 shadow-md backdrop-blur-sm rounded-md px-3.5 py-1 text-[10px] md:text-[11px] font-mono text-center opacity-90 select-none pointer-events-none whitespace-nowrap transition-all duration-300 ease-out transform translate-y-0 animate-fade-in">
+          <div
+            className={`absolute ${
+              isModal ? "bottom-8" : "bottom-4"
+            } left-1/2 -translate-x-1/2 z-50 bg-slate-900/90 text-slate-100 border border-slate-700 shadow-xl backdrop-blur-md rounded-md px-4 py-1.5 text-xs font-mono select-none pointer-events-none transition-all duration-300 animate-fade-in`}
+          >
             [CAD INSPECT] Pasa el cursor sobre cualquier línea o elemento para ver detalles técnicos
           </div>
         );
@@ -276,17 +287,20 @@ export function EsquemaVisualCanvas({
 
     return (
       <div className={`absolute ${isModal ? "bottom-8" : "bottom-4"} left-1/2 -translate-x-1/2 z-50 bg-white/95 text-slate-900 border border-slate-300/80 shadow-[0_8px_30px_rgba(0,0,0,0.15)] backdrop-blur-md rounded-md px-4 py-1.5 flex items-center space-x-4 max-w-[92%] whitespace-nowrap text-xs font-sans select-none pointer-events-none transition-all duration-300 ease-out transform translate-y-0 animate-fade-in`}>
-        {/* TAG DE POSICIÓN */}
         <div className="flex items-center space-x-2 shrink-0">
           <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
           <span className="bg-slate-100 text-emerald-800 border border-emerald-300 font-mono font-bold px-2 py-0.5 rounded text-[11px] uppercase tracking-wider">
             {hoveredSalidaInfo.tag}
           </span>
+          {hoveredSalidaInfo.alimentadoPor && (
+            <span className="bg-red-50 text-abb-red border border-red-200 font-mono font-bold px-2 py-0.5 rounded text-[10px] uppercase tracking-wider">
+              Alimentado por {hoveredSalidaInfo.alimentadoPor}
+            </span>
+          )}
         </div>
 
         <div className="h-4 w-[1px] bg-slate-200 shrink-0" />
 
-        {/* DESCRIPCIÓN TÉCNICA Y CÓDIGO COMERCIAL */}
         <div className="flex items-center space-x-2 truncate max-w-lg shrink">
           <span className="font-semibold text-slate-900 text-xs truncate">{hoveredSalidaInfo.titulo}</span>
           {hoveredSalidaInfo.codigo && (
@@ -298,7 +312,6 @@ export function EsquemaVisualCanvas({
 
         <div className="h-4 w-[1px] bg-slate-200 shrink-0" />
 
-        {/* MÉTRICAS TÉCNICAS (CALIBRE, POLOS, CABLE) */}
         <div className="flex items-center space-x-3 text-xs font-mono shrink-0">
           <div className="flex items-center space-x-1">
             <span className="text-[10px] text-slate-400 font-sans uppercase">Calibre:</span>
@@ -321,7 +334,6 @@ export function EsquemaVisualCanvas({
 
   return (
     <div className="w-full flex flex-col space-y-3">
-      {/* Pestañas de Selector de Modo Visual */}
       <div className="flex items-center justify-between bg-industrial-gray border border-surface-stroke rounded-xl px-4 py-2 shadow-sm">
         <div className="flex items-center space-x-1 bg-white p-1 rounded-lg border border-gray-200">
           <button
@@ -447,7 +459,7 @@ export function EsquemaVisualCanvas({
                 onSalidaClick={onSalidaClick}
               />
               {/* HUD Inspector en modo SVG normal */}
-              {renderHudBar(false)}
+              {renderInfoHoverHUD(false)}
             </div>
           </div>
 
@@ -505,7 +517,7 @@ export function EsquemaVisualCanvas({
                   />
 
                   {/* BARRA DE INSPECCIÓN CAD TÉCNICA (HUD COMPACTO EN UNA SOLA LÍNEA) */}
-                  {renderHudBar(true)}
+                  {renderInfoHoverHUD(true)}
                 </div>
               </div>
             </div>

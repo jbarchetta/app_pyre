@@ -876,6 +876,24 @@ export function SeccionBlock({
               required
               className="w-28 text-sm border border-gray-300 rounded-md px-3 py-2 bg-white focus:border-abb-red focus:outline-none focus:ring-1 focus:ring-abb-red"
             />
+            {cargaUnidad === "A" && (
+              <div className="flex flex-wrap gap-1 mt-1.5 max-w-[280px]">
+                {["6", "10", "16", "20", "25", "32", "40", "50", "63"].map((cal) => (
+                  <button
+                    key={cal}
+                    type="button"
+                    onClick={() => setCargaValor(cal)}
+                    className={`px-1.5 py-0.5 text-[10px] font-mono rounded border transition ${
+                      cargaValor === cal
+                        ? "bg-abb-red text-white border-abb-red font-bold"
+                        : "bg-slate-50 text-slate-700 border-slate-200 hover:border-abb-red hover:text-abb-red"
+                    }`}
+                  >
+                    {cal}A
+                  </button>
+                ))}
+              </div>
+            )}
             {cargaInvalidaEntero && (
               <p className="text-error text-[11px] mt-0.5">Entero requerido para Amperios</p>
             )}
@@ -1042,7 +1060,7 @@ export function SeccionBlock({
                 <label htmlFor="edit-carga-valor" className="text-xs font-semibold text-gray-700">Carga</label>
                 <input
                   id="edit-carga-valor"
-                  ref={editCargaInputRef}
+                  type="text"
                   value={editCargaValor}
                   onChange={(e) => {
                     setEditCargaValor(e.target.value);
@@ -1050,6 +1068,27 @@ export function SeccionBlock({
                   }}
                   className="w-full text-sm border border-gray-300 rounded px-3 py-1.5 focus:border-abb-red focus:outline-none"
                 />
+                {editCargaUnidad === "A" && (
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {["6", "10", "16", "20", "25", "32", "40", "50", "63"].map((cal) => (
+                      <button
+                        key={cal}
+                        type="button"
+                        onClick={() => {
+                          setEditCargaValor(cal);
+                          handleEditSpecChange();
+                        }}
+                        className={`px-1.5 py-0.5 text-[10px] font-mono rounded border transition ${
+                          editCargaValor === cal
+                            ? "bg-abb-red text-white border-abb-red font-bold"
+                            : "bg-slate-50 text-slate-700 border-slate-200 hover:border-abb-red hover:text-abb-red"
+                        }`}
+                      >
+                        {cal}A
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
 
               <div className="space-y-1">
