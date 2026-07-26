@@ -11,6 +11,8 @@ const NAV_ITEMS: NavItem[] = [
   { label: "Proyectos", to: "/proyectos" },
   { label: "Catálogo", to: "/catalogo" },
   { label: "Parámetros de cálculo", to: "/parametros-calculo" },
+  { label: "Cotización (BOM)", to: "/cotizacion-bom" },
+  { label: "Administración", to: "/admin-config" },
   { label: "Cotizador", to: "/cotizador", disabled: true },
 ];
 

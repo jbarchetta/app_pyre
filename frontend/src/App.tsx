@@ -7,6 +7,8 @@ import { LoginPage } from "./pages/LoginPage";
 import { ParametrosCalculoPage } from "./pages/ParametrosCalculoPage";
 import { ProyectosPage } from "./pages/ProyectosPage";
 import { ProyectoWorkspacePage } from "./pages/ProyectoWorkspacePage";
+import { CotizacionBomPage } from "./pages/CotizacionBomPage";
+import { AdminConfigPage } from "./pages/AdminConfigPage";
 
 export function App() {
   return (
@@ -24,7 +26,9 @@ export function App() {
           <Route path="/catalogo" element={<CatalogoPage />} />
           <Route path="/proyectos" element={<ProyectosPage />} />
           <Route path="/proyectos/:id" element={<ProyectoWorkspacePage />} />
+          <Route path="/cotizacion-bom" element={<CotizacionBomPage />} />
           <Route path="/parametros-calculo" element={<ParametrosCalculoPage />} />
+          <Route path="/admin-config" element={<AdminConfigPage />} />
         </Route>
       </Routes>
     </BrowserRouter>

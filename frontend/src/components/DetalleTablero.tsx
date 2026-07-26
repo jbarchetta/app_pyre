@@ -38,7 +38,6 @@ import { ComponentePicker } from "./ComponentePicker";
 import { SeccionBlock } from "./SeccionBlock";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { Button } from "./common/Button";
-import { BomPanel } from "./BomPanel";
 import { useCerrarAlClickFuera } from "../hooks/useCerrarAlClickFuera";
 import type { ModoVisual, ModoVisualState } from "../utils/vistaStorage";
 
@@ -98,7 +97,6 @@ export function DetalleTablero({
   const [error, setError] = useState<string | null>(null);
   const [hoveredSalidaId, setHoveredSalidaId] = useState<string | null>(null);
   const [panelLateralColapsado, setPanelLateralColapsado] = useState(false);
-  const [modalBomAmpliado, setModalBomAmpliado] = useState(false);
   const ultimoTriggerRef = useRef<HTMLElement | null>(null);
   const nivelFallaInputRef = useRef<HTMLInputElement>(null);
   const nombreFilaInputRef = useRef<HTMLInputElement>(null);
@@ -617,16 +615,6 @@ export function DetalleTablero({
                   </select>
                 </div>
               </div>
-            </div>
-
-            {/* Card 4: LISTA DE MATERIALES Y COTIZACIÓN (BOM) */}
-            <div className="shrink-0">
-              <BomPanel
-                tableroId={tablero.id}
-                tableroNombre={tablero.nombre}
-                isCompact={true}
-                onAmpliar={() => setModalBomAmpliado(true)}
-              />
             </div>
 
           </div>
@@ -1336,33 +1324,6 @@ export function DetalleTablero({
           }}
           onCancel={cerrarModales}
         />
-      )}
-
-      {modalBomAmpliado && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-xs"
-          onClick={() => setModalBomAmpliado(false)}
-        >
-          <div
-            className="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-800 rounded-2xl p-6 shadow-2xl max-w-5xl w-full max-h-[90vh] overflow-y-auto"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div className="flex justify-between items-center pb-3 border-b border-slate-200 dark:border-slate-800 mb-4">
-              <h3 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                <span className="text-abb-red font-extrabold">ABB</span> Lista de Materiales y Cotización Completa
-              </h3>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setModalBomAmpliado(false)}
-                title="Cerrar modal BOM"
-              >
-                ✕ Cerrar
-              </Button>
-            </div>
-            <BomPanel tableroId={tablero.id} tableroNombre={tablero.nombre} isCompact={false} />
-          </div>
-        </div>
       )}
     </div>
   );
