@@ -12,6 +12,8 @@ import {
   type Seccion,
   type TipoProteccion,
   formatearCorriente,
+  simularPropuesta,
+  existeIncompatibilidadLink,
 } from "../api/client";
 import {
   Bars3Icon,
@@ -25,6 +27,7 @@ import {
   PencilSquareIcon,
   Cog6ToothIcon,
   QueueListIcon,
+  Squares2X2Icon,
 } from "@heroicons/react/24/outline";
 import { ComponentePicker } from "./ComponentePicker";
 import { ConfirmDialog } from "./ConfirmDialog";
@@ -34,9 +37,22 @@ export interface ElementoAlimentadorCandidato {
   id: string;
   codigo: string;
   etiqueta?: string | null;
-  tipo_proteccion: string;
+  tipo_proteccion: TipoProteccion;
+  formato: FormatoPolos;
   carga: string;
 }
+
+export const FORMATO_LABEL: Record<FormatoPolos, string> = {
+  unipolar: "1P",
+  bipolar: "2P",
+  tripolar: "3P",
+  tetrapolar: "4P",
+};
+
+export const PROTECCION_LABEL: Record<TipoProteccion, string> = {
+  seccional_termomagnetico: "Termomagnético",
+  seccional_diferencial: "Diferencial",
+};
 
 interface SeccionBlockProps {
   seccion: Seccion;
@@ -56,6 +72,7 @@ interface FilaSalidaProps {
   seccionOrden?: number;
   isHovered?: boolean;
   hoveredSalidaId?: string | null;
+  elementosCandidatos?: ElementoAlimentadorCandidato[];
   onAbrirEdicion: (salida: Salida, trigger: HTMLElement) => void;
   onAbrirLink: (salida: Salida, trigger: HTMLElement) => void;
   onDuplicar: (salida: Salida) => void;
@@ -73,6 +90,7 @@ function FilaSalida({
   seccionOrden = 0,
   isHovered,
   hoveredSalidaId,
+  elementosCandidatos = [],
   onAbrirEdicion,
   onAbrirLink,
   onDuplicar,
@@ -103,6 +121,18 @@ function FilaSalida({
   };
 
   const codigoAuto = `F${seccionOrden + 1}.${index + 1}`;
+  const parent = salida.alimentado_por_salida_id
+    ? elementosCandidatos.find((c) => c.id === salida.alimentado_por_salida_id)
+    : null;
+  const hasLinkError = !!(
+    parent &&
+    existeIncompatibilidadLink(
+      salida.formato,
+      salida.tipo_proteccion,
+      parent.formato,
+      parent.tipo_proteccion
+    )
+  );
   const isDirectHover = isHovered;
   const isAlimentadaPorHovered = !!(
     hoveredSalidaId && salida.alimentado_por_salida_id === hoveredSalidaId
@@ -134,11 +164,11 @@ function FilaSalida({
       </td>
 
       {/* Etiqueta / Circuito (Limitado para no expandir la tabla) */}
-      <td className="p-3 font-semibold text-gray-900 text-sm max-w-[160px]">
+      <td className="p-3 font-semibold text-gray-900 text-sm max-w-[280px]">
         <div className="flex items-center gap-1.5 flex-wrap">
           {salida.etiqueta ? (
             <span
-              className="bg-gray-100 text-gray-800 px-2 py-0.5 rounded font-mono text-xs border border-gray-200 truncate inline-block max-w-[110px] align-middle"
+              className="text-gray-800 font-mono text-xs font-semibold truncate inline-block max-w-[240px] align-middle"
               title={salida.etiqueta}
             >
               {salida.etiqueta}
@@ -149,11 +179,20 @@ function FilaSalida({
 
           {salida.alimentado_por_codigo && (
             <span
-              className="bg-red-50 text-abb-red px-1.5 py-0.5 rounded font-mono text-[11px] font-bold border border-red-200 inline-flex items-center gap-0.5"
-              title={`Alimentado por ${salida.alimentado_por_codigo}`}
+              className={`px-1.5 py-0.5 rounded font-mono text-[11px] font-bold border inline-flex items-center gap-0.5 ${
+                hasLinkError
+                  ? "bg-amber-50 text-amber-800 border-amber-200"
+                  : "bg-red-50 text-abb-red border-red-200"
+              }`}
+              title={
+                hasLinkError
+                  ? `Advertencia: Polos incompatibles con alimentación ${salida.alimentado_por_codigo}`
+                  : `Alimentado por ${salida.alimentado_por_codigo}`
+              }
             >
               <LinkIcon className="w-3 h-3" />
               {salida.alimentado_por_codigo}
+              {hasLinkError && <ExclamationTriangleIcon className="w-3.5 h-3.5 text-amber-600 shrink-0 ml-1 animate-pulse" />}
             </span>
           )}
         </div>
@@ -207,7 +246,7 @@ function FilaSalida({
 
           <div className="flex flex-col min-w-0">
             <span
-              className={`font-semibold ${salida.componente_id ? "text-gray-900" : "text-amber-700 italic"}`}
+              className={salida.componente_id ? "font-semibold text-gray-900" : "text-amber-600 font-normal italic text-xs"}
             >
               {salida.componente_id ? (salida.componente_codigo ?? salida.componente_id) : "Sin match"}
             </span>
@@ -230,7 +269,10 @@ function FilaSalida({
           <button
             type="button"
             aria-label={`Vincular alimentación de ${codigoAuto}`}
-            onClick={(e) => onAbrirLink(salida, e.currentTarget)}
+            onClick={(e) => {
+              e.stopPropagation();
+              onAbrirLink(salida, e.currentTarget);
+            }}
             className={`p-1 rounded transition ${
               salida.alimentado_por_salida_id
                 ? "text-abb-red bg-red-50 hover:bg-red-100"
@@ -243,7 +285,10 @@ function FilaSalida({
           <button
             type="button"
             aria-label={`Duplicar salida ${salida.carga_valor} ${salida.carga_unidad}`}
-            onClick={() => onDuplicar(salida)}
+            onClick={(e) => {
+              e.stopPropagation();
+              onDuplicar(salida);
+            }}
             className="hover:text-abb-red p-1 rounded hover:bg-gray-100"
             title="Duplicar salida"
           >
@@ -252,7 +297,10 @@ function FilaSalida({
           <button
             type="button"
             aria-label={`Editar salida ${salida.carga_valor} ${salida.carga_unidad}`}
-            onClick={(e) => onAbrirEdicion(salida, e.currentTarget)}
+            onClick={(e) => {
+              e.stopPropagation();
+              onAbrirEdicion(salida, e.currentTarget);
+            }}
             className="hover:text-abb-red p-1 rounded hover:bg-gray-100"
             title="Editar salida"
           >
@@ -261,7 +309,10 @@ function FilaSalida({
           <button
             type="button"
             aria-label={`Borrar salida ${salida.carga_valor} ${salida.carga_unidad}`}
-            onClick={(e) => onConfirmarBorrado(salida, e.currentTarget)}
+            onClick={(e) => {
+              e.stopPropagation();
+              onConfirmarBorrado(salida, e.currentTarget);
+            }}
             className="hover:text-abb-red p-1 rounded hover:bg-gray-100"
             title="Borrar salida"
           >
@@ -289,18 +340,91 @@ export function SeccionBlock({
   const [cargaUnidad, setCargaUnidad] = useState("A");
   const [formato, setFormato] = useState<FormatoPolos>("unipolar");
   const [tipoProteccion, setTipoProteccion] = useState<TipoProteccion>("seccional_termomagnetico");
+  const [sensibilidadMa, setSensibilidadMa] = useState<number>(30);
+  const [admiteAccesorios, setAdmiteAccesorios] = useState<boolean>(false);
   const cargaInvalidaEntero = cargaUnidad === "A" && cargaValor.trim() !== "" && Number(cargaValor) % 1 !== 0;
 
   const [error, setError] = useState<string | null>(null);
   const [salidaEnEdicion, setSalidaEnEdicion] = useState<Salida | null>(null);
-  const [confirmandoDescarteEdicion, setConfirmandoDescarteEdicion] = useState(false);
   const [editEtiqueta, setEditEtiqueta] = useState("");
   const [editCargaValor, setEditCargaValor] = useState("");
   const [editCargaUnidad, setEditCargaUnidad] = useState("A");
   const [editFormato, setEditFormato] = useState<FormatoPolos>("unipolar");
   const [editTipoProteccion, setEditTipoProteccion] = useState<TipoProteccion>("seccional_termomagnetico");
+  const [editSensibilidadMa, setEditSensibilidadMa] = useState<number>(30);
+  const [editAdmiteAccesorios, setEditAdmiteAccesorios] = useState<boolean>(false);
+  
+  // Local edit states for component selection
+  const [editComponenteId, setEditComponenteId] = useState<string | null>(null);
+  const [editComponenteCodigo, setEditComponenteCodigo] = useState<string | null>(null);
+  const [editComponenteDescripcion, setEditComponenteDescripcion] = useState<string | null>(null);
+  const [editAsignadoManualmente, setEditAsignadoManualmente] = useState<boolean>(false);
+
+  // States for real-time validation / proposal simulation
+  const [simulacionMotivo, setSimulacionMotivo] = useState<string | null>(null);
+  const [simulacionCargando, setSimulacionCargando] = useState<boolean>(false);
+
   const editCargaInvalidaEntero =
     editCargaUnidad === "A" && editCargaValor.trim() !== "" && Number(editCargaValor) % 1 !== 0;
+
+  useEffect(() => {
+    if (!salidaEnEdicion) {
+      setSimulacionMotivo(null);
+      setSimulacionCargando(false);
+      return;
+    }
+
+    if (editAsignadoManualmente) {
+      setSimulacionMotivo(null);
+      setSimulacionCargando(false);
+      return;
+    }
+
+    if (!editCargaValor.trim() || editCargaInvalidaEntero) {
+      setSimulacionMotivo(null);
+      setSimulacionCargando(false);
+      return;
+    }
+
+    const delayDebounce = setTimeout(async () => {
+      setSimulacionCargando(true);
+      try {
+        const res = await simularPropuesta(seccion.id, {
+          formato: editFormato,
+          tipo_proteccion: editTipoProteccion,
+          carga_valor: editCargaValor,
+          carga_unidad: editCargaUnidad,
+          sensibilidad_ma: editTipoProteccion === "seccional_diferencial" ? editSensibilidadMa : null,
+          admite_accesorios: editTipoProteccion === "seccional_diferencial" ? editAdmiteAccesorios : null,
+        });
+
+        if (idSalidaEnEdicionRef.current !== salidaEnEdicion.id) return;
+
+        if (!res.compatible) {
+          setSimulacionMotivo(res.motivo);
+        } else {
+          setSimulacionMotivo(null);
+        }
+      } catch (err) {
+        console.error("Error simulating proposal", err);
+      } finally {
+        setSimulacionCargando(false);
+      }
+    }, 400);
+
+    return () => clearTimeout(delayDebounce);
+  }, [
+    salidaEnEdicion,
+    editAsignadoManualmente,
+    editCargaValor,
+    editCargaUnidad,
+    editFormato,
+    editTipoProteccion,
+    editSensibilidadMa,
+    editAdmiteAccesorios,
+    editCargaInvalidaEntero,
+    seccion.id,
+  ]);
 
   const [pickerAbierto, setPickerAbierto] = useState(false);
   const [salidaABorrar, setSalidaABorrar] = useState<Salida | null>(null);
@@ -356,6 +480,8 @@ export function SeccionBlock({
         carga_unidad: cargaUnidad,
         formato,
         tipo_proteccion: tipoProteccion,
+        sensibilidad_ma: tipoProteccion === "seccional_diferencial" ? sensibilidadMa : undefined,
+        admite_accesorios: tipoProteccion === "seccional_diferencial" ? admiteAccesorios : undefined,
       });
       onSalidaCreada(salida);
       setCargaValor("");
@@ -403,6 +529,13 @@ export function SeccionBlock({
     }
   }
 
+  const handleEditSpecChange = () => {
+    setEditComponenteId(null);
+    setEditComponenteCodigo(null);
+    setEditComponenteDescripcion(null);
+    setEditAsignadoManualmente(false);
+  };
+
   function abrirEdicion(salida: Salida, trigger: HTMLElement) {
     ultimoTriggerRef.current = trigger;
     idSalidaEnEdicionRef.current = salida.id;
@@ -410,8 +543,22 @@ export function SeccionBlock({
     setEditEtiqueta(salida.etiqueta ?? "");
     setEditCargaValor(salida.carga_valor);
     setEditCargaUnidad(salida.carga_unidad);
-    setEditFormato(salida.formato);
+    const formatoValido =
+      salida.tipo_proteccion === "seccional_diferencial" && (salida.formato === "unipolar" || salida.formato === "tripolar")
+        ? salida.formato === "unipolar"
+          ? "bipolar"
+          : "tetrapolar"
+        : salida.formato;
+    setEditFormato(formatoValido);
     setEditTipoProteccion(salida.tipo_proteccion);
+    setEditSensibilidadMa(salida.sensibilidad_ma ?? 30);
+    setEditAdmiteAccesorios(salida.admite_accesorios ?? false);
+    
+    // Set local states for component
+    setEditComponenteId(salida.componente_id ?? null);
+    setEditComponenteCodigo(salida.componente_codigo ?? null);
+    setEditComponenteDescripcion(salida.componente_descripcion ?? salida.componente_codigo_comercial ?? null);
+    setEditAsignadoManualmente(salida.asignado_manualmente);
     setError(null);
   }
 
@@ -419,21 +566,19 @@ export function SeccionBlock({
     idSalidaEnEdicionRef.current = null;
     setSalidaEnEdicion(null);
     setPickerAbierto(false);
+    
+    // Reset local component states
+    setEditComponenteId(null);
+    setEditComponenteCodigo(null);
+    setEditComponenteDescripcion(null);
+    setEditAsignadoManualmente(false);
+    
     setError(null);
     ultimoTriggerRef.current?.focus();
   }
 
   function solicitarCierreEdicion() {
-    setConfirmandoDescarteEdicion(true);
-  }
-
-  function confirmarDescarteEdicion() {
-    setConfirmandoDescarteEdicion(false);
     cerrarEdicion();
-  }
-
-  function cancelarDescarteEdicion() {
-    setConfirmandoDescarteEdicion(false);
   }
 
   const { onMouseDown: onMouseDownModal, onClick: onClickModal } = useCerrarAlClickFuera(solicitarCierreEdicion);
@@ -454,13 +599,22 @@ export function SeccionBlock({
     const idEditada = salidaEnEdicion.id;
     setError(null);
     try {
-      const actualizada = await actualizarSalida(idEditada, {
+      const payload: any = {
         etiqueta: editEtiqueta.trim() || undefined,
         carga_valor: editCargaValor,
         carga_unidad: editCargaUnidad,
         formato: editFormato,
         tipo_proteccion: editTipoProteccion,
-      });
+        sensibilidad_ma: editTipoProteccion === "seccional_diferencial" ? editSensibilidadMa : undefined,
+        admite_accesorios: editTipoProteccion === "seccional_diferencial" ? editAdmiteAccesorios : undefined,
+      };
+
+      if (editAsignadoManualmente) {
+        payload.componente_id = editComponenteId;
+        payload.asignado_manualmente = true;
+      }
+
+      const actualizada = await actualizarSalida(idEditada, payload);
       if (idSalidaEnEdicionRef.current !== idEditada) return;
       onSalidaActualizada(actualizada);
       cerrarEdicion();
@@ -470,19 +624,12 @@ export function SeccionBlock({
     }
   }
 
-  async function handleReasignarComponente(componente: ComponenteBusqueda) {
-    if (!salidaEnEdicion) return;
-    const idEditada = salidaEnEdicion.id;
-    try {
-      const actualizada = await actualizarSalida(idEditada, { componente_id: componente.id });
-      if (idSalidaEnEdicionRef.current !== idEditada) return;
-      onSalidaActualizada(actualizada);
-      setSalidaEnEdicion(actualizada);
-      setPickerAbierto(false);
-    } catch (err) {
-      if (idSalidaEnEdicionRef.current !== idEditada) return;
-      setError(err instanceof Error ? err.message : "No se pudo reasignar el componente");
-    }
+  function handleReasignarComponente(componente: ComponenteBusqueda) {
+    setEditComponenteId(componente.id);
+    setEditComponenteCodigo(componente.codigo);
+    setEditComponenteDescripcion(componente.descripcion ?? componente.codigo_comercial ?? null);
+    setEditAsignadoManualmente(true);
+    setPickerAbierto(false);
   }
 
   async function handleConfirmarBorrado() {
@@ -506,62 +653,200 @@ export function SeccionBlock({
     ultimoTriggerRef.current?.focus();
   }
 
+  const [modoVista, setModoVista] = useState<"tabla" | "tarjetas">("tabla");
+
   return (
     <div className="mt-4 border border-surface-stroke bg-white rounded-lg shadow-sm overflow-hidden">
-      <div className="border-b border-surface-stroke bg-industrial-gray px-4 py-2.5 flex items-center justify-between min-h-[42px]">
-        <h3 className="font-mono text-xs font-bold uppercase tracking-wider text-gray-700 flex items-center gap-2">
+      <div className="border-b border-surface-stroke bg-industrial-gray px-4 py-2 flex items-center justify-between min-h-[42px] gap-2">
+        <h3 className="font-mono text-[11px] font-bold uppercase tracking-wider text-slate-700 flex items-center gap-2">
           <QueueListIcon className="w-4 h-4 text-abb-red" />
-          {seccion.nombre}
-          <span className="text-xs text-gray-500 font-normal lowercase font-sans">({salidas.length} salidas)</span>
+          <span className="sr-only">{seccion.nombre} - </span>
+          <span>Circuitos Registrados</span>
+          <span className="text-[10px] text-slate-500 font-normal lowercase font-sans">({salidas.length} salidas)</span>
         </h3>
-      </div>
 
-      <div className="overflow-x-auto">
-        <table className="w-full text-left border-collapse">
-          <thead>
-            <tr className="border-b border-surface-stroke text-xs uppercase tracking-widest text-secondary bg-gray-50">
-              <th scope="col" className="p-2 w-8 text-center">#</th>
-              <th scope="col" className="p-3">Circuito</th>
-              <th scope="col" className="p-3">Carga</th>
-              <th scope="col" className="p-3">Formato / Protec</th>
-              <th scope="col" className="p-3">Componente ABB</th>
-              <th scope="col" className="p-3 text-right">Acciones</th>
-            </tr>
-          </thead>
-          <tbody>
-            {salidas.length === 0 ? (
-              <tr>
-                <td colSpan={6} className="p-6 text-center text-gray-500 text-xs italic">
-                  Sin salidas en esta sección. Utilizá el botón inferior para agregar la primera.
-                </td>
-              </tr>
-            ) : (
-              salidas.map((salida, idx) => (
-                <FilaSalida
-                  key={salida.id}
-                  salida={salida}
-                  index={idx}
-                  seccionOrden={seccion.orden != null ? seccion.orden : 0}
-                  isHovered={hoveredSalidaId === salida.id}
-                  hoveredSalidaId={hoveredSalidaId}
-                  onAbrirEdicion={abrirEdicion}
-                  onAbrirLink={abrirLink}
-                  onDuplicar={handleDuplicar}
-                  onConfirmarBorrado={(sal, trigger) => {
-                    ultimoTriggerRef.current = trigger;
-                    setSalidaABorrar(sal);
-                  }}
-                  onDragStart={handleDragStart}
-                  onDragOver={handleDragOver}
-                  onDrop={handleDrop}
-                  onMouseEnter={() => onSalidaHover?.(salida.id)}
-                  onMouseLeave={() => onSalidaHover?.(null)}
-                />
-              ))
-            )}
-          </tbody>
-        </table>
+        <div className="flex items-center gap-4">
+          {/* Selector de Modo de Vista: Tabla vs Tarjetas */}
+          <div className="flex items-center gap-1 border border-gray-300 rounded p-0.5 bg-white shadow-sm">
+          <button
+            type="button"
+            onClick={() => setModoVista("tabla")}
+            className={`flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded transition ${
+              modoVista === "tabla" ? "bg-abb-red text-white shadow-sm" : "text-gray-600 hover:text-gray-900"
+            }`}
+            title="Vista en tabla de alta densidad (Ingeniería)"
+          >
+            <QueueListIcon className="w-3.5 h-3.5" />
+            Tabla
+          </button>
+          <button
+            type="button"
+            onClick={() => setModoVista("tarjetas")}
+            className={`flex items-center gap-1 text-xs font-semibold px-2.5 py-1 rounded transition ${
+              modoVista === "tarjetas" ? "bg-abb-red text-white shadow-sm" : "text-gray-600 hover:text-gray-900"
+            }`}
+            title="Vista en tarjetas ejecutivas"
+          >
+            <Squares2X2Icon className="w-3.5 h-3.5" />
+            Tarjetas
+          </button>
+        </div>
       </div>
+    </div>
+
+      {modoVista === "tabla" ? (
+        <div className="overflow-x-auto border border-slate-300 rounded-xl shadow-2xs bg-white">
+          <table className="w-full text-left border-collapse text-xs">
+            <thead>
+              <tr className="bg-[#2C3645] text-slate-100 font-mono text-[11px] uppercase tracking-wider border-b border-slate-700">
+                <th scope="col" className="py-2.5 px-2 w-8 text-center font-bold">#</th>
+                <th scope="col" className="py-2.5 px-3 font-bold">Circuito</th>
+                <th scope="col" className="py-2.5 px-3 font-bold">Carga</th>
+                <th scope="col" className="py-2.5 px-3 font-bold">Formato / Protec</th>
+                <th scope="col" className="py-2.5 px-3 font-bold">Componente ABB</th>
+                <th scope="col" className="py-2.5 px-3 text-right font-bold">Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              {salidas.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="p-6 text-center text-gray-500 text-xs italic">
+                    Sin salidas en esta sección. Utilizá el botón inferior para agregar la primera.
+                  </td>
+                </tr>
+              ) : (
+                salidas.map((salida, idx) => (
+                  <FilaSalida
+                    key={salida.id}
+                    salida={salida}
+                    index={idx}
+                    seccionOrden={seccion.orden != null ? seccion.orden : 0}
+                    isHovered={hoveredSalidaId === salida.id}
+                    hoveredSalidaId={hoveredSalidaId}
+                    elementosCandidatos={elementosCandidatos}
+                    onAbrirEdicion={abrirEdicion}
+                    onAbrirLink={abrirLink}
+                    onDuplicar={handleDuplicar}
+                    onConfirmarBorrado={(sal, trigger) => {
+                      ultimoTriggerRef.current = trigger;
+                      setSalidaABorrar(sal);
+                    }}
+                    onDragStart={handleDragStart}
+                    onDragOver={handleDragOver}
+                    onDrop={handleDrop}
+                    onMouseEnter={() => onSalidaHover?.(salida.id)}
+                    onMouseLeave={() => onSalidaHover?.(null)}
+                  />
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      ) : (
+        /* Modo Vista Tarjetas */
+        <div className="p-4 bg-gray-50/50">
+          {salidas.length === 0 ? (
+            <p className="p-6 text-center text-gray-500 text-xs italic">
+              Sin salidas en esta sección. Utilizá el botón inferior para agregar la primera.
+            </p>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {salidas.map((salida, idx) => {
+                const sNum = (seccion.orden != null ? seccion.orden : 0) + 1;
+                const codigoAuto = `F${sNum}.${idx + 1}`;
+                const isHovered = hoveredSalidaId === salida.id;
+                return (
+                  <div
+                    key={salida.id}
+                    onMouseEnter={() => onSalidaHover?.(salida.id)}
+                    onMouseLeave={() => onSalidaHover?.(null)}
+                    className={`p-4 rounded-xl border bg-white shadow-sm transition flex flex-col justify-between space-y-3 ${
+                      isHovered ? "border-abb-red ring-2 ring-abb-red/20 shadow-md" : "border-surface-stroke hover:border-gray-400"
+                    }`}
+                  >
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="font-mono text-xs font-bold text-abb-red bg-red-50 border border-red-200 px-2 py-0.5 rounded">
+                          {codigoAuto}
+                        </span>
+                        {salida.etiqueta && (
+                          <span className="font-mono text-xs font-semibold text-gray-700 bg-gray-100 px-2 py-0.5 rounded border border-gray-200">
+                            {salida.etiqueta}
+                          </span>
+                        )}
+                      </div>
+
+                      {salida.alimentado_por_codigo && (
+                        <div className="text-[11px] font-mono text-abb-red flex items-center gap-1 font-semibold">
+                          <LinkIcon className="w-3 h-3" /> Alimentado por: {salida.alimentado_por_codigo}
+                        </div>
+                      )}
+
+                      <div className="text-sm font-bold text-gray-900 font-mono">
+                        Carga: {salida.carga_unidad === "A" ? `${formatearCorriente(salida.carga_valor)} A` : `${salida.carga_valor} ${salida.carga_unidad}`}
+                      </div>
+
+                      <div className="text-xs text-gray-600 flex items-center gap-1">
+                        <span className="font-bold bg-gray-100 px-1.5 py-0.5 rounded border text-gray-800">{FORMATO_LABEL[salida.formato]}</span>
+                        <span>•</span>
+                        <span>{PROTECCION_LABEL[salida.tipo_proteccion]}</span>
+                      </div>
+
+                      <div className="text-xs border-t border-gray-100 pt-2 font-mono">
+                        {salida.componente_id ? (
+                          <span className="text-gray-900 font-semibold truncate block" title={salida.componente_descripcion ?? salida.componente_codigo ?? undefined}>
+                            {salida.componente_codigo ?? salida.componente_id}
+                          </span>
+                        ) : (
+                          <span className="text-amber-600 italic">Sin componente ABB asignado</span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-end gap-1 border-t border-gray-100 pt-2">
+                      <button
+                        type="button"
+                        onClick={(e) => abrirLink(salida, e.currentTarget)}
+                        className="p-1.5 text-gray-500 hover:text-abb-red hover:bg-gray-100 rounded"
+                        title="Linkear alimentación"
+                      >
+                        <LinkIcon className="w-4 h-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(e) => abrirEdicion(salida, e.currentTarget)}
+                        className="p-1.5 text-gray-500 hover:text-abb-red hover:bg-gray-100 rounded"
+                        title="Editar salida"
+                      >
+                        <PencilIcon className="w-4 h-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleDuplicar(salida)}
+                        className="p-1.5 text-gray-500 hover:text-abb-red hover:bg-gray-100 rounded"
+                        title="Duplicar salida"
+                      >
+                        <DocumentDuplicateIcon className="w-4 h-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          ultimoTriggerRef.current = e.currentTarget;
+                          setSalidaABorrar(salida);
+                        }}
+                        className="p-1.5 text-gray-500 hover:text-abb-red hover:bg-gray-100 rounded"
+                        title="Borrar salida"
+                      >
+                        <TrashIcon className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
 
       {mostrarFormulario ? (
         <form onSubmit={handleSubmit} className="flex flex-wrap items-end gap-3.5 p-4 border-t border-surface-stroke bg-gray-50/90 shadow-inner rounded-b-lg">
@@ -621,9 +906,9 @@ export function SeccionBlock({
               onChange={(e) => setFormato(e.target.value as FormatoPolos)}
               className="min-w-[150px] text-sm border border-gray-300 rounded-md px-3 pr-8 py-2 bg-white focus:border-abb-red focus:outline-none focus:ring-1 focus:ring-abb-red"
             >
-              <option value="unipolar">Unipolar (1P)</option>
+              {tipoProteccion !== "seccional_diferencial" && <option value="unipolar">Unipolar (1P)</option>}
               <option value="bipolar">Bipolar (2P)</option>
-              <option value="tripolar">Tripolar (3P)</option>
+              {tipoProteccion !== "seccional_diferencial" && <option value="tripolar">Tripolar (3P)</option>}
               <option value="tetrapolar">Tetrapolar (4P)</option>
             </select>
           </div>
@@ -635,13 +920,56 @@ export function SeccionBlock({
             <select
               id={`proteccion-${seccion.id}`}
               value={tipoProteccion}
-              onChange={(e) => setTipoProteccion(e.target.value as TipoProteccion)}
+              onChange={(e) => {
+                const nuevoTipo = e.target.value as TipoProteccion;
+                setTipoProteccion(nuevoTipo);
+                if (nuevoTipo === "seccional_diferencial" && (formato === "unipolar" || formato === "tripolar")) {
+                  setFormato(formato === "unipolar" ? "bipolar" : "tetrapolar");
+                }
+              }}
               className="min-w-[165px] text-sm border border-gray-300 rounded-md px-3 pr-8 py-2 bg-white focus:border-abb-red focus:outline-none focus:ring-1 focus:ring-abb-red"
             >
               <option value="seccional_termomagnetico">Termomagnético</option>
               <option value="seccional_diferencial">Diferencial</option>
             </select>
           </div>
+
+          {tipoProteccion === "seccional_diferencial" && (
+            <>
+              <div>
+                <label htmlFor={`sensibilidad-${seccion.id}`} className="block text-xs font-semibold text-gray-700 mb-1">
+                  Sensibilidad
+                </label>
+                <select
+                  id={`sensibilidad-${seccion.id}`}
+                  value={sensibilidadMa}
+                  onChange={(e) => setSensibilidadMa(Number(e.target.value))}
+                  className="min-w-[130px] text-sm border border-gray-300 rounded-md px-3 pr-8 py-2 bg-white focus:border-abb-red focus:outline-none focus:ring-1 focus:ring-abb-red"
+                >
+                  <option value={30}>30 mA</option>
+                  <option value={10}>10 mA</option>
+                  <option value={100}>100 mA</option>
+                  <option value={300}>300 mA</option>
+                  <option value={500}>500 mA</option>
+                </select>
+              </div>
+
+              <div>
+                <label htmlFor={`accesorios-${seccion.id}`} className="block text-xs font-semibold text-gray-700 mb-1">
+                  Accesorios
+                </label>
+                <select
+                  id={`accesorios-${seccion.id}`}
+                  value={admiteAccesorios ? "true" : "false"}
+                  onChange={(e) => setAdmiteAccesorios(e.target.value === "true")}
+                  className="min-w-[150px] text-sm border border-gray-300 rounded-md px-3 pr-8 py-2 bg-white focus:border-abb-red focus:outline-none focus:ring-1 focus:ring-abb-red"
+                >
+                  <option value="false">Sin accesorios</option>
+                  <option value="true">Con accesorios</option>
+                </select>
+              </div>
+            </>
+          )}
 
           {error && !salidaEnEdicion && !salidaABorrar && (
             <p role="alert" className="text-xs text-red-600 w-full">
@@ -680,7 +1008,7 @@ export function SeccionBlock({
       )}
 
       {/* Modal Editar Salida */}
-      {salidaEnEdicion && !pickerAbierto && !confirmandoDescarteEdicion && (
+      {salidaEnEdicion && !pickerAbierto && (
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
           onMouseDown={onMouseDownModal}
@@ -716,7 +1044,10 @@ export function SeccionBlock({
                   id="edit-carga-valor"
                   ref={editCargaInputRef}
                   value={editCargaValor}
-                  onChange={(e) => setEditCargaValor(e.target.value)}
+                  onChange={(e) => {
+                    setEditCargaValor(e.target.value);
+                    handleEditSpecChange();
+                  }}
                   className="w-full text-sm border border-gray-300 rounded px-3 py-1.5 focus:border-abb-red focus:outline-none"
                 />
               </div>
@@ -726,7 +1057,10 @@ export function SeccionBlock({
                 <select
                   id="edit-carga-unidad"
                   value={editCargaUnidad}
-                  onChange={(e) => setEditCargaUnidad(e.target.value)}
+                  onChange={(e) => {
+                    setEditCargaUnidad(e.target.value);
+                    handleEditSpecChange();
+                  }}
                   className="w-full text-sm border border-gray-300 rounded px-3 py-1.5 bg-white focus:border-abb-red focus:outline-none"
                 >
                   <option value="A">A</option>
@@ -745,12 +1079,15 @@ export function SeccionBlock({
                 <select
                   id="edit-formato"
                   value={editFormato}
-                  onChange={(e) => setEditFormato(e.target.value as FormatoPolos)}
+                  onChange={(e) => {
+                    setEditFormato(e.target.value as FormatoPolos);
+                    handleEditSpecChange();
+                  }}
                   className="w-full text-sm border border-gray-300 rounded px-3 py-1.5 bg-white focus:border-abb-red focus:outline-none"
                 >
-                  <option value="unipolar">Unipolar (1P)</option>
+                  {editTipoProteccion !== "seccional_diferencial" && <option value="unipolar">Unipolar (1P)</option>}
                   <option value="bipolar">Bipolar (2P)</option>
-                  <option value="tripolar">Tripolar (3P)</option>
+                  {editTipoProteccion !== "seccional_diferencial" && <option value="tripolar">Tripolar (3P)</option>}
                   <option value="tetrapolar">Tetrapolar (4P)</option>
                 </select>
               </div>
@@ -760,7 +1097,14 @@ export function SeccionBlock({
                 <select
                   id="edit-proteccion"
                   value={editTipoProteccion}
-                  onChange={(e) => setEditTipoProteccion(e.target.value as TipoProteccion)}
+                  onChange={(e) => {
+                    const nuevoTipo = e.target.value as TipoProteccion;
+                    setEditTipoProteccion(nuevoTipo);
+                    if (nuevoTipo === "seccional_diferencial" && (editFormato === "unipolar" || editFormato === "tripolar")) {
+                      setEditFormato(editFormato === "unipolar" ? "bipolar" : "tetrapolar");
+                    }
+                    handleEditSpecChange();
+                  }}
                   className="w-full text-sm border border-gray-300 rounded px-3 py-1.5 bg-white focus:border-abb-red focus:outline-none"
                 >
                   <option value="seccional_termomagnetico">Termomagnético</option>
@@ -769,13 +1113,77 @@ export function SeccionBlock({
               </div>
             </div>
 
+            {editTipoProteccion === "seccional_diferencial" && (
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label htmlFor="edit-sensibilidad" className="text-xs font-semibold text-gray-700">Sensibilidad</label>
+                  <select
+                    id="edit-sensibilidad"
+                    value={editSensibilidadMa}
+                    onChange={(e) => {
+                      setEditSensibilidadMa(Number(e.target.value));
+                      handleEditSpecChange();
+                    }}
+                    className="w-full text-sm border border-gray-300 rounded px-3 py-1.5 bg-white focus:border-abb-red focus:outline-none"
+                  >
+                    <option value={30}>30 mA</option>
+                    <option value={10}>10 mA</option>
+                    <option value={100}>100 mA</option>
+                    <option value={300}>300 mA</option>
+                    <option value={500}>500 mA</option>
+                  </select>
+                </div>
+
+                <div className="space-y-1">
+                  <label htmlFor="edit-accesorios" className="text-xs font-semibold text-gray-700">Accesorios</label>
+                  <select
+                    id="edit-accesorios"
+                    value={editAdmiteAccesorios ? "true" : "false"}
+                    onChange={(e) => {
+                      setEditAdmiteAccesorios(e.target.value === "true");
+                      handleEditSpecChange();
+                    }}
+                    className="w-full text-sm border border-gray-300 rounded px-3 py-1.5 bg-white focus:border-abb-red focus:outline-none"
+                  >
+                    <option value="false">Sin accesorios</option>
+                    <option value="true">Con accesorios</option>
+                  </select>
+                </div>
+              </div>
+            )}
+
+            {simulacionMotivo && (
+              <div className="bg-amber-50 border border-amber-200 text-amber-800 p-2.5 rounded text-xs flex gap-2 items-start" role="alert">
+                <ExclamationTriangleIcon className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                <div>
+                  <span className="font-semibold block mb-0.5">Parámetros incompatibles:</span>
+                  <span className="text-[11px] leading-relaxed block text-amber-700">{simulacionMotivo}</span>
+                </div>
+              </div>
+            )}
+
             <div className="border-t border-b py-2 text-xs text-gray-600 flex items-center justify-between">
               <span>Componente actual:</span>
-              <span className="font-mono font-semibold text-gray-900">
-                {salidaEnEdicion.componente_id
-                  ? (salidaEnEdicion.componente_codigo ?? salidaEnEdicion.componente_id)
-                  : "Sin match"}
-              </span>
+              <div className="text-right min-w-0">
+                {simulacionCargando ? (
+                  <span className="text-[10px] text-gray-400 italic animate-pulse">
+                    Verificando...
+                  </span>
+                ) : (
+                  <>
+                    <span className={editComponenteId ? "font-mono font-semibold block text-sm text-gray-900" : "font-mono font-normal block text-xs text-amber-600 italic"}>
+                      {editComponenteId
+                        ? (editComponenteCodigo ?? editComponenteId)
+                        : "Se recalculará automáticamente"}
+                    </span>
+                    {editComponenteId && editComponenteDescripcion && (
+                      <span className="text-gray-500 text-[10px] truncate max-w-[240px] block" title={editComponenteDescripcion}>
+                        {editComponenteDescripcion}
+                      </span>
+                    )}
+                  </>
+                )}
+              </div>
             </div>
 
             <button
@@ -786,20 +1194,20 @@ export function SeccionBlock({
               Cambiar componente en catálogo
             </button>
 
-            {error && <p role="alert" className="text-xs text-red-600 bg-red-50 p-2 rounded">{error}</p>}
+            {error && <p role="alert" className="text-xs text-red-600 font-semibold">{error}</p>}
 
-            <div className="mt-2 flex justify-end gap-2 border-t pt-3">
+            <div className="flex gap-2 justify-end pt-2 border-t mt-1">
               <button
                 type="button"
                 onClick={solicitarCierreEdicion}
-                className="px-4 py-2 text-xs font-medium text-gray-700 border border-gray-300 rounded hover:bg-gray-50"
+                className="border border-gray-300 text-gray-700 hover:bg-gray-100 px-4 py-1.5 text-xs font-medium rounded transition"
               >
                 Cancelar
               </button>
               <button
                 type="submit"
-                disabled={editCargaInvalidaEntero}
-                className="bg-abb-red hover:bg-red-700 px-5 py-2 text-xs font-medium text-white rounded shadow disabled:opacity-50"
+                disabled={editCargaInvalidaEntero || !editCargaValor.trim()}
+                className="bg-abb-red hover:bg-red-700 text-white font-medium px-4 py-1.5 text-xs uppercase tracking-wider rounded shadow disabled:opacity-50 transition"
               >
                 Guardar
               </button>
@@ -808,21 +1216,14 @@ export function SeccionBlock({
         </div>
       )}
 
-      {salidaEnEdicion && confirmandoDescarteEdicion && (
-        <ConfirmDialog
-          titulo="¿Descartar cambios?"
-          mensaje="Vas a perder los cambios que hiciste en esta salida."
-          textoConfirmar="Descartar"
-          onConfirm={confirmarDescarteEdicion}
-          onCancel={cancelarDescarteEdicion}
-        />
-      )}
-
       {salidaEnEdicion && pickerAbierto && (
         <ComponentePicker
           categorias={CATEGORIAS_INTERRUPTORES}
           contextKey="salida-componente"
           titulo="Cambiar componente"
+          tipoProteccion={editTipoProteccion}
+          sensibilidadMa={editTipoProteccion === "seccional_diferencial" ? editSensibilidadMa : undefined}
+          admiteAccesorios={editTipoProteccion === "seccional_diferencial" ? editAdmiteAccesorios : undefined}
           onSelect={handleReasignarComponente}
           onCancel={() => setPickerAbierto(false)}
         />
@@ -892,12 +1293,38 @@ export function SeccionBlock({
                         className="accent-abb-red"
                       />
                       <span className="font-mono font-bold text-abb-red">{candidato.codigo}</span>
-                      <span>{candidato.etiqueta ? `(${candidato.etiqueta})` : candidato.tipo_proteccion}</span>
+                      <span>{candidato.etiqueta ? `(${candidato.etiqueta})` : (PROTECCION_LABEL[candidato.tipo_proteccion] ?? candidato.tipo_proteccion)}</span>
                     </div>
                     <span className="text-[11px] text-gray-500 font-mono">{candidato.carga}</span>
                   </label>
                 ))}
               </div>
+
+              {(() => {
+                if (!padreSeleccionadoId || !salidaEnLink) return null;
+                const parent = candidatosElegibles.find((c) => c.id === padreSeleccionadoId);
+                if (!parent) return null;
+                const tieneMismatch = existeIncompatibilidadLink(
+                  salidaEnLink.formato,
+                  salidaEnLink.tipo_proteccion,
+                  parent.formato,
+                  parent.tipo_proteccion
+                );
+                if (tieneMismatch) {
+                  return (
+                    <div className="bg-amber-50 border border-amber-200 text-amber-800 p-2.5 rounded text-xs flex gap-2 items-start my-3" role="alert">
+                      <ExclamationTriangleIcon className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                      <div>
+                        <span className="font-semibold block mb-0.5">Advertencia de Enlace:</span>
+                        <span className="text-[11px] leading-relaxed block text-amber-700">
+                          Estás vinculando un {salidaEnLink.tipo_proteccion === "seccional_diferencial" ? "Diferencial" : "Termomagnético"} {FORMATO_LABEL[salidaEnLink.formato]} con un {parent.tipo_proteccion === "seccional_diferencial" ? "Diferencial" : "Termomagnético"} {FORMATO_LABEL[parent.formato]}.
+                        </span>
+                      </div>
+                    </div>
+                  );
+                }
+                return null;
+              })()}
 
               <div className="flex justify-end gap-2 pt-3 border-t border-gray-100">
                 <button

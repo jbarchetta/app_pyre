@@ -356,47 +356,52 @@ export function ProyectosPage() {
                 ))}
               </div>
             ) : (
-              <div className="bg-white border border-surface-stroke rounded-lg shadow-sm overflow-x-auto">
-                <table className="w-full text-left text-sm">
-                  <thead className="bg-gray-50 border-b border-gray-200 text-xs font-semibold text-gray-600 uppercase">
+              <div className="bg-white border border-slate-300 rounded-xl shadow-2xs overflow-x-auto">
+                <table className="w-full text-left border-collapse text-xs">
+                  <thead className="bg-[#2C3645] text-slate-100 font-mono text-[11px] uppercase tracking-wider border-b border-slate-700">
                     <tr>
-                      <th className="p-3">Proyecto</th>
-                      <th className="p-3">Cliente</th>
-                      <th className="p-3">Código Obra</th>
-                      <th className="p-3">Diseñador</th>
-                      <th className="p-3">Estado</th>
-                      <th className="p-3 text-right">Acciones</th>
+                      <th className="py-2.5 px-3 font-bold">Proyecto</th>
+                      <th className="py-2.5 px-3 font-bold">Cliente</th>
+                      <th className="py-2.5 px-3 font-bold">Código Obra</th>
+                      <th className="py-2.5 px-3 font-bold">Diseñador</th>
+                      <th className="py-2.5 px-3 font-bold">Estado</th>
+                      <th className="py-2.5 px-3 text-right font-bold">Acciones</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-gray-100">
-                    {lista.map((proyecto) => (
-                      <tr key={proyecto.id} className="hover:bg-gray-50 transition">
-                        <td className="p-3 font-medium text-gray-900">
+                  <tbody className="divide-y divide-slate-200 bg-white">
+                    {lista.map((proyecto, idx) => (
+                      <tr
+                        key={proyecto.id}
+                        className={`transition-colors border-l-4 border-l-abb-red ${
+                          idx % 2 === 0 ? "bg-white" : "bg-slate-50/80"
+                        } hover:bg-red-50/40`}
+                      >
+                        <td className="py-2.5 px-3 font-bold text-slate-900">
                           <Link to={`/proyectos/${proyecto.id}`} className="hover:text-abb-red">
                             {proyecto.nombre}
                           </Link>
                         </td>
-                        <td className="p-3 text-gray-600">{proyecto.cliente}</td>
-                        <td className="p-3 text-gray-600 font-mono text-xs">{proyecto.codigo_obra ?? "-"}</td>
-                        <td className="p-3 text-gray-600">{proyecto.analista_nombre ?? "-"}</td>
-                        <td className="p-3">
+                        <td className="py-2.5 px-3 text-slate-700">{proyecto.cliente}</td>
+                        <td className="py-2.5 px-3 text-slate-600 font-mono text-xs">{proyecto.codigo_obra ?? "-"}</td>
+                        <td className="py-2.5 px-3 text-slate-600">{proyecto.analista_nombre ?? "-"}</td>
+                        <td className="py-2.5 px-3">
                           <span
-                            className={`text-xs px-2.5 py-0.5 rounded-full font-medium ${
+                            className={`text-[11px] font-mono px-2 py-0.5 rounded-full font-bold border ${
                               proyecto.estado === "finalizado"
-                                ? "bg-green-100 text-green-800"
+                                ? "bg-emerald-50 text-emerald-700 border-emerald-200"
                                 : proyecto.estado === "en_curso"
-                                ? "bg-blue-100 text-blue-800"
-                                : "bg-gray-100 text-gray-800"
+                                ? "bg-blue-50 text-blue-700 border-blue-200"
+                                : "bg-slate-100 text-slate-700 border-slate-200"
                             }`}
                           >
                             {proyecto.estado === "en_curso" ? "En curso" : proyecto.estado === "finalizado" ? "Finalizado" : proyecto.estado}
                           </span>
                         </td>
-                        <td className="p-3 text-right space-x-2">
+                        <td className="py-2.5 px-3 text-right space-x-2">
                           <button
                             type="button"
                             onClick={(e) => abrirEditar(proyecto, e.currentTarget)}
-                            className="text-gray-500 hover:text-abb-red p-1"
+                            className="text-slate-400 hover:text-abb-red p-1 rounded hover:bg-slate-100"
                             title="Editar"
                           >
                             <PencilIcon className="w-4 h-4 inline" />
@@ -404,7 +409,7 @@ export function ProyectosPage() {
                           <button
                             type="button"
                             onClick={(e) => handlePedirBorrado(proyecto, e.currentTarget)}
-                            className="text-gray-500 hover:text-abb-red p-1"
+                            className="text-slate-400 hover:text-abb-red p-1 rounded hover:bg-slate-100"
                             title="Borrar"
                           >
                             <TrashIcon className="w-4 h-4 inline" />
