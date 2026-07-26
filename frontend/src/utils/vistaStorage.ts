@@ -4,12 +4,15 @@ export type ModoVisual = "bloques" | "unifilar" | "topografico";
 
 export interface ModoVisualState {
   zoom: number;
+  panX?: number;
+  panY?: number;
   capas: Capas;
   herramientaMedir?: boolean;
   theme?: "dark" | "light";
   showGrid?: boolean;
   snapGrid?: boolean;
   panelCapasAbierto?: boolean;
+  isSaved?: boolean;
 }
 
 export const DEFAULTS_POR_MODO: Record<ModoVisual, ModoVisualState> = {
@@ -76,7 +79,7 @@ export function obtenerEstadoModo(
 ): ModoVisualState {
   const tableroModos = todosEstados[tableroId];
   if (tableroModos && tableroModos[modo]) {
-    return { ...DEFAULTS_POR_MODO[modo], ...tableroModos[modo] };
+    return { ...DEFAULTS_POR_MODO[modo], ...tableroModos[modo], isSaved: true };
   }
-  return { ...DEFAULTS_POR_MODO[modo] };
+  return { ...DEFAULTS_POR_MODO[modo], isSaved: false };
 }

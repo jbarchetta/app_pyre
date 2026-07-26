@@ -175,7 +175,11 @@ export function CadViewerCanvas({
   }, [canvasHoveredId, secciones, interruptorPrincipal]);
 
   // Transformación de Viewport (Zoom y Pan)
-  const [transform, setTransform] = useState<ViewportTransform>({ zoom: zoomEfectivo, panX: 50, panY: 50 });
+  const [transform, setTransform] = useState<ViewportTransform>({
+    zoom: zoomEfectivo,
+    panX: estadoModoActual?.panX ?? 50,
+    panY: estadoModoActual?.panY ?? 50,
+  });
 
   // Sincronizar zoom prop desde el padre usando zoomAtPoint al centro del contenedor
   useEffect(() => {
@@ -222,7 +226,7 @@ export function CadViewerCanvas({
         const targetZoom = limitar(prevTransform.zoom * zoomFactor);
         const nextTransform = zoomAtPoint(pixel, prevTransform, targetZoom);
         if (onZoomChangeRef.current) onZoomChangeRef.current(nextTransform.zoom);
-        updateModoState({ zoom: nextTransform.zoom });
+        updateModoState({ zoom: nextTransform.zoom, panX: nextTransform.panX, panY: nextTransform.panY });
         return nextTransform;
       });
     };
@@ -242,12 +246,20 @@ export function CadViewerCanvas({
     if (onZoomChangeRef.current) {
       onZoomChangeRef.current(nextTransform.zoom);
     }
-    updateModoState({ zoom: nextTransform.zoom });
+    updateModoState({ zoom: nextTransform.zoom, panX: nextTransform.panX, panY: nextTransform.panY });
   }, [cadDoc.bounds, updateModoState]);
 
-  // Fit to screen inicial EXCLUSIVAMENTE al cambiar de modo visual topográfico / unifilar
+  // Restaurar estado guardado o hacer fit to screen inicial la primera vez que se abre este modo
   useEffect(() => {
-    handleFitToScreen();
+    if (!estadoModoActual?.isSaved) {
+      handleFitToScreen();
+    } else {
+      setTransform({
+        zoom: estadoModoActual.zoom,
+        panX: estadoModoActual.panX ?? 50,
+        panY: estadoModoActual.panY ?? 50,
+      });
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [modoVisual]);
 
@@ -297,7 +309,7 @@ export function CadViewerCanvas({
     if (onZoomChange) {
       onZoomChange(nextTransform.zoom);
     }
-    updateModoState({ zoom: nextTransform.zoom });
+    updateModoState({ zoom: nextTransform.zoom, panX: nextTransform.panX, panY: nextTransform.panY });
   };
 
   const resetZoom = () => {
@@ -373,6 +385,9 @@ export function CadViewerCanvas({
   };
 
   const handleMouseUp = () => {
+    if (isDragging) {
+      updateModoState({ zoom: transform.zoom, panX: transform.panX, panY: transform.panY });
+    }
     setIsDragging(false);
     dragStartRef.current = null;
   };
