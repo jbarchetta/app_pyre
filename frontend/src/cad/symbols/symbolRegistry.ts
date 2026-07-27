@@ -49,6 +49,35 @@ class SymbolRegistry {
 
 export const symbolRegistry = new SymbolRegistry();
 
+// Bloque base síncrono para abb_topo_temx4 (4 Polos - 70mm x 88mm)
+symbolRegistry.registerSymbol({
+  id: "abb_topo_temx4",
+  name: "Termomagnética Tetrapolar 4P (DXF Base)",
+  widthMm: 70,
+  heightMm: 88,
+  primitives: [
+    { type: "line", start: { x: 0, y: 0 }, end: { x: 70, y: 0 } },
+    { type: "line", start: { x: 70, y: 0 }, end: { x: 70, y: 88 } },
+    { type: "line", start: { x: 70, y: 88 }, end: { x: 0, y: 88 } },
+    { type: "line", start: { x: 0, y: 88 }, end: { x: 0, y: 0 } },
+    { type: "line", start: { x: 17.5, y: 0 }, end: { x: 17.5, y: 88 } },
+    { type: "line", start: { x: 35.0, y: 0 }, end: { x: 35.0, y: 88 } },
+    { type: "line", start: { x: 52.5, y: 0 }, end: { x: 52.5, y: 88 } },
+    { type: "line", start: { x: 5, y: 34 }, end: { x: 65, y: 34 } },
+    { type: "line", start: { x: 5, y: 54 }, end: { x: 65, y: 54 } },
+    { type: "line", start: { x: 5, y: 34 }, end: { x: 5, y: 54 } },
+    { type: "line", start: { x: 65, y: 34 }, end: { x: 65, y: 54 } },
+    { type: "circle", cx: 8.75, cy: 10, r: 4 },
+    { type: "circle", cx: 26.25, cy: 10, r: 4 },
+    { type: "circle", cx: 43.75, cy: 10, r: 4 },
+    { type: "circle", cx: 61.25, cy: 10, r: 4 },
+    { type: "circle", cx: 8.75, cy: 78, r: 4 },
+    { type: "circle", cx: 26.25, cy: 78, r: 4 },
+    { type: "circle", cx: 43.75, cy: 78, r: 4 },
+    { type: "circle", cx: 61.25, cy: 78, r: 4 },
+  ] as any,
+});
+
 let preloadingPromise: Promise<void> | null = null;
 
 export async function preloadDxfSymbols(): Promise<void> {
