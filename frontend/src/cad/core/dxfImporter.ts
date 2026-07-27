@@ -216,35 +216,39 @@ export function parseDxfToSymbolBlock(
   const rawWidth = Math.max(1, maxX - minX);
   const rawHeight = Math.max(1, maxY - minY);
 
+  // Escala uniforme 1:1 para preservar perfectamente las proporciones originales de AutoCAD sin deformar
+  const scale = targetWidthMm ? targetWidthMm / rawWidth : 1;
   const finalWidth = targetWidthMm || rawWidth;
-  const finalHeight = targetHeightMm || rawHeight;
-
-  const scaleX = finalWidth / rawWidth;
-  const scaleY = finalHeight / rawHeight;
+  const finalHeight = rawHeight * scale;
 
   const normalizedPrimitives: Omit<CadPrimitive, "id" | "layerId">[] = primsToUse.map((p) => {
     if (p.type === "line") {
       return {
         type: "line",
-        start: { x: (p.start.x - minX) * scaleX, y: (p.start.y - minY) * scaleY },
-        end: { x: (p.end.x - minX) * scaleX, y: (p.end.y - minY) * scaleY },
+        start: { x: (p.start.x - minX) * scale, y: (p.start.y - minY) * scale },
+        end: { x: (p.end.x - minX) * scale, y: (p.end.y - minY) * scale },
+        color: "auto",
+        lineWidth: 1,
       };
     }
     if (p.type === "circle") {
       return {
         type: "circle",
-        cx: (p.cx - minX) * scaleX,
-        cy: (p.cy - minY) * scaleY,
-        r: p.r * Math.min(scaleX, scaleY),
+        cx: (p.cx - minX) * scale,
+        cy: (p.cy - minY) * scale,
+        r: p.r * scale,
+        color: "auto",
+        lineWidth: 1,
       };
     }
     if (p.type === "text") {
       return {
         type: "text",
-        x: (p.x - minX) * scaleX,
-        y: (p.y - minY) * scaleY,
+        x: (p.x - minX) * scale,
+        y: (p.y - minY) * scale,
         text: p.text,
-        fontSize: p.fontSize * scaleY,
+        fontSize: Math.max(2, p.fontSize * scale),
+        color: "auto",
       };
     }
     return p as any;

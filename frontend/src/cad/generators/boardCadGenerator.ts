@@ -980,7 +980,8 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
               layerId: "1_Equipos_DIN",
               start: { x: q1X + p.start.x, y: currentRailY + p.start.y },
               end: { x: q1X + p.end.x, y: currentRailY + p.end.y },
-              stroke: "#3B82F6",
+              color: "auto",
+              lineWidth: 1,
               dataId: "main-breaker",
               interactive: true,
             } as CadPrimitive);
@@ -991,7 +992,8 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
               layerId: "1_Equipos_DIN",
               cx: q1X + p.cx,
               cy: currentRailY + p.cy,
-              stroke: "#3B82F6",
+              color: "auto",
+              lineWidth: 1,
               dataId: "main-breaker",
               interactive: true,
             } as CadPrimitive);
@@ -1002,6 +1004,7 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
               layerId: "6_Cotas_Textos",
               x: q1X + p.x,
               y: currentRailY + p.y,
+              color: "auto",
             } as CadPrimitive);
           }
         });
@@ -1089,7 +1092,8 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
                 layerId: "1_Equipos_DIN",
                 start: { x: currentCompX + p.start.x, y: compY + p.start.y },
                 end: { x: currentCompX + p.end.x, y: compY + p.end.y },
-                stroke: diff ? "#10B981" : "#60A5FA",
+                color: "auto",
+                lineWidth: 1,
                 dataId: salida.id,
                 interactive: true,
               } as CadPrimitive);
@@ -1100,7 +1104,8 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
                 layerId: "1_Equipos_DIN",
                 cx: currentCompX + p.cx,
                 cy: compY + p.cy,
-                stroke: diff ? "#10B981" : "#60A5FA",
+                color: "auto",
+                lineWidth: 1,
                 dataId: salida.id,
                 interactive: true,
               } as CadPrimitive);
@@ -1111,6 +1116,7 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
                 layerId: "6_Cotas_Textos",
                 x: currentCompX + p.x,
                 y: compY + p.y,
+                color: "auto",
               } as CadPrimitive);
             }
           });

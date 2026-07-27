@@ -754,17 +754,7 @@ export function CadViewerCanvas({
               )}
             </div>
           </div>
-        ) : (
-          <div
-            className={`absolute ${modalAmpliado ? "bottom-8" : "bottom-4"} left-1/2 -translate-x-1/2 z-50 rounded-md px-3.5 py-1 text-[10px] md:text-[11px] font-mono text-center select-none pointer-events-none whitespace-nowrap transition-all duration-300 ease-out transform translate-y-0 ${
-              theme === "light"
-                ? "bg-slate-100/95 text-slate-700 border border-slate-300/80 shadow-md backdrop-blur-sm opacity-90"
-                : "bg-slate-900/80 text-slate-400 border border-slate-700/60 shadow-md backdrop-blur-sm opacity-80"
-            }`}
-          >
-            [CAD INSPECT] Pasa el cursor sobre cualquier línea o elemento para ver detalles técnicos
-          </div>
-        )}
+        ) : null}
       </div>
     </div>
   );
