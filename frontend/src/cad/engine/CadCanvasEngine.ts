@@ -189,7 +189,7 @@ export class CadCanvasEngine {
       ctx.shadowBlur = 10;
     } else {
       ctx.strokeStyle = color;
-      ctx.lineWidth = Math.max(1, (prim.lineWidth || 1.5) * transform.zoom);
+      ctx.lineWidth = Math.max(0.5, (prim.lineWidth || 0.5) * transform.zoom);
     }
 
     switch (prim.type) {

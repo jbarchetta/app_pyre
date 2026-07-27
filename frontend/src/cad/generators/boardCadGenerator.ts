@@ -908,7 +908,6 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
       height: altoGabinete - 60,
       stroke: "#64748B",
       fill: "rgba(100, 116, 139, 0.15)",
-      label: "CANALETA VERTICAL 40mm",
     });
 
     primitives.push({
@@ -921,28 +920,6 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
       height: altoGabinete - 60,
       stroke: "#64748B",
       fill: "rgba(100, 116, 139, 0.15)",
-      label: "CANALETA VERTICAL 40mm",
-    });
-
-    // Cotas Mecánicas en mm
-    primitives.push({
-      id: "dim-gab-width",
-      layerId: "6_Cotas_Textos",
-      type: "dimension",
-      start: { x: marginX, y: marginY },
-      end: { x: marginX + anchoGabinete, y: marginY },
-      offset: -25,
-      textOverride: `ANCHO GABINETE: ${anchoGabinete} mm`,
-    });
-
-    primitives.push({
-      id: "dim-gab-height",
-      layerId: "6_Cotas_Textos",
-      type: "dimension",
-      start: { x: marginX, y: marginY },
-      end: { x: marginX, y: marginY + altoGabinete },
-      offset: -25,
-      textOverride: `ALTO GABINETE: ${altoGabinete} mm`,
     });
 
     let currentRailY = marginY + 70;
@@ -961,7 +938,6 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
         height: 35,
         stroke: "#CBD5E1",
         fill: "rgba(203, 213, 225, 0.2)",
-        label: "RIEL DIN 35mm (PRINCIPAL)",
       });
 
       const q1Width = Math.max(90, (interruptorPrincipal?.polos || 3) * 30);
@@ -981,7 +957,7 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
               start: { x: q1X + p.start.x, y: currentRailY + p.start.y },
               end: { x: q1X + p.end.x, y: currentRailY + p.end.y },
               color: "auto",
-              lineWidth: 1,
+              lineWidth: 0.5,
               dataId: "main-breaker",
               interactive: true,
             } as CadPrimitive);
@@ -993,18 +969,9 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
               cx: q1X + p.cx,
               cy: currentRailY + p.cy,
               color: "auto",
-              lineWidth: 1,
+              lineWidth: 0.5,
               dataId: "main-breaker",
               interactive: true,
-            } as CadPrimitive);
-          } else if (p.type === "text") {
-            primitives.push({
-              ...p,
-              id: `q1-dxf-${idx}`,
-              layerId: "6_Cotas_Textos",
-              x: q1X + p.x,
-              y: currentRailY + p.y,
-              color: "auto",
             } as CadPrimitive);
           }
         });
@@ -1019,21 +986,8 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
           height: 75,
           fill: "#1E3A8A",
           stroke: "#3B82F6",
-          label: `Q1 ${interruptorPrincipal?.corriente_nominal_a || 63}A`,
           dataId: "main-breaker",
           interactive: true,
-        });
-
-        primitives.push({
-          id: "q1-main-txt",
-          layerId: "6_Cotas_Textos",
-          type: "text",
-          x: q1X + q1Width / 2,
-          y: currentRailY + 38,
-          text: interruptorPrincipal?.codigo || "MAIN BREAKER",
-          fontSize: 3.5,
-          align: "center",
-          weight: "bold",
         });
       }
 
@@ -1054,7 +1008,6 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
         height: 25,
         stroke: "#64748B",
         fill: "rgba(100, 116, 139, 0.15)",
-        label: "CABLECANAL HORIZONTAL 25mm",
       });
 
       primitives.push({
@@ -1067,17 +1020,15 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
         height: 35,
         stroke: "#CBD5E1",
         fill: "rgba(203, 213, 225, 0.2)",
-        label: `RIEL DIN (SECCIÓN ${secGroup.seccion.nombre || secIdx + 1})`,
       });
 
       let currentCompX = railX + 15;
 
-      secGroup.salidas.forEach((salida, salIdx) => {
+      secGroup.salidas.forEach((salida) => {
         const compW = obtenerAnchoSalidaMm(salida);
         const compH = 65;
         const compY = railY - 15;
         const diff = esDiferencial(salida);
-        const amp = obtenerAmperaje(salida);
 
         const es4Polos = salida.formato === "tetrapolar" || (salida.etiqueta || "").toLowerCase().includes("4p");
         const keySalida = salida.componente_codigo || (es4Polos && !diff ? "abb_topo_temx4" : (diff ? "abb_topo_diyx2" : "abb_topo_temx4"));
@@ -1093,7 +1044,7 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
                 start: { x: currentCompX + p.start.x, y: compY + p.start.y },
                 end: { x: currentCompX + p.end.x, y: compY + p.end.y },
                 color: "auto",
-                lineWidth: 1,
+                lineWidth: 0.5,
                 dataId: salida.id,
                 interactive: true,
               } as CadPrimitive);
@@ -1105,18 +1056,9 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
                 cx: currentCompX + p.cx,
                 cy: compY + p.cy,
                 color: "auto",
-                lineWidth: 1,
+                lineWidth: 0.5,
                 dataId: salida.id,
                 interactive: true,
-              } as CadPrimitive);
-            } else if (p.type === "text") {
-              primitives.push({
-                ...p,
-                id: `sal-${salida.id}-dxf-${idx}`,
-                layerId: "6_Cotas_Textos",
-                x: currentCompX + p.x,
-                y: compY + p.y,
-                color: "auto",
               } as CadPrimitive);
             }
           });
@@ -1131,20 +1073,8 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
             height: compH,
             fill: diff ? "#065F46" : "#1E40AF",
             stroke: diff ? "#10B981" : "#60A5FA",
-            label: `${salida.etiqueta || `Q${salIdx + 1}`}`,
             dataId: salida.id,
             interactive: true,
-          });
-
-          primitives.push({
-            id: `comp-txt-${salida.id}`,
-            layerId: "6_Cotas_Textos",
-            type: "text",
-            x: currentCompX + compW / 2,
-            y: compY + compH / 2,
-            text: `${salida.etiqueta || `Q${salIdx + 1}`}\n${amp}`,
-            fontSize: 3,
-            align: "center",
           });
         }
 

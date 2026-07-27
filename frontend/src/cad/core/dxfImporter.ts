@@ -221,38 +221,30 @@ export function parseDxfToSymbolBlock(
   const finalWidth = targetWidthMm || rawWidth;
   const finalHeight = rawHeight * scale;
 
-  const normalizedPrimitives: Omit<CadPrimitive, "id" | "layerId">[] = primsToUse.map((p) => {
-    if (p.type === "line") {
-      return {
-        type: "line",
-        start: { x: (p.start.x - minX) * scale, y: (p.start.y - minY) * scale },
-        end: { x: (p.end.x - minX) * scale, y: (p.end.y - minY) * scale },
-        color: "auto",
-        lineWidth: 1,
-      };
-    }
-    if (p.type === "circle") {
-      return {
-        type: "circle",
-        cx: (p.cx - minX) * scale,
-        cy: (p.cy - minY) * scale,
-        r: p.r * scale,
-        color: "auto",
-        lineWidth: 1,
-      };
-    }
-    if (p.type === "text") {
-      return {
-        type: "text",
-        x: (p.x - minX) * scale,
-        y: (p.y - minY) * scale,
-        text: p.text,
-        fontSize: Math.max(2, p.fontSize * scale),
-        color: "auto",
-      };
-    }
-    return p as any;
-  });
+  const normalizedPrimitives: Omit<CadPrimitive, "id" | "layerId">[] = primsToUse
+    .filter((p) => p.type !== "text")
+    .map((p) => {
+      if (p.type === "line") {
+        return {
+          type: "line",
+          start: { x: (p.start.x - minX) * scale, y: (p.start.y - minY) * scale },
+          end: { x: (p.end.x - minX) * scale, y: (p.end.y - minY) * scale },
+          color: "auto",
+          lineWidth: 0.5,
+        };
+      }
+      if (p.type === "circle") {
+        return {
+          type: "circle",
+          cx: (p.cx - minX) * scale,
+          cy: (p.cy - minY) * scale,
+          r: p.r * scale,
+          color: "auto",
+          lineWidth: 0.5,
+        };
+      }
+      return p as any;
+    });
 
   return {
     id: symbolId,
