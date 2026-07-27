@@ -967,19 +967,43 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
       const q1Width = Math.max(90, (interruptorPrincipal?.polos || 3) * 30);
       const q1X = railX + (railW - q1Width) / 2;
 
-      const dxfBlock = symbolRegistry.getSymbol(interruptorPrincipal?.codigo || "");
+      const es4PolosQ1 = (interruptorPrincipal?.polos === 4) || (interruptorPrincipal?.descripcion || "").toLowerCase().includes("4p") || (interruptorPrincipal?.codigo || "").toLowerCase().includes("s204");
+      const keyQ1 = interruptorPrincipal?.codigo || (es4PolosQ1 ? "abb_topo_temx4" : "abb_topo_temx4");
+      const dxfBlockQ1 = symbolRegistry.getSymbol(keyQ1);
 
-      if (dxfBlock) {
-        dxfBlock.primitives.forEach((p, idx) => {
-          primitives.push({
-            ...p,
-            id: `q1-dxf-${idx}`,
-            layerId: "1_Equipos_DIN",
-            x: q1X + (p as any).x,
-            y: currentRailY + (p as any).y,
-            dataId: "main-breaker",
-            interactive: true,
-          } as CadPrimitive);
+      if (dxfBlockQ1) {
+        dxfBlockQ1.primitives.forEach((p: any, idx) => {
+          if (p.type === "line") {
+            primitives.push({
+              ...p,
+              id: `q1-dxf-${idx}`,
+              layerId: "1_Equipos_DIN",
+              start: { x: q1X + p.start.x, y: currentRailY + p.start.y },
+              end: { x: q1X + p.end.x, y: currentRailY + p.end.y },
+              stroke: "#3B82F6",
+              dataId: "main-breaker",
+              interactive: true,
+            } as CadPrimitive);
+          } else if (p.type === "circle") {
+            primitives.push({
+              ...p,
+              id: `q1-dxf-${idx}`,
+              layerId: "1_Equipos_DIN",
+              cx: q1X + p.cx,
+              cy: currentRailY + p.cy,
+              stroke: "#3B82F6",
+              dataId: "main-breaker",
+              interactive: true,
+            } as CadPrimitive);
+          } else if (p.type === "text") {
+            primitives.push({
+              ...p,
+              id: `q1-dxf-${idx}`,
+              layerId: "6_Cotas_Textos",
+              x: q1X + p.x,
+              y: currentRailY + p.y,
+            } as CadPrimitive);
+          }
         });
       } else {
         primitives.push({
@@ -1052,19 +1076,43 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
         const diff = esDiferencial(salida);
         const amp = obtenerAmperaje(salida);
 
-        const dxfBlock = symbolRegistry.getSymbol(salida.componente_codigo || "");
+        const es4Polos = salida.formato === "tetrapolar" || (salida.etiqueta || "").toLowerCase().includes("4p");
+        const keySalida = salida.componente_codigo || (es4Polos && !diff ? "abb_topo_temx4" : (diff ? "abb_topo_diyx2" : "abb_topo_temx4"));
+        const dxfBlock = symbolRegistry.getSymbol(keySalida);
 
         if (dxfBlock) {
-          dxfBlock.primitives.forEach((p, idx) => {
-            primitives.push({
-              ...p,
-              id: `sal-${salida.id}-dxf-${idx}`,
-              layerId: "1_Equipos_DIN",
-              x: currentCompX + (p as any).x,
-              y: compY + (p as any).y,
-              dataId: salida.id,
-              interactive: true,
-            } as CadPrimitive);
+          dxfBlock.primitives.forEach((p: any, idx) => {
+            if (p.type === "line") {
+              primitives.push({
+                ...p,
+                id: `sal-${salida.id}-dxf-${idx}`,
+                layerId: "1_Equipos_DIN",
+                start: { x: currentCompX + p.start.x, y: compY + p.start.y },
+                end: { x: currentCompX + p.end.x, y: compY + p.end.y },
+                stroke: diff ? "#10B981" : "#60A5FA",
+                dataId: salida.id,
+                interactive: true,
+              } as CadPrimitive);
+            } else if (p.type === "circle") {
+              primitives.push({
+                ...p,
+                id: `sal-${salida.id}-dxf-${idx}`,
+                layerId: "1_Equipos_DIN",
+                cx: currentCompX + p.cx,
+                cy: compY + p.cy,
+                stroke: diff ? "#10B981" : "#60A5FA",
+                dataId: salida.id,
+                interactive: true,
+              } as CadPrimitive);
+            } else if (p.type === "text") {
+              primitives.push({
+                ...p,
+                id: `sal-${salida.id}-dxf-${idx}`,
+                layerId: "6_Cotas_Textos",
+                x: currentCompX + p.x,
+                y: compY + p.y,
+              } as CadPrimitive);
+            }
           });
         } else {
           primitives.push({

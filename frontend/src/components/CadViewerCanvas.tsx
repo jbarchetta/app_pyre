@@ -50,6 +50,8 @@ function limitar(valor: number): number {
   return Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, Number(valor.toFixed(2))));
 }
 
+import { preloadDxfSymbols } from "../cad/symbols/symbolRegistry";
+
 export function CadViewerCanvas({
   tieneInterruptorPrincipal,
   interruptorPrincipal,
@@ -72,6 +74,11 @@ export function CadViewerCanvas({
   const engineRef = useRef<CadCanvasEngine | null>(null);
 
   const [modoVisual, setModoVisualState] = useState<"topografico" | "bloques" | "unifilar">(modoVisualProp);
+  const [dxfCargado, setDxfCargado] = useState(false);
+
+  useEffect(() => {
+    preloadDxfSymbols().then(() => setDxfCargado(true));
+  }, []);
 
   useEffect(() => {
     if (modoVisualProp) setModoVisualState(modoVisualProp);
@@ -116,7 +123,7 @@ export function CadViewerCanvas({
       gabineteAnchoMm: gabineteSugeridoAncho,
       gabineteAltoMm: gabineteSugeridoAlto,
     });
-  }, [tieneInterruptorPrincipal, interruptorPrincipal, secciones, modoVisual, gabineteSugeridoAncho, gabineteSugeridoAlto]);
+  }, [tieneInterruptorPrincipal, interruptorPrincipal, secciones, modoVisual, gabineteSugeridoAncho, gabineteSugeridoAlto, dxfCargado]);
 
   // Estado de capas internas
   const [capasInternas, setCapasInternas] = useState<Capas>(capasEfectivas);
