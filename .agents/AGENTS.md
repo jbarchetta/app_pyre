@@ -62,3 +62,24 @@
 
 16. **Ocultamiento de Riel DIN 35 Bajo Elementos**:
    - El dibujo del riel DIN 35 no se dibuja ni traspasa por debajo de los equipos montados. Todo módulo (interruptor principal, termomagnética o diferencial) incluye una máscara opaca de fondo (`fill="bg"`) que oculta limpiamente cualquier tramo de riel DIN que coincida con el cuerpo del elemento.
+
+## Reglas de Arquitectura y Diseño de Software (Engineering & Architectural Principles)
+
+1. **Seguridad Nivel Empresa (Zero Trust)**:
+   - **Autorización por Propiedad**: Todos los endpoints de modificación (`PATCH`, `DELETE`) en el backend deben verificar pertenencia/ownership a nivel fila.
+   - **Protección DoS**: Aplicar rate-limiting (`slowapi`) en endpoints sensibles (`/auth/login`, `/catalogo/importar`).
+   - **Headers Rígidos & Sanitización**: Habilitar HSTS, CSP y sanitizar archivos cargados al servidor.
+   - **Trazabilidad & Auditoría**: Registrar en `tabla_auditoria` todo cambio en precios, borrados o sobrescrituras de componentes.
+
+2. **Adaptabilidad & Principios SOLID (Clean Architecture)**:
+   - **Motor de Reglas Estratégico**: Estructurar las validaciones eléctricas en clases de reglas independientes y desacopladas (`Open/Closed Principle`).
+   - **Desacoplamiento del Visor CAD**: Interfaz genérica de renderizado (`BoardRenderAdapter`) separando la vista en React de los exportadores vectoriales (DXF, PDF, SVG).
+   - **Resiliencia Frontend**: Proteger componentes reactivos y visores vectoriales con `Error Boundaries` de React 19 para evitar fallos globales de UI.
+
+3. **Escalabilidad & High Performance**:
+   - **Prevención de N+1 Queries**: Utilizar exclusivamente `selectinload()` / `joinedload()` en SQLAlchemy 2.0.
+   - **Indexación Postgres**: Mantener índices B-Tree en columnas de búsqueda rápida y GIN sobre metadatos JSONB.
+   - **Aislamiento de Estado del Canvas**: Mantener transformaciones dinámicas del canvas CAD fuera del árbol de renderizado reactivo del DOM para asegurar 60 FPS estables.
+
+4. **Matriz de Calidad y Pruebas (TDD Inviolable)**:
+   - Todo cálculo eléctrico, regla de construcción o endpoint debe contar con su correspondiente suite de pruebas unitarias e integrales antes de ser mergeado.
