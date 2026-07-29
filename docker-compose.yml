@@ -25,6 +25,8 @@ services:
       TABLERO_FRONTEND_ORIGIN: http://localhost:5180
     ports:
       - "8010:8000"
+    volumes:
+      - ./backend:/app
     depends_on:
       db:
         condition: service_healthy

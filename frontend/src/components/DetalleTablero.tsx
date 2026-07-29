@@ -15,6 +15,9 @@ import {
 import {
   actualizarSeccion,
   actualizarTablero,
+  crearSalida,
+  actualizarSalida,
+  duplicarSalida,
   crearSeccion,
   eliminarSeccion,
   obtenerTablero,
@@ -366,8 +369,13 @@ export function DetalleTablero({
   }
 
   async function handleSalidaCreada(seccionId: string, salida: Salida) {
+    const targetSecId = salida.seccion_id || seccionId;
     setSecciones((actuales) =>
-      (actuales ?? []).map((s) => (s.seccion.id === seccionId ? { ...s, salidas: [...s.salidas, salida] } : s)),
+      (actuales ?? []).map((s) =>
+        s.seccion.id === targetSecId
+          ? { ...s, salidas: [...s.salidas.filter((x) => x.id !== salida.id), salida] }
+          : { ...s, salidas: s.salidas.filter((x) => x.id !== salida.id) }
+      )
     );
     try {
       const tabActualizado = await obtenerTablero(tablero.id);
@@ -378,18 +386,62 @@ export function DetalleTablero({
   }
 
   async function handleSalidaActualizada(seccionId: string, salida: Salida) {
+    const targetSecId = salida.seccion_id || seccionId;
     setSecciones((actuales) =>
       (actuales ?? []).map((s) =>
-        s.seccion.id === seccionId
-          ? { ...s, salidas: s.salidas.map((sal) => (sal.id === salida.id ? salida : sal)) }
-          : s,
-      ),
+        s.seccion.id === targetSecId
+          ? {
+              ...s,
+              salidas: s.salidas.some((x) => x.id === salida.id)
+                ? s.salidas.map((x) => (x.id === salida.id ? salida : x))
+                : [...s.salidas, salida],
+            }
+          : { ...s, salidas: s.salidas.filter((x) => x.id !== salida.id) }
+      )
     );
     try {
       const tabActualizado = await obtenerTablero(tablero.id);
       onTableroActualizado(tabActualizado);
     } catch (err) {
       console.error("Error refreshing board:", err);
+    }
+  }
+
+  async function handleSaltoAutomaticoGabineteNIS(seccionOrigenId: string, accionPendiente?: any) {
+    try {
+      const numSecciones = (secciones ?? []).length;
+      const nuevaSec = await crearSeccion(tablero.id, `Fila ${numSecciones + 1}`, numSecciones);
+      const targetSecId = nuevaSec.id;
+
+      setSecciones((actuales) => [...(actuales ?? []), { seccion: nuevaSec, salidas: [] }]);
+      setTabSeleccionadoRaw(nuevaSec.id);
+
+      if (accionPendiente) {
+        if (accionPendiente.tipo === "crear") {
+          const salida = await crearSalida(targetSecId, accionPendiente.datos);
+          await handleSalidaCreada(targetSecId, salida);
+        } else if (accionPendiente.tipo === "editar") {
+          const actualizada = await actualizarSalida(accionPendiente.salidaId, {
+            ...accionPendiente.cambios,
+            seccion_id: targetSecId,
+          });
+          await handleSalidaActualizada(seccionOrigenId, actualizada);
+        } else if (accionPendiente.tipo === "duplicar") {
+          const duplicada = await duplicarSalida(accionPendiente.salidaId);
+          if (duplicada.seccion_id !== targetSecId) {
+            const reubicada = await actualizarSalida(duplicada.id, { seccion_id: targetSecId });
+            await handleSalidaCreada(targetSecId, reubicada);
+          } else {
+            await handleSalidaCreada(targetSecId, duplicada);
+          }
+        }
+      }
+
+      const tabFinal = await obtenerTablero(tablero.id);
+      onTableroActualizado(tabFinal);
+    } catch (err) {
+      console.error("Error al ejecutar salto automático de gabinete NIS:", err);
+      setError(err instanceof Error ? err.message : "No se pudo crear la nueva fila de gabinete");
     }
   }
 
@@ -437,194 +489,46 @@ export function DetalleTablero({
 
   return (
     <div className="mt-4 space-y-6">
-      {/* ZONA SUPERIOR: Visor de Blueprint (68% o 100%) + Panel Lateral Derecha (32% u oculto) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch transition-all duration-300">
-        {/* Columna Izquierda: Visor del Unifilar / Bloques LIVE_SCHEMATIC_VIEWER */}
-        <div className={`${panelLateralColapsado ? "lg:col-span-12" : "lg:col-span-8"} w-full flex flex-col justify-start h-full transition-all duration-300`}>
-          <EsquemaVisualCanvas
-            tieneInterruptorPrincipal={!!tablero.interruptor_principal_id}
-            interruptorPrincipal={{
-              id: tablero.interruptor_principal_id,
-              codigo: tablero.interruptor_principal_codigo,
-              codigo_comercial: tablero.interruptor_principal_codigo_comercial,
-              descripcion: tablero.interruptor_principal_descripcion,
-              corriente_nominal_a: tablero.interruptor_principal_corriente_nominal_a,
-              polos: tablero.interruptor_principal_polos,
-            }}
-            secciones={secciones}
-            obtenerVistaModo={obtenerVistaModo}
-            onModoStateChange={onModoStateChange}
-            zoom={vista?.zoom}
-            onZoomChange={onZoomChange}
-            capas={vista?.capas}
-            onCapasChange={onCapasChange}
-            hoveredSalidaId={hoveredSalidaId}
-            onSalidaHover={setHoveredSalidaId}
-            onSalidaClick={handleSalidaClickInBlueprint}
-            tabActivo={tabActivo}
-            accesorios={accesorios}
-            sugerencias={sugerencias}
-            onAsociarAccesorio={handleAsociarAccesorio}
-            onDesasociarAccesorio={handleDesasociarAccesorio}
-            onAbrirAccesorioManual={() => setModalAccesorioManual(true)}
-            metodoEntrada={tablero.principal_metodo_entrada}
-            metodoSalida={tablero.principal_metodo_salida}
-            bornerasTipo={tablero.borneras_tipo}
-            cablecanalSugerido={tablero.cablecanal_sugerido}
-            gabineteSugeridoAncho={tablero.gabinete_sugerido_ancho_mm}
-            gabineteSugeridoAlto={tablero.gabinete_sugerido_alto_mm}
-            tableroId={tablero.id}
-            panelLateralColapsado={panelLateralColapsado}
-            onTogglePanelLateral={() => setPanelLateralColapsado(false)}
-          />
-        </div>
-
-        {/* Columna Derecha: Tarjetas de Control y Parámetros (~32%, ocultas si panelLateralColapsado === true) */}
-        {!panelLateralColapsado && (
-          <div className="lg:col-span-4 w-full flex flex-col gap-4 transition-all duration-300">
-            {/* Cabecera Identica sobre las Tarjetas Laterales */}
-            <div className="flex items-center justify-between bg-industrial-gray border border-surface-stroke rounded-xl px-4 py-2 shadow-sm min-h-[46px] shrink-0">
-              <span className="font-mono text-xs font-bold uppercase tracking-wider text-gray-700 flex items-center gap-1.5 truncate">
-                <BoltIcon className="w-4 h-4 text-abb-red shrink-0" />
-                <span className="truncate">PANEL LATERAL</span>
-              </span>
+      {/* BANNER DIAGNÓSTICO INTERACTIVO: CAPACIDAD DE RIEL vs OCUPACIÓN TOTAL */}
+      {tablero.excede_largo_riel && (
+        <div className="bg-amber-50 border-2 border-amber-400 text-amber-900 p-4 rounded-xl shadow-md space-y-3 font-sans">
+          <div className="flex items-start gap-3">
+            <ExclamationTriangleIcon className="w-6 h-6 text-amber-600 shrink-0 mt-0.5" />
+            <div className="space-y-1">
+              <h4 className="font-bold text-sm text-amber-950 uppercase tracking-wide">
+                Aviso de Capacidad de Riel en Gabinete ({tablero.gabinete_sugerido_ancho_mm || 450} mm)
+              </h4>
+              <p className="text-xs leading-relaxed text-amber-800">
+                La Fila actual contiene <strong>{tablero.max_polos_por_fila} polos</strong>, sobrepasando la capacidad del riel DIN del gabinete sugerido (<strong>{tablero.capacidad_polos_linea} polos/riel</strong>). El gabinete posee actualmente un <strong>{tablero.porcentaje_ocupacion}% de ocupación total de polos</strong>.
+              </p>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2 pt-1">
+            {tablero.siguiente_gabinete_ancho_mm && tablero.siguiente_gabinete_ancho_mm > (tablero.gabinete_sugerido_ancho_mm || 0) && (
               <button
                 type="button"
-                onClick={() => setPanelLateralColapsado(true)}
-                className="flex items-center gap-1.5 px-3 py-1 text-xs font-mono font-bold rounded-lg border border-gray-300 bg-white hover:bg-gray-50 text-gray-700 shadow-sm transition shrink-0"
-                title="Comprimir tarjetas laterales"
+                onClick={async () => {
+                  if (tablero.siguiente_gabinete_ancho_mm) {
+                    const act = await actualizarTablero(tablero.id, { paso_manual: tablero.siguiente_gabinete_ancho_mm });
+                    onTableroActualizado(act);
+                  }
+                }}
+                className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-lg shadow transition"
               >
-                <ArrowsPointingInIcon className="w-4 h-4 text-abb-red" />
-                <span>Comprimir tarjetas laterales</span>
+                Ampliar a {tablero.siguiente_gabinete_ancho_mm} mm de Ancho
               </button>
-            </div>
-            {/* Card 1: TECHNICAL PARAMETERS (Normalizado con estilo claro de la app) */}
-            <div className="bg-white border border-surface-stroke rounded-xl shadow-sm overflow-hidden shrink-0">
-              <div className="border-b border-surface-stroke bg-gray-50 px-4 py-2.5 flex items-center justify-between">
-                <h4 className="font-mono text-xs font-bold uppercase tracking-wider text-gray-700 flex items-center gap-1.5">
-                  <BoltIcon className="w-4 h-4 text-abb-red" /> PARÁMETROS TÉCNICOS
-                </h4>
-                <span className="text-[10px] font-mono font-bold text-abb-red bg-red-50 border border-red-200 px-1.5 py-0.5 rounded">
-                  ABB APPROVED
-                </span>
-              </div>
-
-              <div className="p-3 space-y-2 text-xs font-mono">
-                <p className="flex justify-between items-center py-1 border-b border-gray-100">
-                  <span className="text-gray-500 font-medium">
-                    {`Intensidad de Cortocircuito (Icc): ${tablero.nivel_falla_ka} kA`}
-                  </span>
-                  <button
-                    type="button"
-                    aria-label="Editar intensidad de cortocircuito"
-                    onClick={(e) => {
-                      ultimoTriggerRef.current = e.currentTarget;
-                      setNivelFallaKaEdit(tablero.nivel_falla_ka);
-                      setModalIcc(true);
-                    }}
-                    className="text-gray-400 hover:text-abb-red p-1 rounded hover:bg-gray-100 transition shrink-0 ml-1"
-                    title="Editar Nivel de Cortocircuito (Icc)"
-                  >
-                    <PencilIcon className="w-3.5 h-3.5" />
-                  </button>
-                </p>
-
-                <div className="flex justify-between items-center py-1 border-b border-gray-100">
-                  <span className="text-gray-500 font-medium">TENSIÓN / FREC:</span>
-                  <span className="font-bold text-gray-900">380V / 50Hz (3P+N)</span>
-                </div>
-
-                <div className="flex justify-between items-center py-1 border-b border-gray-100">
-                  <span className="text-gray-500 font-medium">CARGA ESTIMADA:</span>
-                  <span className="font-bold text-emerald-600">{formatearCorriente(totalCargaAmperios)} A</span>
-                </div>
-
-                <div className="flex justify-between items-center py-1">
-                  <span className="text-gray-500 font-medium">NORMA CUMPLIDA:</span>
-                  <span className="font-bold text-abb-red">IEC 61439-1</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Card 2: INTEGRITY CHECK */}
-            <div className="bg-white border border-surface-stroke rounded-xl p-4 shadow-sm space-y-2 shrink-0">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-mono font-bold uppercase text-gray-700 flex items-center gap-1.5">
-                  <CheckCircleIcon className="w-4 h-4 text-green-600" /> INTEGRITY CHECK
-                </span>
-                <span className="text-xs font-mono font-bold text-gray-900">{matchPercentage}%</span>
-              </div>
-              <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden border border-gray-200">
-                <div
-                  className={`h-2 rounded-full transition-all duration-300 ${
-                    matchPercentage === 100 ? "bg-green-600" : matchPercentage > 50 ? "bg-amber-500" : "bg-abb-red"
-                  }`}
-                  style={{ width: `${matchPercentage}%` }}
-                />
-              </div>
-              <div className="text-[11px] text-gray-500 flex justify-between">
-                <span>Match de catálogo ABB</span>
-                <span>{matchSalidasCount} de {totalItemsCount} definidos</span>
-              </div>
-            </div>
-
-            {/* Card: GABINETE SUGERIDO */}
-            <div className="bg-white border border-surface-stroke rounded-xl shadow-sm overflow-hidden shrink-0">
-              <div className="border-b border-surface-stroke bg-gray-50 px-4 py-2.5 flex items-center justify-between">
-                <h4 className="font-mono text-xs font-bold uppercase tracking-wider text-gray-700 flex items-center gap-1.5">
-                  <CubeIcon className="w-4 h-4 text-abb-red" /> GABINETE SUGERIDO
-                </h4>
-                <span className="text-[10px] font-mono font-bold text-emerald-600 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded">
-                  NOLLMANN NIS
-                </span>
-              </div>
-
-              <div className="p-3 space-y-2 text-xs font-mono">
-                <div className="flex justify-between items-center py-1 border-b border-gray-100">
-                  <span className="text-gray-500 font-medium">CÓDIGO:</span>
-                  <span className="font-bold text-gray-900">
-                    {tablero.gabinete_sugerido_codigo || "Sin gabinete asignado"}
-                  </span>
-                </div>
-
-                <div className="flex justify-between items-center py-1 border-b border-gray-100">
-                  <span className="text-gray-500 font-medium">MEDIDAS (Ancho x Alto x Prof):</span>
-                  <span className="font-bold text-gray-900">
-                    {tablero.gabinete_sugerido_ancho_mm && tablero.gabinete_sugerido_alto_mm
-                      ? `${tablero.gabinete_sugerido_ancho_mm} x ${tablero.gabinete_sugerido_alto_mm} x 225 mm`
-                      : "—"}
-                  </span>
-                </div>
-
-                <div className="flex justify-between items-center py-1">
-                  <label htmlFor="paso-global" className="text-gray-500 font-medium">PASO GLOBAL:</label>
-                  <select
-                    id="paso-global"
-                    value={tablero.paso_manual === null || tablero.paso_manual === undefined ? "auto" : tablero.paso_manual.toString()}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      handleCambiarConfigFisica({
-                        paso_manual: val === "auto" ? null : parseInt(val)
-                      });
-                    }}
-                    className="border border-surface-stroke bg-white px-2 py-0.5 text-xs font-bold text-gray-900 rounded-md focus:outline-none focus:ring-1 focus:ring-abb-red"
-                  >
-                    <option value="auto">Auto ({tablero.paso_mm || 150} mm)</option>
-                    <option value="150">Paso 150 mm</option>
-                    <option value="200">Paso 200 mm</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-
+            )}
+            <span className="px-3 py-1.5 bg-white text-amber-900 border border-amber-300 font-medium text-xs rounded-lg shadow-sm">
+              Sugerencia: Redistribuir elementos a filas libres del mismo gabinete
+            </span>
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
-      {/* ZONA INFERIOR: TABS DE FILAS Y CONFIGURACIÓN A ANCHO COMPLETO */}
-      <div className="w-full mt-6 bg-white border border-surface-stroke rounded-xl shadow-sm overflow-hidden flex flex-col">
+      {/* ZONA SUPERIOR: TABS DE FILAS Y CONFIGURACIÓN A ANCHO COMPLETO */}
+      <div className="w-full mt-2 bg-white border border-surface-stroke rounded-xl shadow-sm flex flex-col min-h-[380px]">
         {/* Header con Pestañas de Selección de Sección y Toolbar de Acciones */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-surface-stroke bg-slate-50/60 p-2 gap-3 shrink-0">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-surface-stroke bg-slate-50/60 p-2 gap-3 shrink-0 rounded-t-xl">
           {/* Listado de Pestañas (Scroll horizontal si es necesario) */}
           <nav className="flex gap-1 p-1 bg-slate-100/80 rounded-xl border border-slate-200/50 max-w-full overflow-x-auto scrollbar-none" role="tablist" aria-label="Filas del tablero">
             <button
@@ -633,13 +537,13 @@ export function DetalleTablero({
               aria-label="Principal"
               type="button"
               onClick={() => setTabSeleccionadoRaw(TAB_PRINCIPAL)}
-              className={`px-3 py-1.5 text-xs font-sans rounded-lg transition-all duration-150 ${
+              className={`px-3 py-1.5 text-xs font-sans rounded-lg transition-all duration-150 flex items-center gap-1.5 ${
                 tabActivo === TAB_PRINCIPAL
-                  ? "bg-white text-slate-900 shadow-2xs border border-slate-200/60 font-semibold"
-                  : "text-slate-500 hover:text-slate-900 hover:bg-white/50 font-medium"
+                  ? "bg-white text-abb-red shadow-sm border border-slate-200/80 font-bold border-b-2 border-b-abb-red"
+                  : "text-slate-600 hover:text-slate-900 hover:bg-slate-100 font-medium"
               }`}
             >
-              <span aria-hidden="true" className="opacity-50 font-mono text-[11px] mr-1.5">00</span>
+              <span aria-hidden="true" className="opacity-60 font-mono text-[11px] font-bold">00</span>
               <span>Principal</span>
             </button>
             {(secciones ?? []).map(({ seccion, salidas }, idx) => {
@@ -655,13 +559,15 @@ export function DetalleTablero({
                   onClick={() => setTabSeleccionadoRaw(seccion.id)}
                   className={`px-3 py-1.5 text-xs font-sans rounded-lg transition-all duration-150 flex items-center gap-1.5 ${
                     isSelected
-                      ? "bg-white text-slate-900 shadow-2xs border border-slate-200/60 font-semibold"
-                      : "text-slate-500 hover:text-slate-900 hover:bg-white/50 font-medium"
+                      ? "bg-white text-slate-900 shadow-sm border border-slate-200/80 font-bold border-b-2 border-b-abb-red"
+                      : "text-slate-600 hover:text-slate-900 hover:bg-slate-100 font-medium"
                   }`}
                 >
-                  <span aria-hidden="true" className="opacity-50 font-mono text-[11px]">{sNum}</span>
+                  <span aria-hidden="true" className={`font-mono text-[11px] font-bold ${isSelected ? "text-abb-red" : "opacity-50"}`}>{sNum}</span>
                   <span className="truncate max-w-[120px]">{seccion.nombre}</span>
-                  <span className="ml-1 text-[10px] bg-slate-200/80 text-slate-700 px-1.5 py-0.2 rounded-full font-semibold font-mono" aria-hidden="true">
+                  <span className={`ml-1 text-[10px] px-1.5 py-0.2 rounded-full font-bold font-mono transition-colors ${
+                    isSelected ? "bg-red-50 text-abb-red border border-red-200" : "bg-slate-200/80 text-slate-700"
+                  }`} aria-hidden="true">
                     {salidas.length}
                   </span>
                 </button>
@@ -1010,23 +916,23 @@ export function DetalleTablero({
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="border-b border-slate-200 font-mono text-[11px] font-bold uppercase tracking-wider text-gray-700 bg-slate-100/90">
-                      <th scope="col" className="py-1.5 px-3">Código</th>
-                      <th scope="col" className="py-1.5 px-3">Código Comercial</th>
-                      <th scope="col" className="py-1.5 px-3">Descripción</th>
-                      <th scope="col" className="py-1.5 px-3">Precio</th>
-                      <th scope="col" className="py-1.5 px-3 text-right">Acciones</th>
+                      <th scope="col" className="py-1.5 px-3">Accesorio</th>
+                      <th scope="col" className="py-1.5 px-3">Código ABB</th>
+                      <th scope="col" className="py-1.5 px-3 text-right">Acción</th>
                     </tr>
                   </thead>
                   <tbody>
-                    {accesorios.length > 0 ? (
+                    {accesorios.length === 0 ? (
+                      <tr>
+                        <td colSpan={3} className="p-4 text-center text-xs text-gray-400 italic">
+                          No hay accesorios asociados al interruptor principal.
+                        </td>
+                      </tr>
+                    ) : (
                       accesorios.map((acc) => (
-                        <tr key={acc.id} className="border-b border-surface-stroke hover:bg-gray-50/80 transition-colors">
-                          <td className="p-3 font-mono text-xs font-semibold text-gray-900">{acc.codigo}</td>
-                          <td className="p-3 font-mono text-xs text-gray-600">{acc.codigo_comercial || "—"}</td>
-                          <td className="p-3 text-xs text-gray-700">{acc.descripcion}</td>
-                          <td className="p-3 font-mono text-xs text-gray-900">
-                            {acc.precio_neto ? `$ ${Number(acc.precio_neto).toLocaleString()}` : "Consultar"}
-                          </td>
+                        <tr key={acc.id} className="border-b border-surface-stroke hover:bg-gray-50 text-xs">
+                          <td className="p-3 font-semibold text-gray-900">{acc.descripcion}</td>
+                          <td className="p-3 font-mono font-medium text-gray-700">{acc.codigo}</td>
                           <td className="p-3 text-right">
                             <button
                               type="button"
@@ -1039,12 +945,6 @@ export function DetalleTablero({
                           </td>
                         </tr>
                       ))
-                    ) : (
-                      <tr>
-                        <td colSpan={5} className="p-6 text-center text-gray-400 italic text-xs">
-                          No hay accesorios asociados al interruptor principal.
-                        </td>
-                      </tr>
                     )}
                   </tbody>
                 </table>
@@ -1057,6 +957,10 @@ export function DetalleTablero({
                 key={seccionSeleccionada.seccion.id}
                 seccion={seccionSeleccionada.seccion}
                 salidas={seccionSeleccionada.salidas}
+                todasLasSeccionesConSalidas={secciones ?? []}
+                gabineteAnchoMm={tablero.gabinete_sugerido_ancho_mm}
+                onAbrirConfiguracionTablero={() => setTabSeleccionadoRaw(TAB_PRINCIPAL)}
+                onSaltoAutomaticoGabineteNIS={(accion) => handleSaltoAutomaticoGabineteNIS(seccionSeleccionada.seccion.id, accion)}
                 elementosCandidatos={(secciones ?? []).flatMap((s, sIdx) => {
                   const sNum = s.seccion.orden != null ? s.seccion.orden + 1 : sIdx + 1;
                   return s.salidas.map((sal, salIdx) => ({
@@ -1074,13 +978,195 @@ export function DetalleTablero({
                 onSalidasReordenadas={(salidas) => handleSalidasReordenadas(seccionSeleccionada.seccion.id, salidas)}
                 hoveredSalidaId={hoveredSalidaId}
                 onSalidaHover={setHoveredSalidaId}
-
               />
             )
           )}
       </div> 
-      
-      {/* Modales */}
+
+      {/* ZONA DE VISOR CAD Y PANEL LATERAL DERECHO */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
+        {/* Columna Izquierda: Visor del Unifilar / Bloques LIVE_SCHEMATIC_VIEWER */}
+        <div className={`${panelLateralColapsado ? "lg:col-span-12" : "lg:col-span-8"} w-full flex flex-col justify-start h-full`}>
+          <EsquemaVisualCanvas
+            tieneInterruptorPrincipal={!!tablero.interruptor_principal_id}
+            interruptorPrincipal={{
+              id: tablero.interruptor_principal_id,
+              codigo: tablero.interruptor_principal_codigo,
+              codigo_comercial: tablero.interruptor_principal_codigo_comercial,
+              descripcion: tablero.interruptor_principal_descripcion,
+              corriente_nominal_a: tablero.interruptor_principal_corriente_nominal_a,
+              polos: tablero.interruptor_principal_polos,
+            }}
+            secciones={secciones}
+            obtenerVistaModo={obtenerVistaModo}
+            onModoStateChange={onModoStateChange}
+            zoom={vista?.zoom}
+            onZoomChange={onZoomChange}
+            capas={vista?.capas}
+            onCapasChange={onCapasChange}
+            hoveredSalidaId={hoveredSalidaId}
+            onSalidaHover={setHoveredSalidaId}
+            onSalidaClick={handleSalidaClickInBlueprint}
+            tabActivo={tabActivo}
+            accesorios={accesorios}
+            sugerencias={sugerencias}
+            onAsociarAccesorio={handleAsociarAccesorio}
+            onDesasociarAccesorio={handleDesasociarAccesorio}
+            onAbrirAccesorioManual={() => setModalAccesorioManual(true)}
+            metodoEntrada={tablero.principal_metodo_entrada}
+            metodoSalida={tablero.principal_metodo_salida}
+            bornerasTipo={tablero.borneras_tipo}
+            cablecanalSugerido={tablero.cablecanal_sugerido}
+            gabineteSugeridoAncho={tablero.gabinete_sugerido_ancho_mm}
+            gabineteSugeridoAlto={tablero.gabinete_sugerido_alto_mm}
+            pasoMm={tablero.paso_mm}
+            tableroId={tablero.id}
+            panelLateralColapsado={panelLateralColapsado}
+            onTogglePanelLateral={() => setPanelLateralColapsado(false)}
+          />
+        </div>
+
+        {/* Columna Derecha: Tarjetas de Control y Parámetros (~32%, ocultas si panelLateralColapsado === true) */}
+        {!panelLateralColapsado && (
+          <div className="lg:col-span-4 w-full flex flex-col gap-4">
+            {/* Cabecera Identica sobre las Tarjetas Laterales */}
+            <div className="flex items-center justify-between bg-industrial-gray border border-surface-stroke rounded-xl px-4 py-2 shadow-sm min-h-[46px] shrink-0">
+              <span className="font-mono text-xs font-bold uppercase tracking-wider text-gray-700 flex items-center gap-1.5 truncate">
+                <BoltIcon className="w-4 h-4 text-abb-red shrink-0" />
+                <span className="truncate">PANEL LATERAL</span>
+              </span>
+              <button
+                type="button"
+                onClick={() => setPanelLateralColapsado(true)}
+                className="flex items-center gap-1.5 px-3 py-1 text-xs font-sans font-normal rounded-lg border border-gray-300 bg-white hover:bg-slate-50 text-slate-700 shadow-xs transition-colors shrink-0"
+                title="Comprimir tarjetas laterales"
+              >
+                <ArrowsPointingInIcon className="w-3.5 h-3.5 text-abb-red shrink-0" />
+                <span>Comprimir tarjetas laterales</span>
+              </button>
+            </div>
+            {/* Card 1: TECHNICAL PARAMETERS (Normalizado con estilo claro de la app) */}
+            <div className="bg-white border border-surface-stroke rounded-xl shadow-sm overflow-hidden shrink-0">
+              <div className="border-b border-surface-stroke bg-gray-50 px-4 py-2.5 flex items-center justify-between">
+                <h4 className="font-mono text-xs font-bold uppercase tracking-wider text-gray-700 flex items-center gap-1.5">
+                  <BoltIcon className="w-4 h-4 text-abb-red" /> PARÁMETROS TÉCNICOS
+                </h4>
+                <span className="text-[10px] font-mono font-bold text-abb-red bg-red-50 border border-red-200 px-1.5 py-0.5 rounded">
+                  ABB APPROVED
+                </span>
+              </div>
+
+              <div className="p-3 space-y-2 text-xs font-mono">
+                <p className="flex justify-between items-center py-1 border-b border-gray-100">
+                  <span className="text-gray-500 font-medium">
+                    {`Intensidad de Cortocircuito (Icc): ${tablero.nivel_falla_ka} kA`}
+                  </span>
+                  <button
+                    type="button"
+                    aria-label="Editar intensidad de cortocircuito"
+                    onClick={(e) => {
+                      ultimoTriggerRef.current = e.currentTarget;
+                      setNivelFallaKaEdit(tablero.nivel_falla_ka);
+                      setModalIcc(true);
+                    }}
+                    className="text-gray-400 hover:text-abb-red p-1 rounded hover:bg-gray-100 transition shrink-0 ml-1"
+                    title="Editar Nivel de Cortocircuito (Icc)"
+                  >
+                    <PencilIcon className="w-3.5 h-3.5" />
+                  </button>
+                </p>
+
+                <div className="flex justify-between items-center py-1 border-b border-gray-100">
+                  <span className="text-gray-500 font-medium">TENSIÓN / FREC:</span>
+                  <span className="font-bold text-gray-900">380V / 50Hz (3P+N)</span>
+                </div>
+
+                <div className="flex justify-between items-center py-1 border-b border-gray-100">
+                  <span className="text-gray-500 font-medium">CARGA ESTIMADA:</span>
+                  <span className="font-bold text-emerald-600">{formatearCorriente(totalCargaAmperios)} A</span>
+                </div>
+
+                <div className="flex justify-between items-center py-1">
+                  <span className="text-gray-500 font-medium">NORMA CUMPLIDA:</span>
+                  <span className="font-bold text-abb-red">IEC 61439-1</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Card 2: INTEGRITY CHECK */}
+            <div className="bg-white border border-surface-stroke rounded-xl p-4 shadow-sm space-y-2 shrink-0">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-mono font-bold uppercase text-gray-700 flex items-center gap-1.5">
+                  <CheckCircleIcon className="w-4 h-4 text-green-600" /> INTEGRITY CHECK
+                </span>
+                <span className="text-xs font-mono font-bold text-gray-900">{matchPercentage}%</span>
+              </div>
+              <div className="w-full bg-gray-100 rounded-full h-2 overflow-hidden border border-gray-200">
+                <div
+                  className={`h-2 rounded-full transition-all duration-300 ${
+                    matchPercentage === 100 ? "bg-green-600" : matchPercentage > 50 ? "bg-amber-500" : "bg-abb-red"
+                  }`}
+                  style={{ width: `${matchPercentage}%` }}
+                />
+              </div>
+              <div className="text-[11px] text-gray-500 flex justify-between">
+                <span>Match de catálogo ABB</span>
+                <span>{matchSalidasCount} de {totalItemsCount} definidos</span>
+              </div>
+            </div>
+
+            {/* Card: GABINETE SUGERIDO */}
+            <div className="bg-white border border-surface-stroke rounded-xl shadow-sm overflow-hidden shrink-0">
+              <div className="border-b border-surface-stroke bg-gray-50 px-4 py-2.5 flex items-center justify-between">
+                <h4 className="font-mono text-xs font-bold uppercase tracking-wider text-gray-700 flex items-center gap-1.5">
+                  <CubeIcon className="w-4 h-4 text-abb-red" /> GABINETE SUGERIDO
+                </h4>
+                <span className="text-[10px] font-mono font-bold text-emerald-600 bg-emerald-50 border border-emerald-200 px-1.5 py-0.5 rounded">
+                  NOLLMANN NIS
+                </span>
+              </div>
+
+              <div className="p-3 space-y-2 text-xs font-mono">
+                <div className="flex justify-between items-center py-1 border-b border-gray-100">
+                  <span className="text-gray-500 font-medium">CÓDIGO:</span>
+                  <span className="font-bold text-gray-900">
+                    {tablero.gabinete_sugerido_codigo || "Sin gabinete asignado"}
+                  </span>
+                </div>
+
+                <div className="flex justify-between items-center py-1 border-b border-gray-100">
+                  <span className="text-gray-500 font-medium">MEDIDAS (Ancho x Alto x Prof):</span>
+                  <span className="font-bold text-gray-900">
+                    {tablero.gabinete_sugerido_ancho_mm && tablero.gabinete_sugerido_alto_mm
+                      ? `${tablero.gabinete_sugerido_ancho_mm} x ${tablero.gabinete_sugerido_alto_mm} x 225 mm`
+                      : "—"}
+                  </span>
+                </div>
+
+                <div className="flex justify-between items-center py-1">
+                  <label htmlFor="paso-global" className="text-gray-500 font-medium">PASO GLOBAL:</label>
+                  <select
+                    id="paso-global"
+                    value={tablero.paso_manual === null || tablero.paso_manual === undefined ? "auto" : tablero.paso_manual.toString()}
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      handleCambiarConfigFisica({
+                        paso_manual: val === "auto" ? null : parseInt(val)
+                      });
+                    }}
+                    className="border border-surface-stroke bg-white px-2 py-0.5 text-xs font-bold text-gray-900 rounded-md focus:outline-none focus:ring-1 focus:ring-abb-red"
+                  >
+                    <option value="auto">Auto ({tablero.paso_mm || 150} mm)</option>
+                    <option value="150">Paso 150 mm</option>
+                    <option value="200">Paso 200 mm</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        )}
+      </div>
       {modalNuevaFila && (
         <div
           className="fixed inset-0 z-20 flex items-center justify-center bg-black/40"

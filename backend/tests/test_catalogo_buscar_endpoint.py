@@ -412,3 +412,79 @@ def test_opciones_filtro_requiere_autenticacion(client):
     response = client.get("/catalogo/opciones-filtro")
 
     assert response.status_code == 401
+
+
+def test_buscar_filtra_por_tipo_sensibilidad_y_accesorios(client, db_session):
+    _login(client, db_session, email="buscardif.test@pyre.com")
+    dif_30ma = CatalogoComponente(
+        proveedor="ABB",
+        codigo="ZQXDIFF-30MA",
+        categoria_path=["Interruptores Diferenciales - Con posibilidad de utilizar accesorios"],
+        categoria_raiz="Interruptores Diferenciales",
+        descripcion="Diferencial ZQXDIFF 30mA",
+        unidad="Unidad",
+        precio_neto=Decimal("150.00"),
+        atributos={
+            "tipo": "seccional_diferencial",
+            "polos": 2,
+            "corriente_nominal_a": 25,
+            "capacidad_corte_ka": 10,
+            "sensibilidad_ma": 30,
+            "admite_accesorios": True,
+        },
+        archivo_origen="test.xlsx",
+        fila_origen=1,
+    )
+    dif_100ma_sin_acc = CatalogoComponente(
+        proveedor="ABB",
+        codigo="ZQXDIFF-100MA",
+        categoria_path=["Interruptores Diferenciales - Sin posibilidad de utilizar accesorios"],
+        categoria_raiz="Interruptores Diferenciales",
+        descripcion="Diferencial ZQXDIFF 100mA",
+        unidad="Unidad",
+        precio_neto=Decimal("180.00"),
+        atributos={
+            "tipo": "seccional_diferencial",
+            "polos": 4,
+            "corriente_nominal_a": 40,
+            "capacidad_corte_ka": 10,
+            "sensibilidad_ma": 100,
+            "admite_accesorios": False,
+        },
+        archivo_origen="test.xlsx",
+        fila_origen=2,
+    )
+    db_session.add_all([dif_30ma, dif_100ma_sin_acc])
+    db_session.commit()
+
+    # 1. Filtro por tipo seccional_diferencial y sensibilidad 30mA
+    resp_30 = client.get(
+        "/catalogo/buscar",
+        params={"q": "ZQXDIFF", "tipo": "seccional_diferencial", "sensibilidad_ma": 30},
+    )
+    assert resp_30.status_code == 200
+    ids_30 = [c["id"] for c in resp_30.json()["resultados"]]
+    assert str(dif_30ma.id) in ids_30
+    assert str(dif_100ma_sin_acc.id) not in ids_30
+
+    # 2. Filtro por admite_accesorios = false
+    resp_acc = client.get(
+        "/catalogo/buscar",
+        params={"q": "ZQXDIFF", "admite_accesorios": "false"},
+    )
+    assert resp_acc.status_code == 200
+    ids_acc = [c["id"] for c in resp_acc.json()["resultados"]]
+    assert str(dif_100ma_sin_acc.id) in ids_acc
+    assert str(dif_30ma.id) not in ids_acc
+
+    # 3. Opciones de filtro scoped por tipo seccional_diferencial
+    opciones_resp = client.get(
+        "/catalogo/opciones-filtro",
+        params={"tipo": "seccional_diferencial"},
+    )
+    assert opciones_resp.status_code == 200
+    body_opc = opciones_resp.json()
+    assert 30 in body_opc["sensibilidades_ma"]
+    assert 100 in body_opc["sensibilidades_ma"]
+    assert True in body_opc["admite_accesorios"] and False in body_opc["admite_accesorios"]
+

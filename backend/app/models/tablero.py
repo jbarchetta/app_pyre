@@ -38,7 +38,41 @@ class Tablero(Base):
         UUID(as_uuid=True), ForeignKey("catalogo_componente.id"), nullable=True
     )
     nivel_falla_ka: Mapped[Decimal] = mapped_column(Numeric(6, 2), nullable=False)
+    principal_metodo_entrada: Mapped[str | None] = mapped_column(String(50), nullable=True, default="cable")
+    principal_metodo_salida: Mapped[str | None] = mapped_column(String(50), nullable=True, default="barra_distribucion")
+    borneras_tipo: Mapped[str | None] = mapped_column(String(50), nullable=True, default="ninguno")
+    lleva_banquitos: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
+    porcentaje_reserva: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    gabinete_sugerido_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("catalogo_componente.id"), nullable=True
+    )
+    distribuidor_sugerido_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("catalogo_componente.id"), nullable=True
+    )
+    cablecanal_sugerido: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    paso_mm: Mapped[int] = mapped_column(Integer, nullable=False, default=150)
+    paso_manual: Mapped[int | None] = mapped_column(Integer, nullable=True, default=None)
     creado_en: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
+
+
+class TableroAccesorioPrincipal(Base):
+    __tablename__ = "tablero_accesorio_principal"
+
+    tablero_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("tablero.id", ondelete="CASCADE"), primary_key=True
+    )
+    componente_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("catalogo_componente.id", ondelete="CASCADE"), primary_key=True
+    )
+
+
+class ReglaCablecanal(Base):
+    __tablename__ = "regla_cablecanal"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    corriente_minima: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
+    corriente_maxima: Mapped[Decimal] = mapped_column(Numeric(10, 2), nullable=False)
+    medida_cablecanal: Mapped[str] = mapped_column(String(50), nullable=False)
 
 
 class Seccion(Base):
@@ -48,6 +82,8 @@ class Seccion(Base):
     tablero_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("tablero.id"), nullable=False)
     nombre: Mapped[str] = mapped_column(String(255), nullable=False)
     orden: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
+    paso_mm: Mapped[int] = mapped_column(Integer, nullable=False, default=150)
+    paso_manual: Mapped[int | None] = mapped_column(Integer, nullable=True, default=None)
 
 
 class Salida(Base):
@@ -78,6 +114,8 @@ class Salida(Base):
     alimentado_por_salida_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("salida.id", ondelete="SET NULL"), nullable=True
     )
+    sensibilidad_ma: Mapped[int | None] = mapped_column(Integer, nullable=True, default=30)
+    admite_accesorios: Mapped[bool | None] = mapped_column(Boolean, nullable=True, default=False)
     creado_en: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
 
 

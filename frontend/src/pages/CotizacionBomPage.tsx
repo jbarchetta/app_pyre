@@ -78,48 +78,36 @@ export function CotizacionBomPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header General de la Vista de Cotización */}
-      <div className="flex flex-col md:flex-row md:items-start justify-between border-b border-slate-300 pb-4 gap-4">
+      {/* Cabecera Unificada Ejecutiva de Cotización */}
+      <div className="bg-[#181E29] border border-[#263040] text-slate-100 p-5 rounded-2xl shadow-xl flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2 text-xs font-mono font-bold text-abb-red uppercase tracking-wider mb-1">
             <svg className="w-4 h-4 text-abb-red" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
-            MÓDULO DE COTIZACIÓN Y MATERIALES
+            MÓDULO DE COTIZACIÓN Y MATERIALES (BOM)
           </div>
-          <h1 className="text-2xl font-black text-slate-900 tracking-tight">
-            Lista de Materiales y Presupuesto (BOM)
+          <h1 className="text-xl font-extrabold text-white tracking-tight">
+            {proyectoActual ? proyectoActual.nombre : "Cotización de Proyecto"}
           </h1>
-          
-          {/* Reference Image Tag Pills Bar */}
-          <div className="flex flex-wrap items-center gap-2 mt-3 text-xs font-mono">
-            <span className="px-3 py-1 bg-[#2C3645] text-white rounded-lg font-bold flex items-center gap-1.5 shadow-xs">
-              <span className="w-2 h-2 rounded-full bg-abb-red" />
-              Tags
-            </span>
-            <span className="px-3 py-1 bg-slate-200 text-slate-700 rounded-lg font-medium border border-slate-300">
-              Cotización Oficial
-            </span>
-            <span className="px-3 py-1 bg-slate-200 text-slate-700 rounded-lg font-medium border border-slate-300">
-              Validez 30 Días
-            </span>
-            <span className="px-3 py-1 bg-emerald-100 text-emerald-800 rounded-lg font-bold border border-emerald-300">
-              Precios Netos ABB
-            </span>
-          </div>
+          {proyectoActual && (
+            <p className="text-xs text-slate-400 mt-1 font-sans">
+              Cliente: <strong className="text-slate-200">{proyectoActual.cliente}</strong> · Tableros: <strong className="text-slate-200">{tableros.length}</strong>
+            </p>
+          )}
         </div>
 
-        {/* Seleccionadores de Proyecto y Tablero */}
-        <div className="flex flex-wrap items-center gap-3 bg-white border border-slate-300 p-3.5 rounded-2xl shadow-sm">
+        <div className="flex flex-wrap items-center gap-3">
+          {/* Seleccionador de Proyecto */}
           <div>
-            <label htmlFor="select-proyecto-bom" className="block text-[10px] font-mono uppercase font-bold text-slate-500 mb-1">
+            <label htmlFor="select-proyecto-bom" className="block text-[10px] font-mono uppercase font-bold text-slate-400 mb-1">
               Proyecto
             </label>
             <select
               id="select-proyecto-bom"
               value={proyectoSeleccionadoId}
               onChange={(e) => handleCambiarProyecto(e.target.value)}
-              className="border border-slate-300 bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-900 rounded-lg focus:ring-1 focus:ring-abb-red"
+              className="border border-[#2E3B4E] bg-[#242E3E] px-3 py-1.5 text-xs font-bold text-slate-100 rounded-xl focus:ring-1 focus:ring-abb-red"
             >
               {proyectos.map((p) => (
                 <option key={p.id} value={p.id}>
@@ -129,15 +117,16 @@ export function CotizacionBomPage() {
             </select>
           </div>
 
+          {/* Seleccionador de Tablero */}
           <div>
-            <label htmlFor="select-tablero-bom" className="block text-[10px] font-mono uppercase font-bold text-slate-500 mb-1">
+            <label htmlFor="select-tablero-bom" className="block text-[10px] font-mono uppercase font-bold text-slate-400 mb-1">
               Tablero
             </label>
             <select
               id="select-tablero-bom"
               value={tableroSeleccionadoId}
               onChange={(e) => setTableroSeleccionadoId(e.target.value)}
-              className="border border-slate-300 bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-900 rounded-lg focus:ring-1 focus:ring-abb-red"
+              className="border border-[#2E3B4E] bg-[#242E3E] px-3 py-1.5 text-xs font-bold text-slate-100 rounded-xl focus:ring-1 focus:ring-abb-red"
             >
               <option value="todos">Todos los Tableros (Consolidado)</option>
               {tableros.map((t) => (
@@ -146,6 +135,16 @@ export function CotizacionBomPage() {
                 </option>
               ))}
             </select>
+          </div>
+
+          {/* Total Acumulado */}
+          <div className="bg-[#242E3E] px-4 py-2 rounded-xl border border-[#2E3B4E] text-right shrink-0">
+            <span className="text-[10px] font-mono text-slate-400 uppercase tracking-wider block font-bold">
+              Presupuesto Total
+            </span>
+            <span className="text-xl font-mono font-extrabold text-abb-red">
+              {formatearMoneda(bomProyecto?.costo_total_proyecto || 0)}
+            </span>
           </div>
         </div>
       </div>
@@ -170,30 +169,6 @@ export function CotizacionBomPage() {
         </div>
       ) : (
         <div className="space-y-6">
-          {/* Executive Project Summary Banner */}
-          <div className="bg-slate-900 text-slate-100 p-5 rounded-2xl border border-slate-800 shadow-md flex flex-col md:flex-row md:items-center justify-between gap-4">
-            <div>
-              <div className="flex items-center gap-2 text-emerald-400 font-mono text-xs font-bold uppercase tracking-wider mb-1">
-                <span>CONSOLIDADO GENERAL DE PROYECTO</span>
-              </div>
-              <h2 className="text-xl font-bold text-white">
-                {proyectoActual.nombre}
-              </h2>
-              <p className="text-xs text-slate-400 mt-0.5 font-sans">
-                Cliente: <strong className="text-slate-200">{proyectoActual.cliente}</strong> · Tableros: <strong className="text-slate-200">{tableros.length}</strong>
-              </p>
-            </div>
-
-            <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 text-right shrink-0">
-              <p className="text-[11px] font-mono text-slate-400 uppercase tracking-wider font-semibold">
-                Presupuesto Acumulado Proyecto
-              </p>
-              <p className="text-2xl font-mono font-extrabold text-abb-red mt-0.5">
-                {formatearMoneda(bomProyecto?.costo_total_proyecto || 0)}
-              </p>
-            </div>
-          </div>
-
           {/* Render BOM Tables */}
           {tableroSeleccionadoId === "todos" ? (
             <div className="space-y-6">

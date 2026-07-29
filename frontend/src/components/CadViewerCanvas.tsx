@@ -10,6 +10,7 @@ import {
   MoonIcon,
   XMarkIcon,
   ChevronDownIcon,
+  ChartBarIcon,
 } from "@heroicons/react/24/outline";
 import type { Salida, Seccion } from "../api/client";
 import type { CadPoint, ViewportTransform } from "../cad/core/types";
@@ -17,10 +18,12 @@ import { zoomAtPoint, calculateFitToScreen, screenToWorld } from "../cad/core/tr
 import { findPrimitiveAtPoint, snapToGrid } from "../cad/core/hitTest";
 import { downloadDxfFile } from "../cad/core/dxfExporter";
 import { exportarPdfProfesional } from "../cad/core/pdfExporter";
+import { existeIncompatibilidadLink } from "../api/client";
 import { generateBoardCadDocument, type InterruptorPrincipalInfo } from "../cad/generators/boardCadGenerator";
 import { CadCanvasEngine } from "../cad/engine/CadCanvasEngine";
 import type { Capas } from "./EsquemaVisual";
 
+import { PanelOcupacionHUD } from "./PanelOcupacionHUD";
 import type { ModoVisual, ModoVisualState } from "../utils/vistaStorage";
 import { Button } from "./common/Button";
 
@@ -39,8 +42,10 @@ interface CadViewerCanvasProps {
   onSalidaClick?: (salida: Salida) => void;
   gabineteSugeridoAncho?: number | null;
   gabineteSugeridoAlto?: number | null;
+  pasoMm?: number | null;
   modoVisual?: "topografico" | "bloques" | "unifilar";
   onModoVisualChange?: (modo: "topografico" | "bloques" | "unifilar") => void;
+  tabActivo?: string;
 }
 
 const ZOOM_MIN = 0.5;
@@ -67,6 +72,7 @@ export function CadViewerCanvas({
   onSalidaClick,
   gabineteSugeridoAncho,
   gabineteSugeridoAlto,
+  pasoMm,
   modoVisual: modoVisualProp = "topografico",
 }: CadViewerCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -94,6 +100,7 @@ export function CadViewerCanvas({
   const [snapGridLocal, setSnapGridLocal] = useState(false);
   const [panelCapasAbiertoLocal, setPanelCapasAbiertoLocal] = useState(false);
   const [herramientaMedirLocal, setHerramientaMedirLocal] = useState(false);
+  const [showOccupancy, setShowOccupancy] = useState(true);
 
   const theme = estadoModoActual?.theme ?? themeLocal;
   const showGrid = estadoModoActual?.showGrid ?? showGridLocal;
@@ -113,17 +120,32 @@ export function CadViewerCanvas({
     [modoVisual, onModoStateChange]
   );
 
-  // Documento CAD generado paramétricamente
-  const cadDoc = useMemo(() => {
+  // Documentos CAD para exportación completa multipágina
+  const cadDocTopo = useMemo(() => {
     return generateBoardCadDocument({
       tieneInterruptorPrincipal,
       interruptorPrincipal,
       secciones,
-      modoVisual,
+      modoVisual: "topografico",
       gabineteAnchoMm: gabineteSugeridoAncho,
       gabineteAltoMm: gabineteSugeridoAlto,
+      pasoMm: pasoMm,
     });
-  }, [tieneInterruptorPrincipal, interruptorPrincipal, secciones, modoVisual, gabineteSugeridoAncho, gabineteSugeridoAlto, dxfCargado]);
+  }, [tieneInterruptorPrincipal, interruptorPrincipal, secciones, gabineteSugeridoAncho, gabineteSugeridoAlto, pasoMm, dxfCargado]);
+
+  const cadDocUnif = useMemo(() => {
+    return generateBoardCadDocument({
+      tieneInterruptorPrincipal,
+      interruptorPrincipal,
+      secciones,
+      modoVisual: "unifilar",
+      gabineteAnchoMm: gabineteSugeridoAncho,
+      gabineteAltoMm: gabineteSugeridoAlto,
+      pasoMm: pasoMm,
+    });
+  }, [tieneInterruptorPrincipal, interruptorPrincipal, secciones, gabineteSugeridoAncho, gabineteSugeridoAlto, pasoMm, dxfCargado]);
+
+  const cadDoc = modoVisual === "unifilar" ? cadDocUnif : cadDocTopo;
 
   // Estado de capas internas
   const [capasInternas, setCapasInternas] = useState<Capas>(capasEfectivas);
@@ -166,6 +188,20 @@ export function CadViewerCanvas({
         const corrienteNum = Number(found.corriente_nominal_a) || Number(found.carga_valor) || 0;
         const corrienteDisplay = corrienteNum > 0 ? `${corrienteNum}A` : found.carga_valor ? `${found.carga_valor}A` : "-";
 
+        const todasSalidas = secciones.flatMap((s) => s.salidas);
+        const parent = found.alimentado_por_salida_id
+          ? todasSalidas.find((s) => s.id === found.alimentado_por_salida_id)
+          : undefined;
+        const hasLinkError = Boolean(
+          parent &&
+          existeIncompatibilidadLink(
+            found.formato,
+            found.tipo_proteccion,
+            parent.formato,
+            parent.tipo_proteccion
+          )
+        );
+
         return {
           tag: found.posicion_codigo || `Salida ${(found.orden ?? found.posicion_orden ?? 0) + 1}`,
           titulo: found.componente_descripcion || found.descripcion_personalizada || found.etiqueta || "Interruptor de Salida",
@@ -175,6 +211,8 @@ export function CadViewerCanvas({
           curva: found.curva || "C",
           seccion: sec.seccion.nombre,
           cable: found.seccion_cable_mm2 ? `${found.seccion_cable_mm2} mm²` : "-",
+          alimentadoPor: found.alimentado_por_codigo || null,
+          hasLinkError: hasLinkError,
         };
       }
     }
@@ -546,6 +584,16 @@ export function CadViewerCanvas({
 
           <Button
             size="xs"
+            variant={showOccupancy ? "cad-tool-active" : "cad-tool"}
+            icon={<ChartBarIcon className="w-3.5 h-3.5 text-white" />}
+            onClick={() => setShowOccupancy((prev) => !prev)}
+            title="Porcentaje de ocupación por fila (DIN 35)"
+          >
+            FILL
+          </Button>
+
+          <Button
+            size="xs"
             variant={panelCapasAbierto ? "cad-tool-active" : "cad-tool"}
             icon={<Square3Stack3DIcon className="w-3.5 h-3.5" />}
             onClick={() => {
@@ -576,45 +624,17 @@ export function CadViewerCanvas({
 
         {/* Acciones de Exportación Profesional y Cierre de Pantalla Completa */}
         <div className="flex items-center space-x-3">
-          <div className="relative">
-            <Button
-              size="xs"
-              variant="primary"
-              icon={<DocumentArrowDownIcon className="w-3.5 h-3.5" />}
-              onClick={() => setMenuExportarAbierto((v) => !v)}
-            >
-              <span className="flex items-center gap-1">
-                <span>Exportar</span>
-                <ChevronDownIcon className="w-3 h-3" />
-              </span>
-            </Button>
-
-            {menuExportarAbierto && (
-              <div className="absolute right-0 mt-2 w-48 bg-slate-950 border border-slate-700 text-slate-100 rounded-xl shadow-2xl z-50 overflow-hidden py-1 backdrop-blur-xl">
-                <button
-                  onClick={() => {
-                    setMenuExportarAbierto(false);
-                    downloadDxfFile(cadDoc, `tablero_pyre_${modoVisual}.dxf`);
-                  }}
-                  className="w-full text-left px-3.5 py-2.5 hover:bg-slate-800 flex items-center space-x-2.5 text-xs font-medium transition-colors"
-                >
-                  <span className="px-1.5 py-0.5 bg-amber-500/20 text-amber-400 font-mono text-[10px] font-bold rounded">DXF</span>
-                  <span>Exportar AutoCAD (.dxf)</span>
-                </button>
-
-                <button
-                  onClick={() => {
-                    setMenuExportarAbierto(false);
-                    exportarPdfProfesional(cadDoc, `tablero_pyre_${modoVisual}.pdf`, canvasRef.current, theme);
-                  }}
-                  className="w-full text-left px-3.5 py-2.5 hover:bg-slate-800 flex items-center space-x-2.5 text-xs font-medium transition-colors border-t border-slate-800"
-                >
-                  <span className="px-1.5 py-0.5 bg-rose-500/20 text-rose-400 font-mono text-[10px] font-bold rounded">PDF</span>
-                  <span>Exportar Plano PDF (.pdf)</span>
-                </button>
-              </div>
-            )}
-          </div>
+          <Button
+            size="xs"
+            variant={menuExportarAbierto ? "primary" : "primary"}
+            icon={<DocumentArrowDownIcon className="w-3.5 h-3.5 text-white" />}
+            onClick={() => setMenuExportarAbierto((v) => !v)}
+          >
+            <span className="flex items-center gap-1">
+              <span>Exportar</span>
+              <ChevronDownIcon className="w-3 h-3" />
+            </span>
+          </Button>
 
           {modalAmpliado && (
             <Button
@@ -631,28 +651,107 @@ export function CadViewerCanvas({
         </div>
       </div>
 
-      {/* PANEL FLOTANTE DE CAPAS CAD */}
-      {panelCapasAbierto && (
-        <div className="absolute top-12 right-4 z-40 w-64 p-3 rounded-xl shadow-xl border backdrop-blur-md animate-fade-in transition-all">
+      {/* MODAL FLOTANTE UNIFICADO DE EXPORTACIÓN */}
+      {menuExportarAbierto && (
+        <div
+          className={`absolute top-12 right-4 z-50 w-64 p-3 rounded-xl shadow-xl border backdrop-blur-md animate-fade-in transition-all ${
+            theme === "light"
+              ? "bg-white/95 border-slate-300 text-slate-900 shadow-slate-300/50"
+              : "bg-slate-950/95 border-slate-800 text-slate-100 shadow-black/80"
+          }`}
+        >
           <div
             className={`flex items-center justify-between border-b pb-2 mb-2 ${
               theme === "light" ? "border-slate-200" : "border-slate-800"
             }`}
           >
             <h4
-              className={`text-xs font-bold uppercase tracking-wider flex items-center space-x-1 ${
-                theme === "light" ? "text-slate-800" : "text-slate-300"
+              className={`text-xs font-bold uppercase tracking-wider flex items-center space-x-1.5 ${
+                theme === "light" ? "text-slate-800" : "text-slate-200"
+              }`}
+            >
+              <DocumentArrowDownIcon className="w-4 h-4 text-abb-red" />
+              <span>Exportar Plano</span>
+            </h4>
+            <button
+              onClick={() => setMenuExportarAbierto(false)}
+              className={theme === "light" ? "text-slate-400 hover:text-slate-800 text-xs font-bold p-0.5" : "text-slate-500 hover:text-white text-xs font-bold p-0.5"}
+              title="Cerrar opciones de exportación"
+            >
+              ✕
+            </button>
+          </div>
+
+          <div className="space-y-1.5 max-h-64 overflow-y-auto pr-1">
+            <button
+              type="button"
+              onClick={() => {
+                setMenuExportarAbierto(false);
+                downloadDxfFile(cadDoc, `tablero_pyre_${modoVisual}.dxf`);
+              }}
+              className={`w-full text-left px-2.5 py-2 rounded-lg border flex items-center justify-between text-xs font-medium transition-colors ${
+                theme === "light"
+                  ? "bg-slate-50 border-slate-200 hover:bg-slate-100 hover:border-slate-300 text-slate-800"
+                  : "bg-slate-900/60 border-slate-800/80 hover:bg-slate-800 hover:border-slate-700 text-slate-200"
+              }`}
+            >
+              <span>AutoCAD Vectorial (.dxf)</span>
+              <span className="px-1.5 py-0.5 bg-amber-500/20 text-amber-500 font-mono text-[10px] font-bold rounded shrink-0">
+                DXF
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setMenuExportarAbierto(false);
+                exportarPdfProfesional(cadDoc, `tablero_pyre_${modoVisual}.pdf`, canvasRef.current, theme);
+              }}
+              className={`w-full text-left px-2.5 py-2 rounded-lg border flex items-center justify-between text-xs font-medium transition-colors ${
+                theme === "light"
+                  ? "bg-slate-50 border-slate-200 hover:bg-slate-100 hover:border-slate-300 text-slate-800"
+                  : "bg-slate-900/60 border-slate-800/80 hover:bg-slate-800 hover:border-slate-700 text-slate-200"
+              }`}
+            >
+              <span>Plano PDF (.pdf)</span>
+              <span className="px-1.5 py-0.5 bg-rose-500/20 text-rose-400 font-mono text-[10px] font-bold rounded shrink-0">
+                PDF
+              </span>
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL FLOTANTE UNIFICADO DE CAPAS CAD */}
+      {panelCapasAbierto && (
+        <div
+          className={`absolute top-12 right-4 z-40 w-64 p-3 rounded-xl shadow-xl border backdrop-blur-md animate-fade-in transition-all ${
+            theme === "light"
+              ? "bg-white/95 border-slate-300 text-slate-900 shadow-slate-300/50"
+              : "bg-slate-950/95 border-slate-800 text-slate-100 shadow-black/80"
+          }`}
+        >
+          <div
+            className={`flex items-center justify-between border-b pb-2 mb-2 ${
+              theme === "light" ? "border-slate-200" : "border-slate-800"
+            }`}
+          >
+            <h4
+              className={`text-xs font-bold uppercase tracking-wider flex items-center space-x-1.5 ${
+                theme === "light" ? "text-slate-800" : "text-slate-200"
               }`}
             >
               <Square3Stack3DIcon className="w-4 h-4 text-sky-500" />
               <span>Capas CAD (Layers)</span>
             </h4>
             <button
+              type="button"
               onClick={() => {
                 setPanelCapasAbiertoLocal(false);
                 updateModoState({ panelCapasAbierto: false });
               }}
-              className={theme === "light" ? "text-slate-400 hover:text-slate-800 text-xs" : "text-slate-500 hover:text-white text-xs"}
+              className={theme === "light" ? "text-slate-400 hover:text-slate-800 text-xs font-bold p-0.5" : "text-slate-500 hover:text-white text-xs font-bold p-0.5"}
+              title="Cerrar panel de capas"
             >
               ✕
             </button>
@@ -660,7 +759,7 @@ export function CadViewerCanvas({
 
           <div className="space-y-1.5 max-h-64 overflow-y-auto pr-1">
             <label
-              className={`flex items-center justify-between px-2 py-1.5 rounded-lg border text-xs cursor-pointer ${
+              className={`flex items-center justify-between px-2.5 py-2 rounded-lg border text-xs cursor-pointer transition-colors ${
                 theme === "light"
                   ? "bg-slate-50 border-slate-200 hover:border-slate-300 text-slate-800"
                   : "bg-slate-900/60 border-slate-800/80 hover:border-slate-700 text-slate-200"
@@ -672,12 +771,12 @@ export function CadViewerCanvas({
                 aria-label="embarrado"
                 checked={capasInternas.embarrado}
                 onChange={() => toggleCapasProp("embarrado")}
-                className="rounded border-slate-400 text-blue-600 focus:ring-0 cursor-pointer"
+                className="rounded border-slate-400 text-blue-600 focus:ring-0 cursor-pointer accent-abb-red"
               />
             </label>
 
             <label
-              className={`flex items-center justify-between px-2 py-1.5 rounded-lg border text-xs cursor-pointer ${
+              className={`flex items-center justify-between px-2.5 py-2 rounded-lg border text-xs cursor-pointer transition-colors ${
                 theme === "light"
                   ? "bg-slate-50 border-slate-200 hover:border-slate-300 text-slate-800"
                   : "bg-slate-900/60 border-slate-800/80 hover:border-slate-700 text-slate-200"
@@ -689,7 +788,7 @@ export function CadViewerCanvas({
                 aria-label="codigos"
                 checked={capasInternas.codigos}
                 onChange={() => toggleCapasProp("codigos")}
-                className="rounded border-slate-400 text-blue-600 focus:ring-0 cursor-pointer"
+                className="rounded border-slate-400 text-blue-600 focus:ring-0 cursor-pointer accent-abb-red"
               />
             </label>
           </div>
@@ -702,6 +801,15 @@ export function CadViewerCanvas({
         style={{ overscrollBehavior: "contain", touchAction: "none" }}
         className="flex-1 w-full relative cursor-crosshair overflow-hidden"
       >
+        {(modoVisual === "topografico" || !modoVisual) && (
+          <PanelOcupacionHUD
+            secciones={secciones}
+            gabineteAnchoMm={gabineteSugeridoAncho}
+            visible={showOccupancy}
+            theme={theme}
+          />
+        )}
+
         <canvas
           ref={canvasRef}
           className="w-full h-full block"
@@ -720,6 +828,16 @@ export function CadViewerCanvas({
               <span className="bg-slate-100 text-emerald-800 border border-emerald-300 font-mono font-bold px-2 py-0.5 rounded text-[11px] uppercase tracking-wider">
                 {hoveredSalidaInfo.tag}
               </span>
+              {hoveredSalidaInfo.alimentadoPor && (
+                <span className="bg-red-50 text-abb-red border border-red-200 font-mono font-bold px-2 py-0.5 rounded text-[10px] uppercase tracking-wider flex items-center gap-1">
+                  Alimentado por {hoveredSalidaInfo.alimentadoPor}
+                </span>
+              )}
+              {hoveredSalidaInfo.hasLinkError && (
+                <span className="bg-amber-100 text-amber-900 border border-amber-300 font-mono font-bold px-2 py-0.5 rounded text-[10px] uppercase tracking-wider flex items-center gap-1" title="Advertencia: Enlace de alimentación con polos incompatibles (4P vs 1P/2P/3P)">
+                  ⚠️ Polos Incompatibles
+                </span>
+              )}
             </div>
 
             <div className="h-4 w-[1px] bg-slate-200 shrink-0" />

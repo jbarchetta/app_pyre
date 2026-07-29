@@ -37,6 +37,7 @@ def test_termomagnetico_con_typo_sin_espacio():
         "polos": 1,
         "corriente_nominal_a": 6.0,
         "capacidad_corte_ka": 4.5,
+        "admite_accesorios": False,
     }
 
 
@@ -110,18 +111,51 @@ def test_combo_termomagnetico_diferencial():
         "polos": 2,
         "corriente_nominal_a": 6.0,
         "capacidad_corte_ka": 6.0,
+        "sensibilidad_ma": 30,
     }
 
 
-def test_diferencial_puro_fuera_de_alcance_devuelve_none():
-    # "Interruptores Diferenciales" (puro) nunca trae Icn/Icu en ningún lado del
-    # Excel real -- queda deliberadamente sin atributos.
+def test_diferencial_puro_extrae_atributos():
+    # "Interruptores Diferenciales" (puro / disyuntor) asigna tipo="seccional_diferencial"
+    # con capacidad condicional de cortocircuito (10.0 kA por defecto).
     resultado = _extraer_atributos(
-        categoria_path=["Interruptores Diferenciales", "F200 AC", "Bipolares"],
+        categoria_path=["Interruptores Diferenciales - Con posibilidad de utilizar accesorios", "F200 AC", "Bipolares"],
         descripcion="Interruptor diferencial bipolar  In 16. Sens = 10 mA",
     )
 
-    assert resultado is None
+    assert resultado == {
+        "tipo": "seccional_diferencial",
+        "polos": 2,
+        "corriente_nominal_a": 16.0,
+        "capacidad_corte_ka": 10.0,
+        "sensibilidad_ma": 10,
+        "admite_accesorios": True,
+    }
+
+
+def test_diferencial_100ma_y_sin_accesorios():
+    resultado = _extraer_atributos(
+        categoria_path=["Interruptores Diferenciales - Sin posibilidad de utilizar accesorios", "FH200 AC", "Tetrapolares"],
+        descripcion="Interruptor diferencial tetrapolar In 40A. Sens = 100 mA",
+    )
+
+    assert resultado == {
+        "tipo": "seccional_diferencial",
+        "polos": 4,
+        "corriente_nominal_a": 40.0,
+        "capacidad_corte_ka": 10.0,
+        "sensibilidad_ma": 100,
+        "admite_accesorios": False,
+    }
+
+
+def test_diferencial_sensibilidad_amperios():
+    resultado = _extraer_atributos(
+        categoria_path=["Interruptores Diferenciales", "F200 AC", "Tetrapolares"],
+        descripcion="Interruptor diferencial tetrapolar In 63A. Sens = 0,3 A",
+    )
+
+    assert resultado["sensibilidad_ma"] == 300
 
 
 def test_categoria_fuera_de_alcance_devuelve_none():

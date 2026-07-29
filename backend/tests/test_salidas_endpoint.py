@@ -188,7 +188,7 @@ def test_listar_salidas_paginacion_sin_solapes(client, db_session):
     seccion_id = _setup_tablero(client, db_session, "salidas.pag@pyre.com")
     calibres = ["10", "16", "25"]
     for i in range(3):
-        client.post(
+        res = client.post(
             f"/secciones/{seccion_id}/salidas",
             json={
                 "carga_valor": calibres[i],
@@ -197,9 +197,12 @@ def test_listar_salidas_paginacion_sin_solapes(client, db_session):
                 "tipo_proteccion": "seccional_termomagnetico",
             },
         )
+        assert res.status_code == 201
 
     pagina1 = client.get(f"/secciones/{seccion_id}/salidas?limit=2").json()
     pagina2 = client.get(f"/secciones/{seccion_id}/salidas?limit=2&offset=2").json()
+    print("PAGINA1:", len(pagina1), pagina1)
+    print("PAGINA2:", len(pagina2), pagina2)
 
     ids_pagina1 = {s["id"] for s in pagina1}
     ids_pagina2 = {s["id"] for s in pagina2}
@@ -492,4 +495,37 @@ def test_salida_motivo_sin_match_diagnostico(client, db_session):
     )
     assert res.status_code == 201
     assert res.json()["motivo_sin_match"] == "Debe seleccionar un interruptor principal para poder proponer un componente."
+
+
+def test_crear_salida_supera_limite_45_polos_lanza_error_400(client, db_session):
+    principal = _componente(db_session, "SAL-PRINC-LIM", tipo="interruptor_principal", corriente=100, ka=15)
+    seccion_id = _setup_tablero(
+        client, db_session, "salidas_lim.test@pyre.com", interruptor_principal_id=str(principal.id)
+    )
+
+    # 11 salidas tetrapolares = 44 polos DIN
+    for _ in range(11):
+        res = client.post(
+            f"/secciones/{seccion_id}/salidas",
+            json={
+                "carga_valor": "16",
+                "carga_unidad": "A",
+                "formato": "tetrapolar",
+                "tipo_proteccion": "seccional_termomagnetico",
+            },
+        )
+        assert res.status_code == 201
+
+    # Intentar agregar 1 bipolar extra (44 + 2 = 46 polos -> HTTP 400)
+    response_exc = client.post(
+        f"/secciones/{seccion_id}/salidas",
+        json={
+            "carga_valor": "16",
+            "carga_unidad": "A",
+            "formato": "bipolar",
+            "tipo_proteccion": "seccional_termomagnetico",
+        },
+    )
+    assert response_exc.status_code == 400
+    assert "Límite de chasis superado" in response_exc.json()["detail"]
 

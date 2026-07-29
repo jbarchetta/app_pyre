@@ -33,6 +33,9 @@ import { ComponentePicker } from "./ComponentePicker";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { useCerrarAlClickFuera } from "../hooks/useCerrarAlClickFuera";
 
+import { ModalLimiteFilaOpciones } from "./ModalLimiteFilaOpciones";
+import { calcularCapacidadPolosFila, obtenerPolosSalida } from "../cad/generators/boardCadGenerator";
+
 export interface ElementoAlimentadorCandidato {
   id: string;
   codigo: string;
@@ -57,6 +60,10 @@ export const PROTECCION_LABEL: Record<TipoProteccion, string> = {
 interface SeccionBlockProps {
   seccion: Seccion;
   salidas: Salida[];
+  todasLasSeccionesConSalidas?: { seccion: Seccion; salidas: Salida[] }[];
+  gabineteAnchoMm?: number | null;
+  onAbrirConfiguracionTablero?: () => void;
+  onSaltoAutomaticoGabineteNIS?: (accionPendiente?: any) => Promise<void>;
   elementosCandidatos?: ElementoAlimentadorCandidato[];
   onSalidaCreada: (salida: Salida) => void;
   onSalidaActualizada: (salida: Salida) => void;
@@ -211,56 +218,51 @@ function FilaSalida({
         </span>
       </td>
 
-      {/* Código SAP / Comercial + Ícono de Estado Integrado + Tooltip de Descripción */}
+      {/* Celda 1: Código ABB / SAP */}
       <td
         className={`p-3 font-mono text-xs ${animar ? "animate-flash" : ""}`}
-        title={
-          salida.motivo_sin_match
-            ? `Sin match: ${salida.motivo_sin_match}`
-            : salida.componente_descripcion
-            ? `${salida.componente_codigo ?? ""} - ${salida.componente_descripcion}`
-            : salida.componente_codigo_comercial
-            ? `${salida.componente_codigo ?? ""} (${salida.componente_codigo_comercial})`
-            : undefined
-        }
+        title={salida.componente_codigo_comercial ?? undefined}
       >
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 whitespace-nowrap">
           {salida.componente_id ? (
             salida.asignado_manualmente ? (
               <PencilSquareIcon
-                className="w-4 h-4 text-abb-red shrink-0"
+                className="w-3.5 h-3.5 text-abb-red shrink-0"
                 title="Asignado manualmente por el analista"
               />
             ) : (
               <Cog6ToothIcon
-                className="w-4 h-4 text-blue-600 shrink-0"
+                className="w-3.5 h-3.5 text-blue-600 shrink-0"
                 title="Propuesta automática calculada"
               />
             )
           ) : (
             <ExclamationTriangleIcon
-              className="w-4 h-4 text-amber-500 shrink-0 cursor-help"
+              className="w-3.5 h-3.5 text-amber-500 shrink-0 cursor-help"
               title={salida.motivo_sin_match ?? "Sin propuesta automática para esta carga"}
             />
           )}
-
-          <div className="flex flex-col min-w-0">
-            <span
-              className={salida.componente_id ? "font-semibold text-gray-900" : "text-amber-600 font-normal italic text-xs"}
-            >
-              {salida.componente_id ? (salida.componente_codigo ?? salida.componente_id) : "Sin match"}
-            </span>
-            {salida.componente_descripcion ? (
-              <span className="text-gray-500 text-[11px] truncate max-w-[240px]">
-                {salida.componente_descripcion}
-              </span>
-            ) : salida.componente_codigo_comercial ? (
-              <span className="text-gray-500 text-[11px] truncate max-w-[240px]">
-                {salida.componente_codigo_comercial}
-              </span>
-            ) : null}
-          </div>
+          <span className={salida.componente_id ? "font-bold text-gray-900" : "text-amber-600 font-normal italic text-xs"}>
+            {salida.componente_id ? (salida.componente_codigo ?? salida.componente_id) : "Sin match"}
+          </span>
         </div>
+      </td>
+
+      {/* Celda 2: Descripción del Componente */}
+      <td className="p-3 text-xs text-gray-700 min-w-[200px] max-w-[320px]">
+        {salida.componente_descripcion ? (
+          <span className="truncate block font-sans" title={salida.componente_descripcion}>
+            {salida.componente_descripcion}
+          </span>
+        ) : salida.componente_codigo_comercial ? (
+          <span className="truncate block font-sans text-gray-800" title={salida.componente_codigo_comercial}>
+            {salida.componente_codigo_comercial}
+          </span>
+        ) : (
+          <span className="text-gray-400 italic text-[11px]">
+            {salida.motivo_sin_match ? `Sin match (${salida.motivo_sin_match})` : "—"}
+          </span>
+        )}
       </td>
 
       {/* Acciones */}
@@ -327,6 +329,10 @@ function FilaSalida({
 export function SeccionBlock({
   seccion,
   salidas,
+  todasLasSeccionesConSalidas = [],
+  gabineteAnchoMm,
+  onAbrirConfiguracionTablero,
+  onSaltoAutomaticoGabineteNIS,
   elementosCandidatos = [],
   onSalidaCreada,
   onSalidaActualizada,
@@ -470,23 +476,123 @@ export function SeccionBlock({
     (c) => c.id !== salidaEnLink?.id
   );
 
+  const [modalLimiteState, setModalLimiteState] = useState<{
+    isOpen: boolean;
+    filaOrigenNombre: string;
+    polosSolicitados: number;
+    polosDisponiblesOrigen: number;
+    filaDisponible?: { id: string; nombre: string } | null;
+    accion:
+      | { tipo: "crear"; datos: any }
+      | { tipo: "editar"; salidaId: string; cambios: any }
+      | { tipo: "duplicar"; salidaId: string };
+  } | null>(null);
+
+  const capacidadFila = calcularCapacidadPolosFila(gabineteAnchoMm);
+
+  function verificarLimiteFila(
+    polosAdicionales: number,
+    salidaIgnoradaId?: string
+  ): {
+    excedido: boolean;
+    polosDisponiblesOrigen: number;
+    filaDisponible: { id: string; nombre: string } | null;
+  } {
+    const polosActualesOrigen = salidas
+      .filter((s: Salida) => s.id !== salidaIgnoradaId)
+      .reduce((sum: number, s: Salida) => sum + obtenerPolosSalida(s), 0);
+
+    const excedido = polosActualesOrigen + polosAdicionales > capacidadFila;
+    const polosDisponiblesOrigen = Math.max(0, capacidadFila - polosActualesOrigen);
+
+    if (!excedido) {
+      return { excedido: false, polosDisponiblesOrigen, filaDisponible: null };
+    }
+
+    let filaDisponible: { id: string; nombre: string } | null = null;
+    if (todasLasSeccionesConSalidas) {
+      for (const item of todasLasSeccionesConSalidas) {
+        if (item.seccion.id === seccion.id) continue;
+        const polosItem = item.salidas
+          .filter((s: Salida) => s.id !== salidaIgnoradaId)
+          .reduce((sum: number, s: Salida) => sum + obtenerPolosSalida(s), 0);
+
+        if (polosItem + polosAdicionales <= capacidadFila) {
+          filaDisponible = { id: item.seccion.id, nombre: item.seccion.nombre };
+          break;
+        }
+      }
+    }
+
+    return { excedido: true, polosDisponiblesOrigen, filaDisponible };
+  }
+
+  async function ejecutarAccionModalMover(targetFilaId: string) {
+    if (!modalLimiteState) return;
+    const { accion } = modalLimiteState;
+    setModalLimiteState(null);
+    setError(null);
+    try {
+      if (accion.tipo === "crear") {
+        const salida = await crearSalida(targetFilaId, accion.datos);
+        onSalidaCreada(salida);
+        setCargaValor("");
+        setEtiqueta("");
+      } else if (accion.tipo === "editar") {
+        const actualizada = await actualizarSalida(accion.salidaId, {
+          ...accion.cambios,
+          seccion_id: targetFilaId,
+        });
+        onSalidaActualizada(actualizada);
+        cerrarEdicion();
+      } else if (accion.tipo === "duplicar") {
+        const duplicada = await duplicarSalida(accion.salidaId);
+        if (duplicada.seccion_id !== targetFilaId) {
+          const reubicada = await actualizarSalida(duplicada.id, { seccion_id: targetFilaId });
+          onSalidaCreada(reubicada);
+        } else {
+          onSalidaCreada(duplicada);
+        }
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Error al procesar la acción en la nueva fila");
+    }
+  }
+
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
     setError(null);
-    try {
-      const salida = await crearSalida(seccion.id, {
-        etiqueta: etiqueta.trim() || undefined,
-        carga_valor: cargaValor,
-        carga_unidad: cargaUnidad,
-        formato,
-        tipo_proteccion: tipoProteccion,
-        sensibilidad_ma: tipoProteccion === "seccional_diferencial" ? sensibilidadMa : undefined,
-        admite_accesorios: tipoProteccion === "seccional_diferencial" ? admiteAccesorios : undefined,
+
+    const datos = {
+      etiqueta: etiqueta.trim() || undefined,
+      carga_valor: cargaValor,
+      carga_unidad: cargaUnidad,
+      formato,
+      tipo_proteccion: tipoProteccion,
+      sensibilidad_ma: tipoProteccion === "seccional_diferencial" ? sensibilidadMa : undefined,
+      admite_accesorios: tipoProteccion === "seccional_diferencial" ? admiteAccesorios : undefined,
+    };
+
+    const polosNuevos = obtenerPolosSalida({ formato, tipo_proteccion: tipoProteccion } as any);
+    const check = verificarLimiteFila(polosNuevos);
+
+    if (check.excedido) {
+      setModalLimiteState({
+        isOpen: true,
+        filaOrigenNombre: seccion.nombre,
+        polosSolicitados: polosNuevos,
+        polosDisponiblesOrigen: check.polosDisponiblesOrigen,
+        filaDisponible: check.filaDisponible,
+        accion: { tipo: "crear", datos },
       });
+      return; // STOP! No API call or CAD installation!
+    }
+
+    try {
+      const salida = await crearSalida(seccion.id, datos);
       onSalidaCreada(salida);
       setCargaValor("");
       setEtiqueta("");
-      // Mantiene la sección y formato abiertos para flujo continuo de carga
     } catch (err) {
       setError(err instanceof Error ? err.message : "No se pudo crear la salida");
     }
@@ -494,6 +600,22 @@ export function SeccionBlock({
 
   async function handleDuplicar(salida: Salida) {
     setError(null);
+
+    const polosNuevos = obtenerPolosSalida(salida);
+    const check = verificarLimiteFila(polosNuevos);
+
+    if (check.excedido) {
+      setModalLimiteState({
+        isOpen: true,
+        filaOrigenNombre: seccion.nombre,
+        polosSolicitados: polosNuevos,
+        polosDisponiblesOrigen: check.polosDisponiblesOrigen,
+        filaDisponible: check.filaDisponible,
+        accion: { tipo: "duplicar", salidaId: salida.id },
+      });
+      return; // STOP! No API call or CAD installation!
+    }
+
     try {
       const duplicada = await duplicarSalida(salida.id);
       onSalidaCreada(duplicada);
@@ -597,22 +719,44 @@ export function SeccionBlock({
     if (!salidaEnEdicion) return;
     const idEditada = salidaEnEdicion.id;
     setError(null);
+
+    const payload: any = {
+      etiqueta: editEtiqueta.trim() || undefined,
+      carga_valor: editCargaValor,
+      carga_unidad: editCargaUnidad,
+      formato: editFormato,
+      tipo_proteccion: editTipoProteccion,
+      sensibilidad_ma: editTipoProteccion === "seccional_diferencial" ? editSensibilidadMa : undefined,
+      admite_accesorios: editTipoProteccion === "seccional_diferencial" ? editAdmiteAccesorios : undefined,
+    };
+
+    if (editAsignadoManualmente) {
+      payload.componente_id = editComponenteId;
+      payload.asignado_manualmente = true;
+    }
+
+    const polosNuevos = obtenerPolosSalida({
+      formato: editFormato,
+      tipo_proteccion: editTipoProteccion,
+      componente_codigo: editComponenteCodigo,
+      componente_descripcion: editComponenteDescripcion,
+    } as any);
+
+    const check = verificarLimiteFila(polosNuevos, salidaEnEdicion.id);
+
+    if (check.excedido) {
+      setModalLimiteState({
+        isOpen: true,
+        filaOrigenNombre: seccion.nombre,
+        polosSolicitados: polosNuevos,
+        polosDisponiblesOrigen: check.polosDisponiblesOrigen,
+        filaDisponible: check.filaDisponible,
+        accion: { tipo: "editar", salidaId: idEditada, cambios: payload },
+      });
+      return; // STOP! No API call or CAD update!
+    }
+
     try {
-      const payload: any = {
-        etiqueta: editEtiqueta.trim() || undefined,
-        carga_valor: editCargaValor,
-        carga_unidad: editCargaUnidad,
-        formato: editFormato,
-        tipo_proteccion: editTipoProteccion,
-        sensibilidad_ma: editTipoProteccion === "seccional_diferencial" ? editSensibilidadMa : undefined,
-        admite_accesorios: editTipoProteccion === "seccional_diferencial" ? editAdmiteAccesorios : undefined,
-      };
-
-      if (editAsignadoManualmente) {
-        payload.componente_id = editComponenteId;
-        payload.asignado_manualmente = true;
-      }
-
       const actualizada = await actualizarSalida(idEditada, payload);
       if (idSalidaEnEdicionRef.current !== idEditada) return;
       onSalidaActualizada(actualizada);
@@ -702,14 +846,15 @@ export function SeccionBlock({
                 <th scope="col" className="py-2.5 px-3 font-bold">Circuito</th>
                 <th scope="col" className="py-2.5 px-3 font-bold">Carga</th>
                 <th scope="col" className="py-2.5 px-3 font-bold">Formato / Protec</th>
-                <th scope="col" className="py-2.5 px-3 font-bold">Componente ABB</th>
+                <th scope="col" className="py-2.5 px-3 font-bold">Código ABB</th>
+                <th scope="col" className="py-2.5 px-3 font-bold">Descripción</th>
                 <th scope="col" className="py-2.5 px-3 text-right font-bold">Acciones</th>
               </tr>
             </thead>
             <tbody>
               {salidas.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="p-6 text-center text-gray-500 text-xs italic">
+                  <td colSpan={7} className="p-6 text-center text-gray-500 text-xs italic">
                     Sin salidas en esta sección. Utilizá el botón inferior para agregar la primera.
                   </td>
                 </tr>
@@ -1329,6 +1474,27 @@ export function SeccionBlock({
           error={error}
           onConfirm={handleConfirmarBorrado}
           onCancel={cancelarBorrado}
+        />
+      )}
+
+      {modalLimiteState && (
+        <ModalLimiteFilaOpciones
+          isOpen={modalLimiteState.isOpen}
+          filaOrigenNombre={modalLimiteState.filaOrigenNombre}
+          polosSolicitados={modalLimiteState.polosSolicitados}
+          polosDisponiblesOrigen={modalLimiteState.polosDisponiblesOrigen}
+          filaDisponible={modalLimiteState.filaDisponible}
+          onMoverAFila={(targetFilaId) => ejecutarAccionModalMover(targetFilaId)}
+          onConfigurarNuevoTablero={async () => {
+            const accion = modalLimiteState.accion;
+            setModalLimiteState(null);
+            if (onSaltoAutomaticoGabineteNIS) {
+              await onSaltoAutomaticoGabineteNIS(accion);
+            } else {
+              onAbrirConfiguracionTablero?.();
+            }
+          }}
+          onCancelar={() => setModalLimiteState(null)}
         />
       )}
     </div>

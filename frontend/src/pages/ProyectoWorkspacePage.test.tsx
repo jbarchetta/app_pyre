@@ -460,15 +460,17 @@ describe("ProyectoWorkspacePage", () => {
     expect(await screen.findByText("Nombre de tablero duplicado")).toBeInTheDocument();
   });
 
-  it("asks for confirmation before discarding the rename-tablero edit when closing via Cancelar", async () => {
+  it("closes the rename-tablero modal directly when closing via Cancelar without confirmation", async () => {
     mockFetchConDosTableros();
     renderPage();
     await screen.findByRole("tab", { name: "TG1" });
 
     await userEvent.click(screen.getByRole("button", { name: /renombrar tablero activo/i }));
+    expect(screen.getByRole("dialog")).toBeInTheDocument();
+
     await userEvent.click(screen.getByRole("button", { name: /^cancelar$/i }));
 
-    expect(screen.getByText(/¿descartar cambios\?/i)).toBeInTheDocument();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 
   it("does not ask for confirmation when cancelling the create-tablero modal", async () => {

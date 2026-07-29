@@ -67,7 +67,7 @@ describe("EsquemaVisual", () => {
 
     const rect = screen.getByTestId("salida-sal-sinmatch");
     expect(rect).toHaveAttribute("fill", "#fffbe6");
-    expect(rect).toHaveAttribute("stroke-dasharray", "3,2");
+    expect(rect).not.toHaveAttribute("stroke-dasharray");
   });
 
   it("renders the interruptor principal block only when present", () => {
@@ -116,5 +116,58 @@ describe("EsquemaVisual", () => {
     const svg = screen.getByRole("img", { name: /esquema visual del tablero/i });
     const [, , viewBoxAncho] = svg.getAttribute("viewBox")!.split(" ").map(Number);
     expect(viewBoxAncho).toBe(270);
+  });
+
+  it("renders a warning icon when there is a pole mismatch in alimentado_por relationship", () => {
+    render(
+      <EsquemaVisual
+        tieneInterruptorPrincipal={false}
+        secciones={[
+          {
+            seccion: { id: "sec1", tablero_id: "tab1", nombre: "Sección 1", orden: 0 },
+            salidas: [
+              salida({
+                id: "parent-tetra",
+                formato: "tetrapolar",
+                tipo_proteccion: "seccional_diferencial",
+              }),
+              salida({
+                id: "child-uni",
+                formato: "unipolar",
+                tipo_proteccion: "seccional_termomagnetico",
+                alimentado_por_salida_id: "parent-tetra",
+              }),
+            ],
+          },
+        ]}
+      />,
+    );
+
+    expect(screen.getByTestId("salida-child-uni-link-error")).toBeInTheDocument();
+  });
+
+  it("renders the unifilar mode correctly", () => {
+    render(
+      <EsquemaVisual
+        tieneInterruptorPrincipal={true}
+        secciones={[{ seccion, salidas: [salida({ id: "sal-1" })] }]}
+        modoVisual="unifilar"
+      />,
+    );
+    expect(screen.getByRole("img", { name: /esquema unifilar cad/i })).toBeInTheDocument();
+    expect(screen.getAllByText("F1.1").length).toBeGreaterThan(0);
+  });
+
+  it("renders the tablero mode correctly", () => {
+    render(
+      <EsquemaVisual
+        tieneInterruptorPrincipal={true}
+        secciones={[{ seccion, salidas: [salida({ id: "sal-1" })] }]}
+        modoVisual="tablero"
+        bornerasTipo="inferior"
+      />,
+    );
+    expect(screen.getByRole("img", { name: /disposición física a escala real del tablero/i })).toBeInTheDocument();
+    expect(screen.getAllByText("F1.1").length).toBe(1); // One on the breaker (terminal blocks are disabled)
   });
 });

@@ -34,6 +34,7 @@ class BomLineaItemResponse(BaseModel):
     componente_codigo_comercial: str | None
     componente_descripcion: str
     componente_categoria: str | None
+    componente_marca: str | None
     cantidad: int
     precio_unitario_congelado: Decimal
     subtotal: Decimal
@@ -63,6 +64,12 @@ def _construir_linea_response(linea: BomLinea, comp: CatalogoComponente | None) 
     if comp and comp.categoria_path and len(comp.categoria_path) > 0:
         cat = comp.categoria_path[0]
 
+    marca = "ABB"
+    if comp and comp.proveedor:
+        marca = comp.proveedor
+    elif comp and ("gabinete" in (comp.descripcion or "").lower() or "noll" in (comp.descripcion or "").lower()):
+        marca = "Nollmann"
+
     return BomLineaItemResponse(
         id=str(linea.id),
         tablero_id=str(linea.tablero_id),
@@ -71,6 +78,7 @@ def _construir_linea_response(linea: BomLinea, comp: CatalogoComponente | None) 
         componente_codigo_comercial=comp.codigo_comercial if comp else None,
         componente_descripcion=comp.descripcion if comp else "Componente no encontrado",
         componente_categoria=cat,
+        componente_marca=marca,
         cantidad=linea.cantidad,
         precio_unitario_congelado=prec,
         subtotal=subtotal,
@@ -143,13 +151,19 @@ def generar_bom_tablero(
     # Interruptor Principal
     _sumar_componente(tablero.interruptor_principal_id, 1)
 
-    # Accesorios Principales
+    # Accesorios Principales (filtrar interruptores principales residuales de pruebas previas)
     accesorios = (
         db.query(TableroAccesorioPrincipal)
-        .filter(TableroAccesorioPrincipal.tablero_id == tablero.id)
+        .filter(
+            TableroAccesorioPrincipal.tablero_id == tablero.id,
+            TableroAccesorioPrincipal.componente_id != tablero.interruptor_principal_id,
+        )
         .all()
     )
     for acc in accesorios:
+        comp_acc = db.get(CatalogoComponente, acc.componente_id)
+        if comp_acc and comp_acc.atributos and comp_acc.atributos.get("tipo") == "termomagnetico":
+            continue
         _sumar_componente(acc.componente_id, 1)
 
     # Salidas de todas las secciones

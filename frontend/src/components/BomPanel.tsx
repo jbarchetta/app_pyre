@@ -14,11 +14,14 @@ interface BomPanelProps {
   isCompact?: boolean;
 }
 
+type TabCategoriaBOM = "todos" | "abb" | "nollmann" | "cables" | "terminales";
+
 export function BomPanel({ tableroId, tableroNombre, onAmpliar, isCompact = false }: BomPanelProps) {
   const [bom, setBom] = useState<BomResumenTablero | null>(null);
   const [cargando, setCargando] = useState(false);
   const [generando, setGenerando] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [tabCatActiva, setTabCatActiva] = useState<TabCategoriaBOM>("todos");
 
   useEffect(() => {
     let unmounted = false;
@@ -75,21 +78,61 @@ export function BomPanel({ tableroId, tableroNombre, onAmpliar, isCompact = fals
     }).format(valor);
   };
 
-  const formatearFecha = (isoString: string | null) => {
-    if (!isoString) return null;
-    try {
-      const fecha = new Date(isoString);
-      return fecha.toLocaleString("es-AR", {
-        day: "2-digit",
-        month: "2-digit",
-        year: "numeric",
-        hour: "2-digit",
-        minute: "2-digit",
-      });
-    } catch {
-      return isoString;
+  const lineasFiltradas = (bom?.lineas ?? []).filter((linea) => {
+    if (tabCatActiva === "todos") return true;
+
+    const catLow = (linea.componente_categoria || "").toLowerCase();
+    const descLow = (linea.componente_descripcion || "").toLowerCase();
+    const marcaLow = (linea.componente_marca || "").toLowerCase();
+
+    if (tabCatActiva === "abb") {
+      return (
+        marcaLow === "abb" ||
+        catLow.includes("termomagn") ||
+        catLow.includes("diferencial") ||
+        catLow.includes("interruptor") ||
+        catLow.includes("accesorios") ||
+        descLow.includes("abb")
+      );
     }
-  };
+    if (tabCatActiva === "nollmann") {
+      return (
+        marcaLow.includes("noll") ||
+        catLow.includes("gabinete") ||
+        descLow.includes("noll") ||
+        descLow.includes("nis") ||
+        descLow.includes("gabinete")
+      );
+    }
+    if (tabCatActiva === "cables") {
+      return (
+        catLow.includes("cable") ||
+        catLow.includes("conductor") ||
+        catLow.includes("distribuidor") ||
+        catLow.includes("canal") ||
+        descLow.includes("cable") ||
+        descLow.includes("distribuidor")
+      );
+    }
+    if (tabCatActiva === "terminales") {
+      return (
+        catLow.includes("bornera") ||
+        catLow.includes("terminal") ||
+        catLow.includes("riel") ||
+        descLow.includes("bornera") ||
+        descLow.includes("terminal") ||
+        descLow.includes("riel")
+      );
+    }
+    return true;
+  });
+
+  const subtotalFiltrado = lineasFiltradas.reduce((acc, item) => {
+    const val = Number(item.subtotal);
+    const p = Number(item.precio_unitario_congelado);
+    const sub = !isNaN(val) ? val : !isNaN(p) ? p * item.cantidad : 0;
+    return acc + sub;
+  }, 0);
 
   return (
     <div className="bg-white border border-slate-300 rounded-2xl shadow-sm overflow-hidden space-y-0">
@@ -189,24 +232,63 @@ export function BomPanel({ tableroId, tableroNombre, onAmpliar, isCompact = fals
           </div>
         ) : (
           <div className="space-y-4">
-            {/* Tag Pills bar matching reference image */}
-            <div className="flex flex-wrap items-center justify-between gap-2 p-3 bg-slate-900 text-slate-100 rounded-xl text-xs font-mono border border-slate-800">
-              <div className="flex items-center gap-2">
-                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded font-mono font-bold text-[10px] bg-emerald-950 text-emerald-400 border border-emerald-500/40">
-                  <svg className="w-3.5 h-3.5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
-                  </svg>
-                  PRECIOS CONGELADOS
-                </span>
-                {bom.fecha_congelamiento && (
-                  <span className="text-slate-300 text-[11px]">
-                    Emisión: {formatearFecha(bom.fecha_congelamiento)}
-                  </span>
-                )}
-              </div>
-              <div className="text-slate-300 text-xs">
-                Total ítems: <strong className="text-white font-mono font-bold">{bom.total_items_count}</strong>
-              </div>
+            {/* Control Segmentado de Pestañas Categorizadas Normalizado */}
+            <div className="flex flex-wrap items-center gap-1 bg-slate-100 p-1.5 rounded-xl border border-slate-200 text-xs font-sans select-none">
+              <button
+                type="button"
+                onClick={() => setTabCatActiva("todos")}
+                className={`px-3 py-1.5 rounded-md transition-all ${
+                  tabCatActiva === "todos"
+                    ? "bg-abb-red text-white font-semibold shadow-2xs"
+                    : "text-slate-600 hover:text-slate-900 hover:bg-slate-200/60 font-medium"
+                }`}
+              >
+                Total Unificado ({bom.lineas.length})
+              </button>
+              <button
+                type="button"
+                onClick={() => setTabCatActiva("abb")}
+                className={`px-3 py-1.5 rounded-md transition-all ${
+                  tabCatActiva === "abb"
+                    ? "bg-abb-red text-white font-semibold shadow-2xs"
+                    : "text-slate-600 hover:text-slate-900 hover:bg-slate-200/60 font-medium"
+                }`}
+              >
+                Componentes ABB
+              </button>
+              <button
+                type="button"
+                onClick={() => setTabCatActiva("nollmann")}
+                className={`px-3 py-1.5 rounded-md transition-all ${
+                  tabCatActiva === "nollmann"
+                    ? "bg-abb-red text-white font-semibold shadow-2xs"
+                    : "text-slate-600 hover:text-slate-900 hover:bg-slate-200/60 font-medium"
+                }`}
+              >
+                Gabinetes y Distribuidores (Nollmann / Nöllmed)
+              </button>
+              <button
+                type="button"
+                onClick={() => setTabCatActiva("cables")}
+                className={`px-3 py-1.5 rounded-md transition-all ${
+                  tabCatActiva === "cables"
+                    ? "bg-abb-red text-white font-semibold shadow-2xs"
+                    : "text-slate-600 hover:text-slate-900 hover:bg-slate-200/60 font-medium"
+                }`}
+              >
+                Cables y Conectores
+              </button>
+              <button
+                type="button"
+                onClick={() => setTabCatActiva("terminales")}
+                className={`px-3 py-1.5 rounded-md transition-all ${
+                  tabCatActiva === "terminales"
+                    ? "bg-abb-red text-white font-semibold shadow-2xs"
+                    : "text-slate-600 hover:text-slate-900 hover:bg-slate-200/60 font-medium"
+                }`}
+              >
+                Terminales y Accesorios
+              </button>
             </div>
 
             {/* High-Contrast Grid Table with Left Vertical Color Bars */}
@@ -214,6 +296,7 @@ export function BomPanel({ tableroId, tableroNombre, onAmpliar, isCompact = fals
               <table className="w-full text-left border-collapse text-xs">
                 <thead>
                   <tr className="bg-[#2C3645] text-slate-100 font-mono text-[11px] uppercase tracking-wider border-b border-slate-700">
+                    <th className="py-2.5 px-2 text-center font-bold w-10">ID</th>
                     <th className="py-2.5 px-3 font-bold">Código SAP</th>
                     <th className="py-2.5 px-3 font-bold">Desig. Comercial</th>
                     {!isCompact && <th className="py-2.5 px-3 font-bold">Descripción</th>}
@@ -224,70 +307,104 @@ export function BomPanel({ tableroId, tableroNombre, onAmpliar, isCompact = fals
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-200 bg-white">
-                  {bom.lineas.map((linea, idx) => {
-                    // Left color bar category determination
-                    const isBreaker = linea.componente_categoria?.toLowerCase().includes("termomagn") || linea.componente_categoria?.toLowerCase().includes("diferencial");
-                    const isEnclosure = linea.componente_categoria?.toLowerCase().includes("gabinete");
-                    const borderClass = isBreaker ? "border-l-4 border-l-abb-red" : isEnclosure ? "border-l-4 border-l-blue-500" : "border-l-4 border-l-amber-500";
+                  {lineasFiltradas.length === 0 ? (
+                    <tr>
+                      <td colSpan={isCompact ? 5 : 8} className="p-6 text-center text-xs text-slate-500 italic">
+                        No hay ítems en esta categoría.
+                      </td>
+                    </tr>
+                  ) : (
+                    lineasFiltradas.map((linea, idx) => {
+                      // Left color bar category determination
+                      const isBreaker =
+                        linea.componente_marca === "ABB" ||
+                        linea.componente_categoria?.toLowerCase().includes("termomagn") ||
+                        linea.componente_categoria?.toLowerCase().includes("diferencial");
+                      const isEnclosure =
+                        linea.componente_marca === "Nollmann" ||
+                        linea.componente_categoria?.toLowerCase().includes("gabinete");
+                      const borderClass = isBreaker
+                        ? "border-l-4 border-l-abb-red"
+                        : isEnclosure
+                        ? "border-l-4 border-l-blue-600"
+                        : "border-l-4 border-l-amber-500";
 
-                    return (
-                      <tr
-                        key={linea.id}
-                        className={`transition-colors ${borderClass} ${
-                          idx % 2 === 0 ? "bg-white" : "bg-slate-50/80"
-                        } hover:bg-red-50/50`}
-                      >
-                        <td className="py-2.5 px-3 font-mono font-bold text-slate-800 text-[11px]">
-                          {linea.componente_codigo}
-                        </td>
-                        <td className="py-2.5 px-3 font-sans font-bold text-slate-900 text-xs">
-                          {linea.componente_codigo_comercial ? (
-                            <span>
-                              <span className="text-abb-red font-extrabold mr-1">ABB</span>
-                              {linea.componente_codigo_comercial}
-                            </span>
-                          ) : (
-                            "-"
+                      const esGabineteNollmann =
+                        linea.componente_marca === "Nollmann" ||
+                        linea.componente_categoria?.toLowerCase().includes("gabinete") ||
+                        linea.componente_descripcion?.toLowerCase().includes("noll");
+
+                      return (
+                        <tr
+                          key={linea.id}
+                          className={`transition-colors ${borderClass} ${
+                            idx % 2 === 0 ? "bg-white" : "bg-slate-50/80"
+                          } hover:bg-red-50/50`}
+                        >
+                          <td className="py-2.5 px-2 text-center font-mono font-bold text-slate-500 text-[11px]">
+                            #{idx + 1}
+                          </td>
+                          <td className="py-2.5 px-3 font-mono font-bold text-slate-800 text-[11px]">
+                            {linea.componente_codigo}
+                          </td>
+                          <td className="py-2.5 px-3 font-sans font-bold text-slate-900 text-xs">
+                            {linea.componente_codigo_comercial ? (
+                              <span>
+                                {esGabineteNollmann ? (
+                                  <span className="text-blue-700 font-extrabold mr-1">Nollmann</span>
+                                ) : linea.componente_marca === "ABB" || !linea.componente_marca ? (
+                                  <span className="text-abb-red font-extrabold mr-1">ABB</span>
+                                ) : (
+                                  <span className="text-slate-800 font-extrabold mr-1">{linea.componente_marca}</span>
+                                )}
+                                {linea.componente_codigo_comercial}
+                              </span>
+                            ) : (
+                              "-"
+                            )}
+                          </td>
+                          {!isCompact && (
+                            <td className="py-2.5 px-3 text-slate-800 max-w-xs truncate text-[11px]" title={linea.componente_descripcion}>
+                              {linea.componente_descripcion}
+                            </td>
                           )}
-                        </td>
-                        {!isCompact && (
-                          <td className="py-2.5 px-3 text-slate-800 max-w-xs truncate text-[11px]" title={linea.componente_descripcion}>
-                            {linea.componente_descripcion}
+                          {!isCompact && (
+                            <td className="py-2.5 px-3 text-slate-600 text-[11px] font-medium">
+                              <span className="px-2 py-0.5 rounded bg-slate-100 border border-slate-200 text-slate-700 text-[10px]">
+                                {linea.componente_categoria || "General"}
+                              </span>
+                            </td>
+                          )}
+                          <td className="py-2.5 px-2 text-center font-mono font-bold text-slate-900 text-xs">
+                            {linea.cantidad}
                           </td>
-                        )}
-                        {!isCompact && (
-                          <td className="py-2.5 px-3 text-slate-600 text-[11px] font-medium">
-                            <span className="px-2 py-0.5 rounded bg-slate-100 border border-slate-200 text-slate-700 text-[10px]">
-                              {linea.componente_categoria || "General"}
-                            </span>
+                          {!isCompact && (
+                            <td className="py-2.5 px-3 text-right font-mono text-slate-700 text-[11px]">
+                              {formatearMoneda(linea.precio_unitario_congelado)}
+                            </td>
+                          )}
+                          <td className="py-2.5 px-3 text-right font-mono font-extrabold text-slate-900 text-xs">
+                            {formatearMoneda(linea.subtotal)}
                           </td>
-                        )}
-                        <td className="py-2.5 px-2 text-center font-mono font-bold text-slate-900 text-xs">
-                          {linea.cantidad}
-                        </td>
-                        {!isCompact && (
-                          <td className="py-2.5 px-3 text-right font-mono text-slate-700 text-[11px]">
-                            {formatearMoneda(linea.precio_unitario_congelado)}
-                          </td>
-                        )}
-                        <td className="py-2.5 px-3 text-right font-mono font-extrabold text-slate-900 text-xs">
-                          {formatearMoneda(linea.subtotal)}
-                        </td>
-                      </tr>
-                    );
-                  })}
+                        </tr>
+                      );
+                    })
+                  )}
                 </tbody>
               </table>
             </div>
 
             {/* Total Financial Summary Card */}
-            <div className="flex justify-end pt-2">
+            <div className="flex flex-col sm:flex-row justify-between items-center gap-3 pt-2">
+              <div className="text-xs font-mono text-slate-500">
+                Mostrando <strong className="text-slate-900">{lineasFiltradas.length}</strong> de <strong className="text-slate-900">{bom.lineas.length}</strong> ítems
+              </div>
               <div className="bg-[#2C3645] text-white p-4 rounded-xl flex items-center justify-between gap-6 w-full sm:w-auto border border-slate-800 shadow-md">
                 <span className="text-xs font-mono uppercase tracking-wider text-slate-300 font-bold">
-                  Total General Tablero
+                  {tabCatActiva === "todos" ? "Total General Tablero" : `Subtotal (${lineasFiltradas.length} ítems)`}
                 </span>
                 <span className="text-2xl font-mono font-extrabold text-abb-red">
-                  {formatearMoneda(bom.costo_total)}
+                  {formatearMoneda(tabCatActiva === "todos" ? bom.costo_total : subtotalFiltrado)}
                 </span>
               </div>
             </div>

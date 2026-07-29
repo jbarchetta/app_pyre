@@ -1,11 +1,11 @@
 import os
 
-os.environ.setdefault(
-    "TABLERO_DATABASE_URL",
-    "postgresql+psycopg2://tablero:tablero_dev_pw@localhost:5432/tablero_test",
-)
-os.environ.setdefault("TABLERO_JWT_SECRET", "test-secret")
-os.environ.setdefault("TABLERO_ENVIRONMENT", "test")
+db_host = os.environ.get("POSTGRES_HOST", "localhost" if os.name == "nt" else "db")
+test_db_url = f"postgresql+psycopg2://tablero:tablero_dev_pw@{db_host}:5432/tablero_test"
+
+os.environ["TABLERO_DATABASE_URL"] = test_db_url
+os.environ["TABLERO_JWT_SECRET"] = "test-secret"
+os.environ["TABLERO_ENVIRONMENT"] = "test"
 
 import pytest
 from sqlalchemy import text

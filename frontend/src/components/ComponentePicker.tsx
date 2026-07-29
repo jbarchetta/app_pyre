@@ -1,5 +1,11 @@
 import { useEffect, useRef, useState } from "react";
-import { buscarCatalogo, obtenerOpcionesFiltro, type ComponenteBusqueda, type OpcionesFiltro } from "../api/client";
+import {
+  buscarCatalogo,
+  obtenerOpcionesFiltro,
+  type ComponenteBusqueda,
+  type OpcionesFiltro,
+  type TipoProteccion,
+} from "../api/client";
 import { useCerrarAlClickFuera } from "../hooks/useCerrarAlClickFuera";
 import { guardarMemoria, obtenerMemoria, type MemoriaBusqueda } from "./componentePickerMemoria";
 
@@ -11,13 +17,21 @@ interface ComponentePickerProps {
   onSelect: (componente: ComponenteBusqueda) => void;
   onCancel: () => void;
   titulo?: string;
+  tipoProteccion?: TipoProteccion;
+  sensibilidadMa?: number | null;
+  admiteAccesorios?: boolean | null;
+}
+
+interface FiltroOptionObj {
+  value: number | string;
+  label: string;
 }
 
 interface FiltroSelectProps {
   id: string;
   label: string;
   value: number | string;
-  options: (number | string)[];
+  options: (number | string | FiltroOptionObj)[];
   unidad?: string;
   onChange: (value: string) => void;
 }
@@ -35,12 +49,21 @@ function FiltroSelect({ id, label, value, options, unidad, onChange }: FiltroSel
         className="w-full border border-surface-stroke bg-white p-2 text-sm"
       >
         <option value="">Todos</option>
-        {options.map((opcion) => (
-          <option key={opcion} value={opcion}>
-            {opcion}
-            {unidad ?? ""}
-          </option>
-        ))}
+        {options.map((opcion) => {
+          if (typeof opcion === "object" && opcion !== null) {
+            return (
+              <option key={opcion.value} value={opcion.value}>
+                {opcion.label}
+              </option>
+            );
+          }
+          return (
+            <option key={opcion} value={opcion}>
+              {opcion}
+              {unidad ?? ""}
+            </option>
+          );
+        })}
       </select>
     </div>
   );
@@ -69,17 +92,56 @@ export function ComponentePicker({
   onSelect,
   onCancel,
   titulo = "Buscar componente",
+  tipoProteccion,
+  sensibilidadMa,
+  admiteAccesorios,
 }: ComponentePickerProps) {
   const memoriaInicial = obtenerMemoria(contextKey);
-  const [query, setQuery] = useState(memoriaInicial?.query ?? "");
+  
+  const initialTipo = tipoProteccion !== undefined ? (tipoProteccion ?? null) : (memoriaInicial?.filtroTipo ?? null);
+  const isSameTipo = (memoriaInicial?.filtroTipo || null) === (initialTipo || null);
+  const initialQuery = (memoriaInicial && isSameTipo) ? (memoriaInicial.query ?? "") : "";
+
+  const [activeTab, setActiveTab] = useState<"estandar" | "otro">("estandar");
+  const categoriasBusqueda = activeTab === "estandar" ? categorias : ["Fusibles y seccionadores bajo carga", "Terminales", "Bandejas", "Canalizaciones"];
+
+  const [query, setQuery] = useState(initialQuery);
   const [resultados, setResultados] = useState<ComponenteBusqueda[] | null>(null);
   const [total, setTotal] = useState(0);
   const [cargandoMas, setCargandoMas] = useState(false);
-  const [filtrosAbiertos, setFiltrosAbiertos] = useState(false);
+  const [filtrosAbiertos, setFiltrosAbiertos] = useState(Boolean(tipoProteccion));
   const [opciones, setOpciones] = useState<OpcionesFiltro | null>(null);
-  const [filtroPolos, setFiltroPolos] = useState<number | null>(memoriaInicial?.filtroPolos ?? null);
-  const [filtroCorriente, setFiltroCorriente] = useState<string | null>(memoriaInicial?.filtroCorriente ?? null);
-  const [filtroCapacidad, setFiltroCapacidad] = useState<string | null>(memoriaInicial?.filtroCapacidad ?? null);
+
+  const [filtroTipo, setFiltroTipo] = useState<string | null>(initialTipo);
+  const [filtroPolos, setFiltroPolos] = useState<number | null>(
+    (memoriaInicial && isSameTipo) ? memoriaInicial.filtroPolos : null
+  );
+  const [filtroCorriente, setFiltroCorriente] = useState<string | null>(
+    (memoriaInicial && isSameTipo) ? memoriaInicial.filtroCorriente : null
+  );
+  const [filtroCapacidad, setFiltroCapacidad] = useState<string | null>(
+    (memoriaInicial && isSameTipo) ? memoriaInicial.filtroCapacidad : null
+  );
+  const [filtroSensibilidad, setFiltroSensibilidad] = useState<number | null>(
+    sensibilidadMa !== undefined ? (sensibilidadMa ?? null) : (memoriaInicial?.filtroSensibilidad ?? null)
+  );
+  const [filtroAccesorios, setFiltroAccesorios] = useState<boolean | null>(
+    admiteAccesorios !== undefined ? (admiteAccesorios ?? null) : (memoriaInicial?.filtroAccesorios ?? null)
+  );
+
+  function handleSwitchTab(tab: "estandar" | "otro") {
+    setActiveTab(tab);
+    setQuery("");
+    setResultados(null);
+    setTotal(0);
+    setFiltroTipo(null);
+    setFiltroPolos(null);
+    setFiltroCorriente(null);
+    setFiltroCapacidad(null);
+    setFiltroSensibilidad(null);
+    setFiltroAccesorios(null);
+  }
+
   const solicitudActualRef = useRef(0);
   const inputRef = useRef<HTMLInputElement>(null);
   const { onMouseDown, onClick } = useCerrarAlClickFuera(onCancel);
@@ -94,31 +156,49 @@ export function ComponentePicker({
   }, [onCancel]);
 
   useEffect(() => {
-    obtenerOpcionesFiltro(categorias).then(setOpciones).catch(() => {});
+    obtenerOpcionesFiltro(categoriasBusqueda, filtroTipo ?? undefined).then(setOpciones).catch(() => {});
     buscar(query, 0);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [filtroTipo, activeTab]);
 
   useEffect(() => {
-    const valor: MemoriaBusqueda = { query, filtroPolos, filtroCorriente, filtroCapacidad };
+    const valor: MemoriaBusqueda = {
+      query,
+      filtroTipo,
+      filtroPolos,
+      filtroCorriente,
+      filtroCapacidad,
+      filtroSensibilidad,
+      filtroAccesorios,
+    };
     guardarMemoria(contextKey, valor);
-  }, [contextKey, query, filtroPolos, filtroCorriente, filtroCapacidad]);
+  }, [contextKey, query, filtroTipo, filtroPolos, filtroCorriente, filtroCapacidad, filtroSensibilidad, filtroAccesorios]);
 
   interface FiltrosOverride {
+    tipo?: string | null;
     polos?: number | null;
     corriente?: string | null;
     capacidad?: string | null;
+    sensibilidad?: number | null;
+    accesorios?: boolean | null;
   }
 
   function filtrosActivos(overrides?: FiltrosOverride) {
+    const tipo = overrides && "tipo" in overrides ? overrides.tipo : filtroTipo;
     const polos = overrides && "polos" in overrides ? overrides.polos : filtroPolos;
     const corriente = overrides && "corriente" in overrides ? overrides.corriente : filtroCorriente;
     const capacidad = overrides && "capacidad" in overrides ? overrides.capacidad : filtroCapacidad;
+    const sensibilidad = overrides && "sensibilidad" in overrides ? overrides.sensibilidad : filtroSensibilidad;
+    const accesorios = overrides && "accesorios" in overrides ? overrides.accesorios : filtroAccesorios;
+
     return {
       solo_con_atributos: true as const,
+      ...(tipo ? { tipo } : {}),
       ...(polos !== null && polos !== undefined ? { polos } : {}),
       ...(corriente !== null && corriente !== undefined ? { corriente_nominal_a: corriente } : {}),
       ...(capacidad !== null && capacidad !== undefined ? { capacidad_corte_ka: capacidad } : {}),
+      ...(sensibilidad !== null && sensibilidad !== undefined ? { sensibilidad_ma: sensibilidad } : {}),
+      ...(accesorios !== null && accesorios !== undefined ? { admite_accesorios: accesorios } : {}),
     };
   }
 
@@ -132,10 +212,13 @@ export function ComponentePicker({
 
     const filtros = filtrosActivos(overrides);
     const hayCriterios =
-      categorias.length > 0 ||
+      categoriasBusqueda.length > 0 ||
+      filtros.tipo !== undefined ||
       filtros.polos !== undefined ||
       filtros.corriente_nominal_a !== undefined ||
-      filtros.capacidad_corte_ka !== undefined;
+      filtros.capacidad_corte_ka !== undefined ||
+      filtros.sensibilidad_ma !== undefined ||
+      filtros.admite_accesorios !== undefined;
 
     if (queryLimpia.length < 2 && !hayCriterios) {
       setResultados(null);
@@ -146,7 +229,7 @@ export function ComponentePicker({
     const respuesta = await buscarCatalogo(valor, {
       limit: RESULTADOS_POR_PAGINA,
       offset: desde,
-      categorias,
+      categorias: categoriasBusqueda,
       ...filtros,
     });
     if (idSolicitud !== solicitudActualRef.current) return;
@@ -177,16 +260,32 @@ export function ComponentePicker({
     }
   }
 
-  // El setter de estado (`actualizar`) es asincrónico: si `buscar` leyera el
-  // filtro desde el estado del componente inmediatamente después de llamarlo,
-  // todavía vería el valor viejo (closure de este render). Por eso el valor
-  // nuevo también se pasa explícito como override para la búsqueda inmediata.
   function handleFiltroChange(actualizar: () => void, overrides: FiltrosOverride) {
     actualizar();
     buscar(query, 0, overrides);
   }
 
-  const hayFiltrosActivos = filtroPolos !== null || filtroCorriente !== null || filtroCapacidad !== null;
+  const esDiferencial = filtroTipo === "seccional_diferencial";
+
+  // Opciones de polos con etiquetas descriptivas
+  const polosOpciones: FiltroOptionObj[] = (opciones?.polos ?? [])
+    .filter((p) => (!esDiferencial || p === 2 || p === 4))
+    .map((p) => {
+      let label = `${p} polos`;
+      if (p === 1) label = "1P (Unipolar)";
+      if (p === 2) label = "2P (Bipolar)";
+      if (p === 3) label = "3P (Tripolar)";
+      if (p === 4) label = "4P (Tetrapolar)";
+      return { value: p, label };
+    });
+
+  const hayFiltrosActivos =
+    filtroTipo !== null ||
+    filtroPolos !== null ||
+    filtroCorriente !== null ||
+    filtroCapacidad !== null ||
+    filtroSensibilidad !== null ||
+    filtroAccesorios !== null;
 
   return (
     <div
@@ -202,9 +301,35 @@ export function ComponentePicker({
         aria-labelledby="component-picker-titulo"
         className="flex w-[700px] max-w-full flex-col gap-3 border border-surface-stroke bg-white p-8"
       >
-        <h2 id="component-picker-titulo" className="text-lg font-bold">
+        <h2 id="component-picker-titulo" className="text-lg font-bold text-gray-900">
           {titulo}
         </h2>
+
+        {/* Pestañas: Estándar vs Otro */}
+        <div className="flex border-b border-gray-200 mb-2">
+          <button
+            type="button"
+            onClick={() => handleSwitchTab("estandar")}
+            className={`py-2 px-4 text-xs uppercase font-bold tracking-wider border-b-2 transition ${
+              activeTab === "estandar"
+                ? "border-abb-red text-abb-red bg-red-50/50"
+                : "border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50"
+            }`}
+          >
+            Protecciones Estándar
+          </button>
+          <button
+            type="button"
+            onClick={() => handleSwitchTab("otro")}
+            className={`py-2 px-4 text-xs uppercase font-bold tracking-wider border-b-2 transition ${
+              activeTab === "otro"
+                ? "border-abb-red text-abb-red bg-red-50/50"
+                : "border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50"
+            }`}
+          >
+            Otros (Fusibles / Seccionadores)
+          </button>
+        </div>
 
         <div className="flex gap-2">
           <input
@@ -227,15 +352,45 @@ export function ComponentePicker({
         {filtrosAbiertos && (
           <div className="flex flex-wrap gap-5 border border-surface-stroke bg-industrial-gray p-4">
             <FiltroSelect
+              id="filtro-tipo"
+              label="Tipo de Protección"
+              value={filtroTipo ?? ""}
+              options={[
+                { value: "seccional_termomagnetico", label: "Termomagnético" },
+                { value: "seccional_diferencial", label: "Diferencial" },
+              ]}
+              onChange={(value) => {
+                const valor = value || null;
+                handleFiltroChange(() => setFiltroTipo(valor), { tipo: valor });
+              }}
+            />
+            <FiltroSelect
               id="filtro-polos"
-              label="Polos"
+              label={esDiferencial ? "Tamaño (Polos)" : "Polos"}
               value={filtroPolos ?? ""}
-              options={opciones?.polos ?? []}
+              options={polosOpciones}
               onChange={(value) => {
                 const valor = value ? Number(value) : null;
                 handleFiltroChange(() => setFiltroPolos(valor), { polos: valor });
               }}
             />
+
+            {esDiferencial && (
+              <FiltroSelect
+                id="filtro-sensibilidad"
+                label="Sensibilidad (IΔn)"
+                value={filtroSensibilidad ?? ""}
+                options={(opciones?.sensabilidades_ma ?? opciones?.sensibilidades_ma ?? []).map((s: number) => ({
+                  value: s,
+                  label: `${s} mA`,
+                }))}
+                onChange={(value) => {
+                  const valor = value ? Number(value) : null;
+                  handleFiltroChange(() => setFiltroSensibilidad(valor), { sensibilidad: valor });
+                }}
+              />
+            )}
+
             <FiltroSelect
               id="filtro-corriente"
               label="Corriente (In)"
@@ -247,15 +402,32 @@ export function ComponentePicker({
                 handleFiltroChange(() => setFiltroCorriente(valor), { corriente: valor });
               }}
             />
+
+            {!esDiferencial && (
+              <FiltroSelect
+                id="filtro-capacidad"
+                label="Capacidad de corte"
+                value={filtroCapacidad ?? ""}
+                options={opciones?.capacidades_corte_ka ?? []}
+                unidad="kA"
+                onChange={(value) => {
+                  const valor = value || null;
+                  handleFiltroChange(() => setFiltroCapacidad(valor), { capacidad: valor });
+                }}
+              />
+            )}
+
             <FiltroSelect
-              id="filtro-capacidad"
-              label="Capacidad de corte"
-              value={filtroCapacidad ?? ""}
-              options={opciones?.capacidades_corte_ka ?? []}
-              unidad="kA"
+              id="filtro-accesorios"
+              label="Accesorios"
+              value={filtroAccesorios === null ? "" : String(filtroAccesorios)}
+              options={[
+                { value: "true", label: "Con accesorios" },
+                { value: "false", label: "Sin accesorios" },
+              ]}
               onChange={(value) => {
-                const valor = value || null;
-                handleFiltroChange(() => setFiltroCapacidad(valor), { capacidad: valor });
+                const valor = value === "" ? null : value === "true";
+                handleFiltroChange(() => setFiltroAccesorios(valor), { accesorios: valor });
               }}
             />
           </div>
@@ -264,10 +436,22 @@ export function ComponentePicker({
         {hayFiltrosActivos && (
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-[10px] uppercase tracking-widest text-secondary">Activos:</span>
+            {filtroTipo !== null && (
+              <FiltroChip
+                label={filtroTipo === "seccional_diferencial" ? "Diferencial" : "Termomagnético"}
+                onRemove={() => handleFiltroChange(() => setFiltroTipo(null), { tipo: null })}
+              />
+            )}
             {filtroPolos !== null && (
               <FiltroChip
-                label={`${filtroPolos} polos`}
+                label={filtroPolos === 2 ? "2P (Bipolar)" : filtroPolos === 4 ? "4P (Tetrapolar)" : `${filtroPolos} polos`}
                 onRemove={() => handleFiltroChange(() => setFiltroPolos(null), { polos: null })}
+              />
+            )}
+            {filtroSensibilidad !== null && (
+              <FiltroChip
+                label={`Sens: ${filtroSensibilidad}mA`}
+                onRemove={() => handleFiltroChange(() => setFiltroSensibilidad(null), { sensibilidad: null })}
               />
             )}
             {filtroCorriente !== null && (
@@ -280,6 +464,12 @@ export function ComponentePicker({
               <FiltroChip
                 label={`${filtroCapacidad}kA`}
                 onRemove={() => handleFiltroChange(() => setFiltroCapacidad(null), { capacidad: null })}
+              />
+            )}
+            {filtroAccesorios !== null && (
+              <FiltroChip
+                label={filtroAccesorios ? "Con accesorios" : "Sin accesorios"}
+                onRemove={() => handleFiltroChange(() => setFiltroAccesorios(null), { accesorios: null })}
               />
             )}
           </div>

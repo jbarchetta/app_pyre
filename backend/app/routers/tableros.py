@@ -63,6 +63,11 @@ class TableroResponse(BaseModel):
     gabinete_sugerido_codigo: str | None = None
     gabinete_sugerido_ancho_mm: int | None = None
     gabinete_sugerido_alto_mm: int | None = None
+    porcentaje_ocupacion: float | None = None
+    excede_largo_riel: bool | None = None
+    max_polos_por_fila: int | None = None
+    capacidad_polos_linea: int | None = None
+    siguiente_gabinete_ancho_mm: int | None = None
     distribuidor_sugerido_id: str | None = None
     distribuidor_sugerido_codigo: str | None = None
     cablecanal_sugerido: str | None = None
@@ -73,8 +78,6 @@ class TableroResponse(BaseModel):
 
 
 def _tablero_response(db: Session, tablero: Tablero, componente: CatalogoComponente | None = None) -> TableroResponse:
-    # componente ya resuelto (batch fetch del listado, ciclo 9) — si no viene,
-    # es un endpoint individual y el db.get puntual es acceptable.
     if componente is None and tablero.interruptor_principal_id:
         componente = db.get(CatalogoComponente, tablero.interruptor_principal_id)
     atributos = componente.atributos or {} if componente else {}
@@ -82,12 +85,23 @@ def _tablero_response(db: Session, tablero: Tablero, componente: CatalogoCompone
     gabinete_codigo = None
     gabinete_ancho = None
     gabinete_alto = None
+    porcentaje_ocupacion = None
+    excede_largo_riel = None
+    max_polos_por_fila = None
+    capacidad_polos_linea = None
+    siguiente_ancho = None
+
     if tablero.gabinete_sugerido_id:
         gab = db.get(CatalogoComponente, tablero.gabinete_sugerido_id)
-        if gab:
+        if gab and gab.atributos:
             gabinete_codigo = gab.codigo
-            gabinete_ancho = gab.atributos.get("ancho_mm") if gab.atributos else None
-            gabinete_alto = gab.atributos.get("alto_mm") if gab.atributos else None
+            gabinete_ancho = gab.atributos.get("ancho_mm")
+            gabinete_alto = gab.atributos.get("alto_mm")
+            capacidad_total_gab = gab.atributos.get("total_polos_200", 0) if tablero.paso_mm == 200 else gab.atributos.get("total_polos_150", 0)
+            capacidad_polos_linea = gab.atributos.get("polos_linea_200", 0) if tablero.paso_mm == 200 else gab.atributos.get("polos_linea_150", 0)
+            ancho_actual = gabinete_ancho or 600
+            anchos_disponibles = [300, 450, 600, 750, 1000]
+            siguiente_ancho = next((w for w in anchos_disponibles if w > ancho_actual), ancho_actual)
 
     distribuidor_codigo = None
     if tablero.distribuidor_sugerido_id:
@@ -122,6 +136,11 @@ def _tablero_response(db: Session, tablero: Tablero, componente: CatalogoCompone
         gabinete_sugerido_codigo=gabinete_codigo,
         gabinete_sugerido_ancho_mm=gabinete_ancho,
         gabinete_sugerido_alto_mm=gabinete_alto,
+        porcentaje_ocupacion=porcentaje_ocupacion,
+        excede_largo_riel=excede_largo_riel,
+        max_polos_por_fila=max_polos_por_fila,
+        capacidad_polos_linea=capacidad_polos_linea,
+        siguiente_gabinete_ancho_mm=siguiente_ancho,
         distribuidor_sugerido_id=str(tablero.distribuidor_sugerido_id) if tablero.distribuidor_sugerido_id else None,
         distribuidor_sugerido_codigo=distribuidor_codigo,
         cablecanal_sugerido=tablero.cablecanal_sugerido,
@@ -221,7 +240,14 @@ def actualizar_tablero(
     if "nivel_falla_ka" in cambios:
         tablero.nivel_falla_ka = cambios["nivel_falla_ka"]
     if "interruptor_principal_id" in cambios:
+        viejo_id = tablero.interruptor_principal_id
         tablero.interruptor_principal_id = cambios["interruptor_principal_id"]
+        # Limpiar accesorios de principal residuales que sean interruptores
+        if viejo_id and viejo_id != cambios["interruptor_principal_id"]:
+            db.query(TableroAccesorioPrincipal).filter(
+                TableroAccesorioPrincipal.tablero_id == tablero.id,
+                TableroAccesorioPrincipal.componente_id == viejo_id
+            ).delete(synchronize_session=False)
     if "principal_metodo_entrada" in cambios:
         tablero.principal_metodo_entrada = cambios["principal_metodo_entrada"]
     if "principal_metodo_salida" in cambios:
@@ -295,7 +321,16 @@ def crear_seccion(
     db: Session = Depends(get_db),
     usuario: Usuario = Depends(require_role(RolUsuario.ANALISTA, RolUsuario.SUPERVISOR)),
 ):
-    obtener_tablero_autorizado(db, tablero_id, usuario)
+    tablero = obtener_tablero_autorizado(db, tablero_id, usuario)
+
+    tiene_principal = tablero.interruptor_principal_id is not None
+    secciones_count = db.query(Seccion).filter(Seccion.tablero_id == tablero_id).count()
+    total_filas = (1 if tiene_principal else 0) + secciones_count + 1
+    if total_filas > 12:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Límite de chasis superado: El tablero acumulará {total_filas} filas. El gabinete Nollmann NIS de mayor capacidad admite un máximo de 12 filas (Paso 150) / 9 filas (Paso 200)."
+        )
 
     seccion = Seccion(tablero_id=tablero_id, nombre=payload.nombre, orden=payload.orden)
     db.add(seccion)

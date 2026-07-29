@@ -9,6 +9,9 @@ backend/.pytest_cache/
 frontend/node_modules/
 frontend/dist/
 
+# Caché de Vitest que se crea en la raíz al correr tests desde acá
+/node_modules/
+
 # Env
 .env
 

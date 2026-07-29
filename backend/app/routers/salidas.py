@@ -244,6 +244,36 @@ CALIBRES_VALIDOS_ABB = {
     Decimal("63"), Decimal("80"), Decimal("100"), Decimal("125")
 }
 
+def _get_polos_num(formato: FormatoPolos | str) -> int:
+    val = formato.value if hasattr(formato, "value") else str(formato)
+    mapping = {
+        "unipolar": 1,
+        "bipolar": 2,
+        "tripolar": 3,
+        "tetrapolar": 4,
+    }
+    return mapping.get(val, 1)
+
+
+def _validar_limite_polos_seccion(
+    db: Session,
+    seccion_id: uuid.UUID,
+    formato_nuevo: FormatoPolos | str,
+    salida_id_omitir: uuid.UUID | None = None,
+):
+    query = db.query(Salida).filter(Salida.seccion_id == seccion_id)
+    if salida_id_omitir:
+        query = query.filter(Salida.id != salida_id_omitir)
+    salidas_existentes = query.all()
+    polos_actuales = sum(_get_polos_num(s.formato) for s in salidas_existentes)
+    polos_nuevos = _get_polos_num(formato_nuevo)
+    total_polos = polos_actuales + polos_nuevos
+    if total_polos > 45:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Límite de chasis superado: La sección acumulará {total_polos} polos DIN. El límite máximo permitido por chasis Nollmann NIS es de 45 polos por fila."
+        )
+
 
 @router.post("/secciones/{seccion_id}/salidas", response_model=SalidaResponse, status_code=status.HTTP_201_CREATED)
 def crear_salida(
@@ -260,6 +290,8 @@ def crear_salida(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="El calibre de carga debe ser una corriente nominal comercial estándar."
         )
+
+    _validar_limite_polos_seccion(db, seccion_id, payload.formato)
 
     parametros = obtener_parametros(db)
     try:
@@ -336,6 +368,9 @@ def actualizar_salida(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="El calibre de carga debe ser una corriente nominal comercial estándar."
         )
+
+    if payload.formato is not None:
+        _validar_limite_polos_seccion(db, salida.seccion_id, payload.formato, salida_id_omitir=salida.id)
 
     cambios = payload.model_dump(exclude_unset=True)
     campos_recalculo = (

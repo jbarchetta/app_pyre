@@ -14,7 +14,13 @@ FAMILIAS_TERMOMAGNETICO = {
     "Interruptores Termomagnéticos - Sin posibilidad de utilizar accesorios",
     "Interruptores automáticos en caja moldeada",
 }
-FAMILIA_DIFERENCIAL_COMBO = "Interruptores termomagnéticos con protección diferencial"
+FAMILIAS_DIFERENCIAL = {
+    "Interruptores termomagnéticos con protección diferencial",
+    "Interruptores Diferenciales",
+    "Interruptores Diferenciales - Sin posibilidad de utilizar accesorios",
+    "Interruptores Diferenciales - Con posibilidad de utilizar accesorios",
+    "Detector de fallas de arco con proteccion Diferencial (AFDD+RCD)",
+}
 
 _POLOS_MAP = {"uni": 1, "bi": 2, "tri": 3, "tetra": 4}
 _POLOS_DESCRIPCION_RE = re.compile(r"\b(uni|bi|tri|tetra)polar", re.IGNORECASE)
@@ -22,6 +28,12 @@ _POLOS_CATEGORIA_RE = re.compile(r"\b(uni|bi|tri|tetra)polar(es)?\b", re.IGNOREC
 _CORRIENTE_RE = re.compile(r"In\s*=?\s*(\d+(?:[.,]\d+)?)")
 _CAPACIDAD_DESCRIPCION_RE = re.compile(r"Ic[nu]\s*[:=]?\s*(\d+(?:[.,]\d+)?)\s*kA", re.IGNORECASE)
 _CAPACIDAD_CATEGORIA_RE = re.compile(r"(\d+(?:[.,]\d+)?)\s*kA", re.IGNORECASE)
+
+
+_SENSIBILIDAD_DESCRIPCION_RE = re.compile(
+    r"(?:Sens(?:ibilidad)?|I[Δ∆]?)\s*[:=]?\s*(\d+(?:[.,]\d+)?)\s*(m?A)",
+    re.IGNORECASE,
+)
 
 
 def _texto_a_decimal(texto: str) -> Decimal:
@@ -62,6 +74,33 @@ def _extraer_capacidad_corte_combo(categoria_path: list[str]) -> Decimal | None:
     return _texto_a_decimal(match.group(1))
 
 
+def _extraer_sensibilidad_ma(categoria_path: list[str], descripcion: str) -> int | None:
+    texto_busqueda = (descripcion or "") + " " + " ".join(categoria_path or [])
+    match = _SENSIBILIDAD_DESCRIPCION_RE.search(texto_busqueda)
+    if match:
+        val_str = match.group(1).replace(",", ".")
+        unidad = match.group(2).lower()
+        val = float(val_str)
+        if unidad == "a":
+            return int(round(val * 1000))
+        return int(round(val))
+
+    match_ma = re.search(r"\b(\d+)\s*mA\b", texto_busqueda, re.IGNORECASE)
+    if match_ma:
+        return int(match_ma.group(1))
+
+    return None
+
+
+def _extraer_accesorios(categoria_path: list[str], descripcion: str) -> bool | None:
+    texto_completo = " ".join(categoria_path or []) + " " + (descripcion or "")
+    if re.search(r"sin\s+posibilidad", texto_completo, re.IGNORECASE):
+        return False
+    if re.search(r"con\s+posibilidad", texto_completo, re.IGNORECASE):
+        return True
+    return None
+
+
 def _extraer_atributos(categoria_path: list[str], descripcion: str) -> dict | None:
     if not categoria_path:
         return None
@@ -72,23 +111,37 @@ def _extraer_atributos(categoria_path: list[str], descripcion: str) -> dict | No
         polos = _extraer_polos(categoria_path, descripcion)
         corriente = _extraer_corriente_nominal(descripcion)
         capacidad = _extraer_capacidad_corte_termomagnetico(descripcion)
-    elif raiz == FAMILIA_DIFERENCIAL_COMBO:
+    elif raiz in FAMILIAS_DIFERENCIAL:
         tipo = "seccional_diferencial"
         polos = _extraer_polos(categoria_path, descripcion)
         corriente = _extraer_corriente_nominal(descripcion)
-        capacidad = _extraer_capacidad_corte_combo(categoria_path)
+        capacidad = (
+            _extraer_capacidad_corte_combo(categoria_path)
+            or _extraer_capacidad_corte_termomagnetico(descripcion)
+            or Decimal("10.0")
+        )
     else:
         return None
 
     if polos is None or corriente is None or capacidad is None:
         return None
 
-    return {
+    res = {
         "tipo": tipo,
         "polos": polos,
         "corriente_nominal_a": float(corriente),
         "capacidad_corte_ka": float(capacidad),
     }
+
+    sensibilidad = _extraer_sensibilidad_ma(categoria_path, descripcion)
+    if sensibilidad is not None:
+        res["sensibilidad_ma"] = sensibilidad
+
+    accesorios = _extraer_accesorios(categoria_path, descripcion)
+    if accesorios is not None:
+        res["admite_accesorios"] = accesorios
+
+    return res
 
 
 def parse_abb_workbook(file_obj, archivo_origen: str) -> list[ComponenteImportado]:

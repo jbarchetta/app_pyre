@@ -87,9 +87,12 @@ def buscar_componentes(
     q: str = "",
     categorias: list[str] | None = Query(default=None),
     solo_con_atributos: bool = False,
+    tipo: str | None = None,
     polos: int | None = None,
     corriente_nominal_a: Decimal | None = None,
     capacidad_corte_ka: Decimal | None = None,
+    sensibilidad_ma: int | None = None,
+    admite_accesorios: bool | None = None,
     limit: int = _LIMIT_POR_DEFECTO,
     offset: int = 0,
     db: Session = Depends(get_db),
@@ -104,9 +107,12 @@ def buscar_componentes(
     if (
         len(termino_limpio) < 2
         and not categorias
+        and tipo is None
         and polos is None
         and corriente_nominal_a is None
         and capacidad_corte_ka is None
+        and sensibilidad_ma is None
+        and admite_accesorios is None
     ):
         return BusquedaCatalogoResponse(resultados=[], total=0)
 
@@ -128,6 +134,9 @@ def buscar_componentes(
     if solo_con_atributos:
         condiciones.append(CatalogoComponente.atributos.isnot(None))
 
+    if tipo is not None:
+        condiciones.append(CatalogoComponente.atributos["tipo"].as_string() == tipo)
+
     if polos is not None:
         condiciones.append(CatalogoComponente.atributos["polos"].as_integer() == polos)
 
@@ -140,6 +149,24 @@ def buscar_componentes(
         condiciones.append(
             CatalogoComponente.atributos["capacidad_corte_ka"].as_float() == float(capacidad_corte_ka)
         )
+
+    if sensibilidad_ma is not None:
+        condiciones.append(
+            CatalogoComponente.atributos["sensibilidad_ma"].as_integer() == sensibilidad_ma
+        )
+
+    if admite_accesorios is not None:
+        if admite_accesorios is False:
+            condiciones.append(
+                or_(
+                    CatalogoComponente.atributos["admite_accesorios"].as_boolean() == False,
+                    CatalogoComponente.atributos["admite_accesorios"].is_(None)
+                )
+            )
+        else:
+            condiciones.append(
+                CatalogoComponente.atributos["admite_accesorios"].as_boolean() == True
+            )
 
     filtro = and_(*condiciones) if condiciones else True
 
@@ -192,6 +219,8 @@ class OpcionesFiltroResponse(BaseModel):
     polos: list[int]
     corrientes_nominales_a: list[Decimal]
     capacidades_corte_ka: list[Decimal]
+    sensibilidades_ma: list[int] = []
+    admite_accesorios: list[bool] = []
 
 
 def _decimal_sin_ruido_de_float(valor: float) -> Decimal:
@@ -209,6 +238,7 @@ def _decimal_sin_ruido_de_float(valor: float) -> Decimal:
 @router.get("/opciones-filtro", response_model=OpcionesFiltroResponse)
 def obtener_opciones_filtro(
     categorias: list[str] | None = Query(default=None),
+    tipo: str | None = None,
     db: Session = Depends(get_db),
     usuario: Usuario = Depends(get_current_user),
 ):
@@ -219,6 +249,8 @@ def obtener_opciones_filtro(
     filtro = CatalogoComponente.atributos.isnot(None)
     if categorias:
         filtro = and_(filtro, CatalogoComponente.categoria_raiz.in_(categorias))
+    if tipo:
+        filtro = and_(filtro, CatalogoComponente.atributos["tipo"].as_string() == tipo)
 
     polos_rows = db.query(CatalogoComponente.atributos["polos"].as_integer()).filter(filtro).distinct().all()
     corrientes_rows = (
@@ -227,9 +259,23 @@ def obtener_opciones_filtro(
     capacidades_rows = (
         db.query(CatalogoComponente.atributos["capacidad_corte_ka"].as_float()).filter(filtro).distinct().all()
     )
+    sensibilidades_rows = (
+        db.query(CatalogoComponente.atributos["sensibilidad_ma"].as_integer()).filter(filtro).distinct().all()
+    )
+    accesorios_rows = (
+        db.query(CatalogoComponente.atributos["admite_accesorios"].as_boolean()).filter(filtro).distinct().all()
+    )
 
     polos = sorted({r[0] for r in polos_rows if r[0] is not None})
     corrientes = sorted({_decimal_sin_ruido_de_float(r[0]) for r in corrientes_rows if r[0] is not None})
     capacidades = sorted({_decimal_sin_ruido_de_float(r[0]) for r in capacidades_rows if r[0] is not None})
+    sensibilidades = sorted({r[0] for r in sensibilidades_rows if r[0] is not None})
+    accesorios = sorted({r[0] for r in accesorios_rows if r[0] is not None})
 
-    return OpcionesFiltroResponse(polos=polos, corrientes_nominales_a=corrientes, capacidades_corte_ka=capacidades)
+    return OpcionesFiltroResponse(
+        polos=polos,
+        corrientes_nominales_a=corrientes,
+        capacidades_corte_ka=capacidades,
+        sensibilidades_ma=sensibilidades,
+        admite_accesorios=accesorios,
+    )

@@ -59,3 +59,6 @@
 15. **Sincronización Hover Tabla vs. Ventana CAD**:
    - Al pasar el cursor por las filas de la tabla de componentes se **ilumina en verde brillante resplandeciente (`#10B981`) la línea de circuito** en el plano CAD sin abrir el modal flotante.
    - El modal flotante HUD solo se despliega cuando el puntero del ratón se desplaza activamente **dentro de la ventana de diseño CAD**.
+
+16. **Ocultamiento de Riel DIN 35 Bajo Elementos**:
+   - El dibujo del riel DIN 35 no se dibuja ni traspasa por debajo de los equipos montados. Todo módulo (interruptor principal, termomagnética o diferencial) incluye una máscara opaca de fondo (`fill="bg"`) que oculta limpiamente cualquier tramo de riel DIN que coincida con el cuerpo del elemento.

@@ -17,6 +17,9 @@ class ParametroCalculo(Base):
     tension_tri_v: Mapped[Decimal] = mapped_column(Numeric(6, 2), nullable=False, default=Decimal("380"))
     cos_phi: Mapped[Decimal] = mapped_column(Numeric(3, 2), nullable=False, default=Decimal("0.9"))
     ratio_selectividad: Mapped[Decimal] = mapped_column(Numeric(4, 2), nullable=False, default=Decimal("1.6"))
+    factor_llenado_cablecanal: Mapped[Decimal] = mapped_column(
+        Numeric(3, 2), nullable=False, default=Decimal("0.65")
+    )
     actualizado_por: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True), ForeignKey("usuario.id"), nullable=True
     )

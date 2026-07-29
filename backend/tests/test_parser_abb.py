@@ -234,7 +234,13 @@ def test_parse_abb_workbook_populates_atributos_for_in_scope_rows():
     }
 
     diferencial = next(r for r in resultados if r.codigo == "COD-DIF")
-    assert diferencial.atributos is None
+    assert diferencial.atributos == {
+        "tipo": "seccional_diferencial",
+        "polos": 2,
+        "corriente_nominal_a": 16.0,
+        "capacidad_corte_ka": 10.0,
+        "sensibilidad_ma": 10,
+    }
 
 
 def test_fila_con_codigo_string_vacio_se_trata_como_breadcrumb_no_como_componente():

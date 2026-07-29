@@ -20,6 +20,7 @@ def test_parametro_calculo_tiene_las_columnas_esperadas():
         "tension_tri_v",
         "cos_phi",
         "ratio_selectividad",
+        "factor_llenado_cablecanal",
         "actualizado_por",
         "actualizado_en",
     }

@@ -350,7 +350,7 @@ describe("ComponentePicker", () => {
 
     await userEvent.click(await screen.findByRole("button", { name: /filtros/i }));
 
-    expect(await screen.findByRole("option", { name: "3" })).toBeInTheDocument();
+    expect(await screen.findByRole("option", { name: "3P (Tripolar)" })).toBeInTheDocument();
     expect(screen.getByRole("option", { name: "16A" })).toBeInTheDocument();
     expect(screen.getByRole("option", { name: "10kA" })).toBeInTheDocument();
   });
@@ -501,5 +501,47 @@ describe("ComponentePicker", () => {
     await userEvent.type(screen.getByLabelText(/buscar código/i), "XT2N");
 
     expect(obtenerMemoria("test-contexto-guardar")?.query).toBe("XT2N");
+  });
+
+  it("supports tipoProteccion='seccional_diferencial' and displays differential specific filters", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockImplementation((url: string) => {
+        if (url.includes("/catalogo/opciones-filtro")) {
+          return Promise.resolve({
+            ok: true,
+            json: async () => ({
+              polos: [2, 4],
+              corrientes_nominales_a: ["25", "40"],
+              capacidades_corte_ka: ["10"],
+              sensabilidades_ma: [30, 100, 300],
+              sensibilidades_ma: [30, 100, 300],
+              admite_accesorios: [true, false],
+            }),
+          });
+        }
+        return Promise.resolve({ ok: true, json: async () => ({ resultados: [], total: 0 }) });
+      }),
+    );
+
+    render(
+      <ComponentePicker
+        categorias={CATEGORIAS}
+        contextKey="test-diferencial"
+        tipoProteccion="seccional_diferencial"
+        onSelect={vi.fn()}
+        onCancel={vi.fn()}
+      />,
+    );
+
+    expect(await screen.findByLabelText(/sensibilidad/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/accesorios/i)).toBeInTheDocument();
+
+    await userEvent.selectOptions(screen.getByLabelText(/sensibilidad/i), "100");
+
+    expect(fetch).toHaveBeenLastCalledWith(
+      expect.stringContaining("sensibilidad_ma=100"),
+      expect.anything(),
+    );
   });
 });

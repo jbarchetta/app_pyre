@@ -6,6 +6,8 @@ import {
   Square3Stack3DIcon,
   XMarkIcon,
   CpuChipIcon,
+  LockClosedIcon,
+  LockOpenIcon,
 } from "@heroicons/react/24/outline";
 import { CadViewerCanvas } from "./CadViewerCanvas";
 import { EsquemaVisual } from "./EsquemaVisual";
@@ -40,6 +42,7 @@ interface EsquemaVisualCanvasProps {
   cablecanalSugerido?: string | null;
   gabineteSugeridoAncho?: number | null;
   gabineteSugeridoAlto?: number | null;
+  pasoMm?: number | null;
   tableroId?: string;
   modoVisual?: "bloques" | "topografico" | "unifilar";
   panelLateralColapsado?: boolean;
@@ -69,9 +72,11 @@ export function EsquemaVisualCanvas({
   onSalidaClick,
   gabineteSugeridoAncho,
   gabineteSugeridoAlto,
+  pasoMm,
   modoVisual: modoVisualProp = "bloques",
   panelLateralColapsado,
   onTogglePanelLateral,
+  tabActivo,
 }: EsquemaVisualCanvasProps) {
   const [modoVisualState, setModoVisualState] = useState<"bloques" | "topografico" | "unifilar">(modoVisualProp);
   const [panelCapasAbierto, setPanelCapasAbierto] = useState(false);
@@ -103,24 +108,71 @@ export function EsquemaVisualCanvas({
     if (onCapasChange) onCapasChange(nuevasCapas);
   };
 
+  // Estado del Candado para Zoom por Rueda (Por defecto BLOQUEADO = false para no interceptar el scroll de la página)
+  const [zoomDesbloqueado, setZoomDesbloqueado] = useState(false);
+  const zoomDesbloqueadoRef = useRef(zoomDesbloqueado);
+  zoomDesbloqueadoRef.current = zoomDesbloqueado;
+
+  const lockInactivityTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  const reiniciarInactivityLockTimer = () => {
+    if (lockInactivityTimerRef.current) {
+      clearTimeout(lockInactivityTimerRef.current);
+    }
+    lockInactivityTimerRef.current = setTimeout(() => {
+      setZoomDesbloqueado(false);
+    }, 8000);
+  };
+
+  // Bloqueo automático del candado al cambiar de pestaña o de modo visual
+  useEffect(() => {
+    setZoomDesbloqueado(false);
+  }, [tabActivo, modoVisualState]);
+
   const zoomRef = useRef(zoomEfectivo);
   zoomRef.current = zoomEfectivo;
 
-  const onZoomChangeRef = useRef(onZoomChange);
-  onZoomChangeRef.current = onZoomChange;
+  const handleZoomChangeRef = useRef(handleZoomChange);
+  handleZoomChangeRef.current = handleZoomChange;
 
-  // Event listener nativo no-pasivo para rueda en área SVG Bloques (evita scroll de página)
+  // Event listener nativo no-pasivo para rueda en área SVG Bloques (solo intercepta si el candado está abierto)
   useEffect(() => {
     const containerEl = svgAreaRef.current;
     if (!containerEl) return;
 
     const onWheelNative = (e: Event) => {
+      const we = e as WheelEvent;
+      // Si el candado está cerrado (false), desviamos la rueda para hacer SCROLL a la página principal (<main> o window)
+      if (!zoomDesbloqueadoRef.current) {
+        let scrollAmount = we.deltaY;
+        if (we.deltaMode === 1) {
+          scrollAmount *= 33; // Convertir muescas de rueda Windows (líneas) a píxeles
+        } else if (we.deltaMode === 2) {
+          scrollAmount *= window.innerHeight;
+        }
+
+        const mainEl = document.querySelector('main');
+        let scrolled = false;
+        if (mainEl && mainEl.scrollHeight > mainEl.clientHeight) {
+          const prev = mainEl.scrollTop;
+          mainEl.scrollTop += scrollAmount;
+          if (mainEl.scrollTop !== prev) {
+            scrolled = true;
+          }
+        }
+        if (!scrolled) {
+          window.scrollBy({ top: scrollAmount });
+        }
+        e.preventDefault();
+        return;
+      }
+
       e.preventDefault();
       e.stopPropagation();
-      const we = e as WheelEvent;
       const delta = we.deltaY < 0 ? ZOOM_PASO : -ZOOM_PASO;
       const z = limitar(zoomRef.current + delta);
-      if (onZoomChangeRef.current) onZoomChangeRef.current(z);
+      if (handleZoomChangeRef.current) handleZoomChangeRef.current(z);
+      reiniciarInactivityLockTimer();
     };
 
     containerEl.addEventListener("wheel", onWheelNative, { passive: false });
@@ -135,12 +187,37 @@ export function EsquemaVisualCanvas({
     if (!modalEl || !modalAmpliado) return;
 
     const onWheelNative = (e: Event) => {
+      const we = e as WheelEvent;
+      if (!zoomDesbloqueadoRef.current) {
+        let scrollAmount = we.deltaY;
+        if (we.deltaMode === 1) {
+          scrollAmount *= 33;
+        } else if (we.deltaMode === 2) {
+          scrollAmount *= window.innerHeight;
+        }
+
+        const mainEl = document.querySelector('main');
+        let scrolled = false;
+        if (mainEl && mainEl.scrollHeight > mainEl.clientHeight) {
+          const prev = mainEl.scrollTop;
+          mainEl.scrollTop += scrollAmount;
+          if (mainEl.scrollTop !== prev) {
+            scrolled = true;
+          }
+        }
+        if (!scrolled) {
+          window.scrollBy({ top: scrollAmount });
+        }
+        e.preventDefault();
+        return;
+      }
+
       e.preventDefault();
       e.stopPropagation();
-      const we = e as WheelEvent;
       const delta = we.deltaY < 0 ? ZOOM_PASO : -ZOOM_PASO;
       const z = limitar(zoomRef.current + delta);
-      if (onZoomChangeRef.current) onZoomChangeRef.current(z);
+      if (handleZoomChangeRef.current) handleZoomChangeRef.current(z);
+      reiniciarInactivityLockTimer();
     };
 
     modalEl.addEventListener("wheel", onWheelNative, { passive: false });
@@ -246,6 +323,28 @@ export function EsquemaVisualCanvas({
         aria-label="Acercar"
         onClick={handleZoomIn}
         title="Acercar (+)"
+      />
+      <Button
+        size="xs"
+        variant={zoomDesbloqueado ? "primary" : "ghost"}
+        icon={
+          zoomDesbloqueado ? (
+            <LockOpenIcon className="w-4 h-4 text-white" />
+          ) : (
+            <LockClosedIcon className="w-4 h-4 text-slate-400" />
+          )
+        }
+        aria-label={zoomDesbloqueado ? "Bloquear zoom por rueda" : "Habilitar zoom por rueda"}
+        onClick={() => {
+          const next = !zoomDesbloqueado;
+          setZoomDesbloqueado(next);
+          if (next) reiniciarInactivityLockTimer();
+        }}
+        title={
+          zoomDesbloqueado
+            ? "Zoom rueda DESBLOQUEADO (Haz clic para bloquear y permitir scroll normal de página)"
+            : "Zoom rueda BLOQUEADO (Permite scroll normal de página. Haz clic para habilitar zoom rueda)"
+        }
       />
       <Button
         size="xs"
@@ -373,20 +472,20 @@ export function EsquemaVisualCanvas({
         <div className="flex items-center gap-3">
           <div className="text-[11px] font-mono text-gray-500 hidden sm:block">
             {modoVisualState === "bloques"
-              ? "Esquema Vectorial SVG - Modo Bloques"
+              ? "Modo Bloques"
               : `Motor CAD DXF - Modo ${modoVisualState === "topografico" ? "Topográfico 2D" : "Esquema Unifilar"}`}
           </div>
 
           {panelLateralColapsado && onTogglePanelLateral && (
-            <Button
-              variant="secondary"
-              size="xs"
-              icon={<ArrowsPointingOutIcon className="w-3.5 h-3.5 text-abb-red" />}
+            <button
+              type="button"
               onClick={onTogglePanelLateral}
               title="Expandir tarjetas laterales"
+              className="flex items-center gap-1.5 px-3 py-1 text-xs font-sans font-normal rounded-lg border border-gray-300 bg-white hover:bg-slate-50 text-slate-700 shadow-xs transition-colors shrink-0"
             >
-              Expandir tarjetas laterales
-            </Button>
+              <ArrowsPointingOutIcon className="w-3.5 h-3.5 text-abb-red shrink-0" />
+              <span>Expandir tarjetas laterales</span>
+            </button>
           )}
         </div>
       </div>
@@ -400,7 +499,7 @@ export function EsquemaVisualCanvas({
             <div className="flex items-center justify-between border-b border-surface-stroke bg-industrial-gray px-4 py-2.5 min-h-[42px] shrink-0">
               <span className="font-mono text-xs font-bold uppercase tracking-wider text-gray-700 flex items-center gap-2">
                 <CpuChipIcon className="w-4 h-4 text-abb-red" />
-                Blueprint Bloques (Esquema SVG)
+                Blueprint Bloques
               </span>
               {renderControlesSVG(false)}
             </div>
@@ -432,7 +531,10 @@ export function EsquemaVisualCanvas({
             {/* Área del Blueprint con Pan y Zoom */}
             <div
               ref={svgAreaRef}
-              style={{ overscrollBehavior: "contain", touchAction: "none" }}
+              style={{
+                overscrollBehavior: zoomDesbloqueado ? "contain" : "auto",
+                touchAction: zoomDesbloqueado ? "none" : "auto",
+              }}
               className={`flex-1 w-full justify-center overflow-hidden bg-slate-50/50 relative ${
                 isDragging ? "cursor-grabbing" : "cursor-grab"
               }`}
@@ -539,6 +641,7 @@ export function EsquemaVisualCanvas({
           onSalidaClick={onSalidaClick}
           gabineteSugeridoAncho={gabineteSugeridoAncho}
           gabineteSugeridoAlto={gabineteSugeridoAlto}
+          pasoMm={pasoMm}
           modoVisual={modoVisualState}
           onModoVisualChange={setModoVisualState}
         />

@@ -7,9 +7,12 @@
 // pisen entre sí.
 export interface MemoriaBusqueda {
   query: string;
+  filtroTipo?: string | null;
   filtroPolos: number | null;
   filtroCorriente: string | null;
   filtroCapacidad: string | null;
+  filtroSensibilidad?: number | null;
+  filtroAccesorios?: boolean | null;
 }
 
 const memoria = new Map<string, MemoriaBusqueda>();

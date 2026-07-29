@@ -27,7 +27,6 @@ def create_user(email: str, nombre: str, password: str, rol: str, db: Session | 
         )
         db.add(user)
         db.commit()
-        db.refresh(user)
         return user
     finally:
         if owns_session:

@@ -63,13 +63,13 @@ export class CadCanvasEngine {
       measureStartPoint,
     } = options;
 
-    const dpr = window.devicePixelRatio || 1;
-    const width = canvas.clientWidth || 800;
-    const height = canvas.clientHeight || 600;
+    const dpr = canvas.clientWidth > 0 ? (window.devicePixelRatio || 1) : 1;
+    const width = canvas.clientWidth > 0 ? canvas.clientWidth : (canvas.width || 800);
+    const height = canvas.clientHeight > 0 ? canvas.clientHeight : (canvas.height || 600);
 
-    if (canvas.width !== width * dpr || canvas.height !== height * dpr) {
-      canvas.width = width * dpr;
-      canvas.height = height * dpr;
+    if (canvas.clientWidth > 0 && (canvas.width !== Math.round(width * dpr) || canvas.height !== Math.round(height * dpr))) {
+      canvas.width = Math.round(width * dpr);
+      canvas.height = Math.round(height * dpr);
     }
 
     ctx.save();
@@ -180,13 +180,13 @@ export class CadCanvasEngine {
     if (isSelected) {
       ctx.strokeStyle = "#0284C7";
       ctx.lineWidth = 3;
-      ctx.shadowColor = "#0284C7";
-      ctx.shadowBlur = 8;
+      ctx.shadowColor = "transparent";
+      ctx.shadowBlur = 0;
     } else if (isHovered) {
-      ctx.strokeStyle = "#10B981";
-      ctx.lineWidth = Math.max(2.5, (prim.lineWidth || 1.5) * transform.zoom * 1.4);
-      ctx.shadowColor = "#10B981";
-      ctx.shadowBlur = 10;
+      ctx.strokeStyle = "#DC2626";
+      ctx.lineWidth = Math.max(1.2, (prim.lineWidth || 0.5) * transform.zoom + 0.4);
+      ctx.shadowColor = "transparent";
+      ctx.shadowBlur = 0;
     } else {
       ctx.strokeStyle = color;
       ctx.lineWidth = Math.max(0.5, (prim.lineWidth || 0.5) * transform.zoom);
@@ -211,11 +211,14 @@ export class CadCanvasEngine {
         const h = prim.height * transform.zoom;
 
         if (prim.fill && prim.fill !== "none" && !isSelected && !isHovered) {
-          ctx.fillStyle = prim.fill;
+          ctx.fillStyle = prim.fill === "bg" ? (theme === "light" ? "#F8FAFC" : "#0F172A") : prim.fill;
           ctx.fillRect(s.x, s.y, w, h);
         }
 
-        if (prim.color && prim.color !== "none" && (prim.lineWidth ?? 1) > 0) {
+        const strokeColor = prim.stroke || prim.color || color;
+        if (strokeColor && strokeColor !== "none" && (prim.lineWidth ?? 0.8) > 0) {
+          ctx.strokeStyle = isSelected ? "#0284C7" : (isHovered ? "#DC2626" : strokeColor);
+          ctx.lineWidth = Math.max(0.5, (prim.lineWidth || 0.8) * transform.zoom);
           ctx.strokeRect(s.x, s.y, w, h);
         }
 

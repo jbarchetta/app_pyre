@@ -175,6 +175,11 @@ export interface Tablero {
   gabinete_sugerido_codigo?: string | null;
   gabinete_sugerido_ancho_mm?: number | null;
   gabinete_sugerido_alto_mm?: number | null;
+  porcentaje_ocupacion?: number | null;
+  excede_largo_riel?: boolean | null;
+  max_polos_por_fila?: number | null;
+  capacidad_polos_linea?: number | null;
+  siguiente_gabinete_ancho_mm?: number | null;
   distribuidor_sugerido_id?: string | null;
   distribuidor_sugerido_codigo?: string | null;
   cablecanal_sugerido?: string | null;
@@ -225,6 +230,8 @@ export interface TableroUpdate {
   lleva_banquitos?: boolean;
   porcentaje_reserva?: number;
   paso_manual?: number | null;
+  gabinete_sugerido_ancho_mm?: number | null;
+  gabinete_sugerido_alto_mm?: number | null;
 }
 
 export async function actualizarTablero(id: string, cambios: TableroUpdate): Promise<Tablero> {
@@ -350,6 +357,7 @@ export async function crearSalida(seccionId: string, datos: SalidaInput): Promis
 }
 
 export interface SalidaUpdateInput {
+  seccion_id?: string;
   etiqueta?: string;
   carga_valor?: string;
   carga_unidad?: string;
@@ -656,6 +664,7 @@ export interface BomLineaItem {
   componente_codigo_comercial: string | null;
   componente_descripcion: string;
   componente_categoria: string | null;
+  componente_marca?: string | null;
   cantidad: number;
   precio_unitario_congelado: number;
   subtotal: number;
