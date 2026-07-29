@@ -14,6 +14,7 @@ import {
   Cog6ToothIcon,
 } from "@heroicons/react/24/outline";
 import { listarProyectos, type Proyecto } from "../api/client";
+import { EstadoProyectoBadge } from "../components/EstadoProyectoBadge";
 import { Badge, Card, CardHeader, CardTitle } from "../components/common";
 
 type Tono = "brand" | "info" | "success" | "warning";
@@ -50,11 +51,6 @@ function Metrica({ icono: Icono, tono, valor, etiqueta, numerico = true }: Metri
     </Card>
   );
 }
-
-const ESTADO: Record<string, { label: string; tono: "success" | "info" | "neutral" }> = {
-  finalizado: { label: "Finalizado", tono: "success" },
-  en_curso: { label: "En curso", tono: "info" },
-};
 
 const ACCESOS = [
   { to: "/proyectos", icono: FolderOpenIcon, label: "Lista de Proyectos y Tableros", destacado: true },
@@ -149,9 +145,7 @@ export function DashboardPage() {
             </div>
           ) : (
             <ul className="divide-y divide-line">
-              {recientes.map((p) => {
-                const estado = ESTADO[p.estado] ?? { label: p.estado, tono: "neutral" as const };
-                return (
+              {recientes.map((p) => (
                   <li
                     key={p.id}
                     className="flex items-center justify-between gap-3 px-5 py-3 transition-colors hover:bg-surface-sunken"
@@ -176,7 +170,7 @@ export function DashboardPage() {
                       </p>
                     </div>
                     <div className="flex shrink-0 items-center gap-3">
-                      <Badge tone={estado.tono}>{estado.label}</Badge>
+                      <EstadoProyectoBadge estado={p.estado} />
                       <Link
                         to={`/proyectos/${p.id}`}
                         className="rounded-control p-1.5 text-ink-subtle transition-colors hover:bg-surface hover:text-brand"
@@ -186,8 +180,7 @@ export function DashboardPage() {
                       </Link>
                     </div>
                   </li>
-                );
-              })}
+              ))}
             </ul>
           )}
         </Card>

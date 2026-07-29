@@ -22,10 +22,17 @@ import {
   type Proyecto,
 } from "../api/client";
 import { ConfirmDialog } from "../components/ConfirmDialog";
+import { EstadoProyectoBadge } from "../components/EstadoProyectoBadge";
+import { Badge, Button, Card, Field, Input, Select } from "../components/common";
 import { useCerrarAlClickFuera } from "../hooks/useCerrarAlClickFuera";
 
 type Modal = { tipo: "crear" } | { tipo: "editar"; proyecto: Proyecto } | null;
 type ModoVista = "tarjetas" | "tabla";
+
+const MODOS: { modo: ModoVista; label: string; icono: React.ComponentType<{ className?: string }> }[] = [
+  { modo: "tarjetas", label: "Tarjetas", icono: Squares2X2Icon },
+  { modo: "tabla", label: "Tabla", icono: TableCellsIcon },
+];
 
 export function ProyectosPage() {
   const [proyectos, setProyectos] = useState<Proyecto[] | null>(null);
@@ -48,13 +55,16 @@ export function ProyectosPage() {
     cantidadDesconocida: boolean;
   } | null>(null);
   const [borrando, setBorrando] = useState(false);
+  const [guardando, setGuardando] = useState(false);
   const clienteInputRef = useRef<HTMLInputElement>(null);
   const triggerRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     listarProyectos()
       .then(setProyectos)
-      .catch(() => setError("No se pudieron cargar los proyectos"));
+      .catch((err) =>
+        setError(err instanceof Error ? err.message : "No se pudieron cargar los proyectos")
+      );
   }, []);
 
   const cerrarModal = useCallback(() => {
@@ -81,6 +91,16 @@ export function ProyectosPage() {
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [modal, cerrarModal]);
 
+  function abrirCrear(trigger: HTMLElement) {
+    triggerRef.current = trigger;
+    setCliente("");
+    setNombre("");
+    setCodigoObra("");
+    setFechaInicio("");
+    setEstadoProyecto("en_curso");
+    setModal({ tipo: "crear" });
+  }
+
   function abrirEditar(proyecto: Proyecto, trigger: HTMLElement) {
     triggerRef.current = trigger;
     setCliente(proyecto.cliente);
@@ -94,6 +114,7 @@ export function ProyectosPage() {
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
     setError(null);
+    setGuardando(true);
     try {
       if (modal?.tipo === "editar") {
         const actualizado = await actualizarProyecto(modal.proyecto.id, {
@@ -115,8 +136,11 @@ export function ProyectosPage() {
       }
       cerrarModal();
     } catch (err) {
-      const mensajePorDefecto = modal?.tipo === "editar" ? "No se pudo actualizar el proyecto" : "No se pudo crear el proyecto";
+      const mensajePorDefecto =
+        modal?.tipo === "editar" ? "No se pudo actualizar el proyecto" : "No se pudo crear el proyecto";
       setError(err instanceof Error ? err.message : mensajePorDefecto);
+    } finally {
+      setGuardando(false);
     }
   }
 
@@ -144,9 +168,8 @@ export function ProyectosPage() {
     }
   }
 
-  if (proyectos === null) return <p className="p-4 text-gray-500">Cargando proyectos...</p>;
+  if (proyectos === null) return <p className="p-4 text-ink-subtle">Cargando proyectos…</p>;
 
-  // Filtrado de proyectos por búsqueda y por estado
   const proyectosFiltrados = proyectos.filter((p) => {
     const q = busqueda.toLowerCase().trim();
     const coincideTexto =
@@ -175,245 +198,228 @@ export function ProyectosPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header y Acción Principal */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 border-b border-surface-stroke pb-4">
+      <div className="flex flex-col gap-4 border-b border-line pb-5 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Gestión de Proyectos</h1>
-          <p className="text-sm text-gray-600">Listado y administración de proyectos de tableros eléctricos</p>
+          <h1 className="text-2xl font-bold tracking-tight text-ink">Gestión de Proyectos</h1>
+          <p className="mt-1 text-sm text-ink-muted">
+            Listado y administración de proyectos de tableros eléctricos
+          </p>
         </div>
-        <button
-          type="button"
-          onClick={(e) => {
-            triggerRef.current = e.currentTarget;
-            setCliente("");
-            setNombre("");
-            setCodigoObra("");
-            setFechaInicio("");
-            setEstadoProyecto("en_curso");
-            setModal({ tipo: "crear" });
-          }}
-          className="bg-abb-red hover:bg-red-700 text-white font-medium px-5 py-2.5 rounded shadow inline-flex items-center gap-2 transition"
+        <Button
+          variant="primary"
+          size="md"
+          onClick={(e) => abrirCrear(e.currentTarget)}
+          icon={<PlusIcon className="h-4 w-4" />}
         >
-          <PlusIcon className="w-5 h-5" />
           Nuevo proyecto
-        </button>
+        </Button>
       </div>
 
-      {/* Controles de Filtros y Modo de Vista */}
-      <div className="bg-white border border-surface-stroke p-4 rounded-lg shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="flex flex-1 flex-col sm:flex-row items-stretch sm:items-center gap-3">
-          {/* Buscador */}
+      <Card className="flex flex-col justify-between gap-4 md:flex-row md:items-center">
+        <div className="flex flex-1 flex-col items-stretch gap-3 sm:flex-row sm:items-center">
           <div className="relative flex-1">
-            <MagnifyingGlassIcon className="w-4 h-4 absolute left-3 top-3 text-gray-400" />
-            <input
-              type="text"
-              placeholder="Buscar por nombre, cliente, código de obra o autor..."
+            <MagnifyingGlassIcon
+              className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-ink-subtle"
+              aria-hidden="true"
+            />
+            <Input
+              type="search"
+              aria-label="Buscar proyectos"
+              placeholder="Buscar por nombre, cliente, código de obra o autor…"
               value={busqueda}
               onChange={(e) => setBusqueda(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 text-sm border border-gray-300 rounded focus:border-abb-red focus:outline-none"
+              className="pl-9"
             />
           </div>
 
-          {/* Filtro Estado */}
-          <select
+          <Select
+            aria-label="Filtrar por estado"
             value={filtroEstado}
             onChange={(e) => setFiltroEstado(e.target.value)}
-            className="text-sm border border-gray-300 rounded px-3 py-2 bg-white focus:border-abb-red focus:outline-none"
+            className="sm:w-52"
           >
-            <option value="todos">Todos los Estados</option>
-            <option value="en_curso">En Curso</option>
+            <option value="todos">Todos los estados</option>
+            <option value="en_curso">En curso</option>
             <option value="finalizado">Finalizados</option>
             <option value="cancelado">Cancelados</option>
-          </select>
+          </Select>
         </div>
 
-        {/* Selector de Modo Vista: Tarjetas vs Tabla */}
-        <div className="flex items-center gap-1 border border-gray-300 rounded p-1 bg-gray-50 self-end sm:self-auto">
-          <button
-            type="button"
-            onClick={() => setModoVista("tarjetas")}
-            className={`flex items-center gap-1 text-xs font-medium px-3 py-1.5 rounded transition ${
-              modoVista === "tarjetas" ? "bg-white text-abb-red shadow-sm" : "text-gray-600 hover:text-gray-900"
-            }`}
-          >
-            <Squares2X2Icon className="w-4 h-4" />
-            Tarjetas
-          </button>
-          <button
-            type="button"
-            onClick={() => setModoVista("tabla")}
-            className={`flex items-center gap-1 text-xs font-medium px-3 py-1.5 rounded transition ${
-              modoVista === "tabla" ? "bg-white text-abb-red shadow-sm" : "text-gray-600 hover:text-gray-900"
-            }`}
-          >
-            <TableCellsIcon className="w-4 h-4" />
-            Tabla
-          </button>
+        <div
+          role="group"
+          aria-label="Modo de vista"
+          className="flex items-center gap-1 self-end rounded-control border border-line bg-surface-sunken p-1 sm:self-auto"
+        >
+          {MODOS.map(({ modo, label, icono: Icono }) => {
+            const activo = modoVista === modo;
+            return (
+              <button
+                key={modo}
+                type="button"
+                aria-pressed={activo}
+                onClick={() => setModoVista(modo)}
+                className={`inline-flex items-center gap-1.5 rounded-control px-3 py-1.5 text-xs font-medium transition-colors ${
+                  activo
+                    ? "bg-surface text-brand shadow-control"
+                    : "text-ink-muted hover:text-ink"
+                }`}
+              >
+                <Icono className="h-4 w-4" />
+                {label}
+              </button>
+            );
+          })}
         </div>
-      </div>
+      </Card>
 
       {proyectosFiltrados.length === 0 ? (
-        <div className="text-center py-12 border border-dashed border-gray-300 rounded-lg bg-gray-50 flex flex-col items-center justify-center">
-          <FolderOpenIcon className="w-10 h-10 text-gray-400" />
-          <p className="mt-2 text-gray-600 font-medium">No se encontraron proyectos</p>
-          <p className="text-xs text-gray-500">Pruebe ajustando el buscador o los filtros</p>
+        <div className="flex flex-col items-center justify-center rounded-card border border-dashed border-line-strong bg-surface-sunken py-12 text-center">
+          <FolderOpenIcon className="h-9 w-9 text-ink-subtle" aria-hidden="true" />
+          <p className="mt-3 font-medium text-ink-muted">No se encontraron proyectos</p>
+          <p className="mt-0.5 text-xs text-ink-subtle">Probá ajustando el buscador o los filtros</p>
         </div>
       ) : (
         Object.entries(agrupadosPorMes).map(([mes, lista]) => (
-          <div key={mes} className="space-y-3">
-            <h2 className="text-xs font-bold uppercase tracking-wider text-gray-500 border-b border-gray-200 pb-1 flex items-center gap-1.5">
-              <CalendarDaysIcon className="w-4 h-4" />
-              {mes} <span className="text-gray-400 font-normal">({lista.length})</span>
+          <section key={mes} className="space-y-3">
+            <h2 className="etiqueta flex items-center gap-1.5 border-b border-line pb-1.5">
+              <CalendarDaysIcon className="h-4 w-4" aria-hidden="true" />
+              {mes}
+              <span className="font-normal normal-case tracking-normal">({lista.length})</span>
             </h2>
 
             {modoVista === "tarjetas" ? (
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {lista.map((proyecto) => (
-                  <div
+                  <Card
                     key={proyecto.id}
-                    className="relative border border-surface-stroke bg-white p-5 rounded-lg shadow-sm hover:border-abb-red hover:shadow transition group flex flex-col justify-between"
+                    className="flex flex-col justify-between transition-colors hover:border-brand-line"
                   >
                     <div>
-                      <div className="flex items-start justify-between gap-2 mb-2">
-                        <Link to={`/proyectos/${proyecto.id}`} className="font-bold text-gray-900 text-lg hover:text-abb-red line-clamp-1">
+                      <div className="mb-2 flex items-start justify-between gap-2">
+                        <Link
+                          to={`/proyectos/${proyecto.id}`}
+                          className="line-clamp-1 text-base font-bold text-ink hover:text-brand"
+                        >
                           {proyecto.nombre}
                         </Link>
-                        <div className="flex gap-1">
-                          <button
-                            type="button"
+                        <div className="flex shrink-0 gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
                             aria-label={`Editar ${proyecto.nombre}`}
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              abrirEditar(proyecto, e.currentTarget);
-                            }}
-                            className="text-gray-400 hover:text-abb-red p-1 rounded hover:bg-gray-100"
+                            onClick={(e) => abrirEditar(proyecto, e.currentTarget)}
                           >
-                            <PencilIcon className="w-4 h-4" />
-                          </button>
-                          <button
-                            type="button"
+                            <PencilIcon className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
                             aria-label={`Borrar ${proyecto.nombre}`}
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              handlePedirBorrado(proyecto, e.currentTarget);
-                            }}
-                            className="text-gray-400 hover:text-abb-red p-1 rounded hover:bg-gray-100"
+                            onClick={(e) => handlePedirBorrado(proyecto, e.currentTarget)}
                           >
-                            <TrashIcon className="w-4 h-4" />
-                          </button>
+                            <TrashIcon className="h-4 w-4" />
+                          </Button>
                         </div>
                       </div>
 
-                      <div className="text-sm text-gray-600 mb-3">
-                        Cliente: <span className="font-medium text-gray-800">{proyecto.cliente}</span>
-                      </div>
+                      <p className="mb-3 text-sm text-ink-muted">
+                        Cliente: <span className="font-medium text-ink">{proyecto.cliente}</span>
+                      </p>
 
-                      <div className="space-y-1 text-xs text-gray-500 border-t border-gray-100 pt-2 mb-4">
+                      <dl className="mb-4 space-y-1.5 border-t border-line pt-3 text-xs text-ink-subtle">
                         {proyecto.codigo_obra && (
                           <div className="flex items-center gap-1.5">
-                            <HashtagIcon className="w-3.5 h-3.5" />
-                            Obra: <span className="font-mono bg-gray-100 px-1 rounded text-gray-700">{proyecto.codigo_obra}</span>
+                            <HashtagIcon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                            <dt>Obra:</dt>
+                            <dd>
+                              <Badge mono tone="neutral">
+                                {proyecto.codigo_obra}
+                              </Badge>
+                            </dd>
                           </div>
                         )}
                         {proyecto.analista_nombre && (
                           <div className="flex items-center gap-1.5">
-                            <UserIcon className="w-3.5 h-3.5" />
-                            Diseñador: <span className="text-gray-700">{proyecto.analista_nombre}</span>
+                            <UserIcon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                            <dt>Diseñador:</dt>
+                            <dd className="truncate text-ink-muted">{proyecto.analista_nombre}</dd>
                           </div>
                         )}
                         {proyecto.fecha_inicio && (
                           <div className="flex items-center gap-1.5">
-                            <CalendarDaysIcon className="w-3.5 h-3.5" />
-                            Inicio: <span className="text-gray-700">{new Date(proyecto.fecha_inicio).toLocaleDateString()}</span>
+                            <CalendarDaysIcon className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                            <dt>Inicio:</dt>
+                            <dd className="dato-tecnico text-ink-muted">
+                              {new Date(proyecto.fecha_inicio).toLocaleDateString()}
+                            </dd>
                           </div>
                         )}
-                      </div>
+                      </dl>
                     </div>
 
-                    <div className="flex items-center justify-between border-t border-gray-100 pt-3">
-                      <span
-                        className={`text-xs px-2.5 py-0.5 rounded-full font-medium ${
-                          proyecto.estado === "finalizado"
-                            ? "bg-green-100 text-green-800"
-                            : proyecto.estado === "en_curso"
-                            ? "bg-blue-100 text-blue-800"
-                            : "bg-gray-100 text-gray-800"
-                        }`}
-                      >
-                        {proyecto.estado === "en_curso" ? "En curso" : proyecto.estado === "finalizado" ? "Finalizado" : proyecto.estado}
-                      </span>
+                    <div className="flex items-center justify-between border-t border-line pt-3">
+                      <EstadoProyectoBadge estado={proyecto.estado} />
                       <Link
                         to={`/proyectos/${proyecto.id}`}
-                        className="text-xs font-semibold text-abb-red hover:underline flex items-center gap-1"
+                        className="inline-flex items-center gap-1 text-xs font-semibold text-brand hover:underline"
                       >
                         Abrir
-                        <ArrowRightIcon className="w-3.5 h-3.5" />
+                        <ArrowRightIcon className="h-3.5 w-3.5" />
                       </Link>
                     </div>
-                  </div>
+                  </Card>
                 ))}
               </div>
             ) : (
-              <div className="bg-white border border-slate-300 rounded-xl shadow-2xs overflow-x-auto">
-                <table className="w-full text-left border-collapse text-xs">
-                  <thead className="bg-[#2C3645] text-slate-100 font-mono text-[11px] uppercase tracking-wider border-b border-slate-700">
+              <div className="overflow-x-auto rounded-card border border-line bg-surface shadow-card">
+                <table className="w-full border-collapse text-left text-sm">
+                  <thead className="border-b border-line bg-surface-sunken">
                     <tr>
-                      <th className="py-2.5 px-3 font-bold">Proyecto</th>
-                      <th className="py-2.5 px-3 font-bold">Cliente</th>
-                      <th className="py-2.5 px-3 font-bold">Código Obra</th>
-                      <th className="py-2.5 px-3 font-bold">Diseñador</th>
-                      <th className="py-2.5 px-3 font-bold">Estado</th>
-                      <th className="py-2.5 px-3 text-right font-bold">Acciones</th>
+                      {["Proyecto", "Cliente", "Código obra", "Diseñador", "Estado"].map((h) => (
+                        <th key={h} scope="col" className="etiqueta px-3 py-2.5">
+                          {h}
+                        </th>
+                      ))}
+                      <th scope="col" className="etiqueta px-3 py-2.5 text-right">
+                        Acciones
+                      </th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-200 bg-white">
-                    {lista.map((proyecto, idx) => (
-                      <tr
-                        key={proyecto.id}
-                        className={`transition-colors border-l-4 border-l-abb-red ${
-                          idx % 2 === 0 ? "bg-white" : "bg-slate-50/80"
-                        } hover:bg-red-50/40`}
-                      >
-                        <td className="py-2.5 px-3 font-bold text-slate-900">
-                          <Link to={`/proyectos/${proyecto.id}`} className="hover:text-abb-red">
+                  <tbody className="divide-y divide-line">
+                    {lista.map((proyecto) => (
+                      <tr key={proyecto.id} className="transition-colors hover:bg-surface-sunken">
+                        <td className="px-3 py-2.5 font-semibold text-ink">
+                          <Link to={`/proyectos/${proyecto.id}`} className="hover:text-brand">
                             {proyecto.nombre}
                           </Link>
                         </td>
-                        <td className="py-2.5 px-3 text-slate-700">{proyecto.cliente}</td>
-                        <td className="py-2.5 px-3 text-slate-600 font-mono text-xs">{proyecto.codigo_obra ?? "-"}</td>
-                        <td className="py-2.5 px-3 text-slate-600">{proyecto.analista_nombre ?? "-"}</td>
-                        <td className="py-2.5 px-3">
-                          <span
-                            className={`text-[11px] font-mono px-2 py-0.5 rounded-full font-bold border ${
-                              proyecto.estado === "finalizado"
-                                ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                                : proyecto.estado === "en_curso"
-                                ? "bg-blue-50 text-blue-700 border-blue-200"
-                                : "bg-slate-100 text-slate-700 border-slate-200"
-                            }`}
-                          >
-                            {proyecto.estado === "en_curso" ? "En curso" : proyecto.estado === "finalizado" ? "Finalizado" : proyecto.estado}
-                          </span>
+                        <td className="px-3 py-2.5 text-ink-muted">{proyecto.cliente}</td>
+                        <td className="dato-tecnico px-3 py-2.5 text-xs text-ink-muted">
+                          {proyecto.codigo_obra ?? "—"}
                         </td>
-                        <td className="py-2.5 px-3 text-right space-x-2">
-                          <button
-                            type="button"
-                            onClick={(e) => abrirEditar(proyecto, e.currentTarget)}
-                            className="text-slate-400 hover:text-abb-red p-1 rounded hover:bg-slate-100"
-                            title="Editar"
-                          >
-                            <PencilIcon className="w-4 h-4 inline" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={(e) => handlePedirBorrado(proyecto, e.currentTarget)}
-                            className="text-slate-400 hover:text-abb-red p-1 rounded hover:bg-slate-100"
-                            title="Borrar"
-                          >
-                            <TrashIcon className="w-4 h-4 inline" />
-                          </button>
+                        <td className="px-3 py-2.5 text-ink-muted">{proyecto.analista_nombre ?? "—"}</td>
+                        <td className="px-3 py-2.5">
+                          <EstadoProyectoBadge estado={proyecto.estado} />
+                        </td>
+                        <td className="px-3 py-2.5">
+                          <div className="flex justify-end gap-1">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              aria-label={`Editar ${proyecto.nombre}`}
+                              onClick={(e) => abrirEditar(proyecto, e.currentTarget)}
+                            >
+                              <PencilIcon className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              aria-label={`Borrar ${proyecto.nombre}`}
+                              onClick={(e) => handlePedirBorrado(proyecto, e.currentTarget)}
+                            >
+                              <TrashIcon className="h-4 w-4" />
+                            </Button>
+                          </div>
                         </td>
                       </tr>
                     ))}
@@ -421,102 +427,85 @@ export function ProyectosPage() {
                 </table>
               </div>
             )}
-          </div>
+          </section>
         ))
       )}
 
-      {/* Modal Crear / Editar Proyecto */}
+      {/* El <form> es a la vez el diálogo: mantenerlo así deja el botón de
+          submit dentro del formulario. */}
       {modal && (
-        <div className="fixed inset-0 flex items-center justify-center bg-black/40 z-50" onMouseDown={onMouseDownModal} onClick={onClickModal}>
+        <div
+          className="fixed inset-0 z-30 flex items-center justify-center bg-ink/40 p-4 backdrop-blur-[1px]"
+          onMouseDown={onMouseDownModal}
+          onClick={onClickModal}
+        >
           <form
             onSubmit={handleSubmit}
             onClick={(e) => e.stopPropagation()}
             role="dialog"
             aria-modal="true"
             aria-labelledby="proyecto-modal-titulo"
-            className="flex w-full max-w-md flex-col gap-3 border border-surface-stroke bg-white p-6 rounded-lg shadow-xl"
+            className="flex w-full max-w-md flex-col gap-4 rounded-modal border border-line bg-surface p-6 shadow-modal"
           >
-            <h2 id="proyecto-modal-titulo" className="text-lg font-bold text-gray-900 border-b pb-2">
+            <h2 id="proyecto-modal-titulo" className="border-b border-line pb-3 text-base font-bold text-ink">
               {modal.tipo === "editar" ? "Editar proyecto" : "Nuevo proyecto"}
             </h2>
 
-            <div className="space-y-1">
-              <label htmlFor="cliente" className="text-xs font-semibold text-gray-700">Cliente *</label>
-              <input
-                id="cliente"
-                ref={clienteInputRef}
-                value={cliente}
-                onChange={(e) => setCliente(e.target.value)}
-                className="w-full text-sm border border-gray-300 rounded px-3 py-2 focus:border-abb-red focus:outline-none"
-              />
-            </div>
+            <Field label="Cliente" required>
+              {(p) => (
+                <Input {...p} ref={clienteInputRef} value={cliente} onChange={(e) => setCliente(e.target.value)} />
+              )}
+            </Field>
 
-            <div className="space-y-1">
-              <label htmlFor="nombre" className="text-xs font-semibold text-gray-700">Nombre del Proyecto *</label>
-              <input
-                id="nombre"
-                value={nombre}
-                onChange={(e) => setNombre(e.target.value)}
-                className="w-full text-sm border border-gray-300 rounded px-3 py-2 focus:border-abb-red focus:outline-none"
-              />
-            </div>
+            <Field label="Nombre del proyecto" required>
+              {(p) => <Input {...p} value={nombre} onChange={(e) => setNombre(e.target.value)} />}
+            </Field>
 
             <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <label htmlFor="codigoObra" className="text-xs font-semibold text-gray-700">Código Obra</label>
-                <input
-                  id="codigoObra"
-                  placeholder="Ej. OB-2026-44"
-                  value={codigoObra}
-                  onChange={(e) => setCodigoObra(e.target.value)}
-                  className="w-full text-sm border border-gray-300 rounded px-3 py-2 focus:border-abb-red focus:outline-none"
-                />
-              </div>
+              <Field label="Código obra">
+                {(p) => (
+                  <Input
+                    {...p}
+                    mono
+                    placeholder="OB-2026-44"
+                    value={codigoObra}
+                    onChange={(e) => setCodigoObra(e.target.value)}
+                  />
+                )}
+              </Field>
 
-              <div className="space-y-1">
-                <label htmlFor="fechaInicio" className="text-xs font-semibold text-gray-700">Fecha Inicio</label>
-                <input
-                  id="fechaInicio"
-                  type="date"
-                  value={fechaInicio}
-                  onChange={(e) => setFechaInicio(e.target.value)}
-                  className="w-full text-sm border border-gray-300 rounded px-3 py-2 focus:border-abb-red focus:outline-none"
-                />
-              </div>
+              <Field label="Fecha inicio">
+                {(p) => (
+                  <Input {...p} type="date" value={fechaInicio} onChange={(e) => setFechaInicio(e.target.value)} />
+                )}
+              </Field>
             </div>
 
             {modal.tipo === "editar" && (
-              <div className="space-y-1">
-                <label htmlFor="estadoProyecto" className="text-xs font-semibold text-gray-700">Estado del Proyecto</label>
-                <select
-                  id="estadoProyecto"
-                  value={estadoProyecto}
-                  onChange={(e) => setEstadoProyecto(e.target.value)}
-                  className="w-full text-sm border border-gray-300 rounded px-3 py-2 focus:border-abb-red focus:outline-none bg-white"
-                >
-                  <option value="en_curso">En curso</option>
-                  <option value="finalizado">Finalizado</option>
-                  <option value="cancelado">Cancelado</option>
-                </select>
-              </div>
+              <Field label="Estado del proyecto">
+                {(p) => (
+                  <Select {...p} value={estadoProyecto} onChange={(e) => setEstadoProyecto(e.target.value)}>
+                    <option value="en_curso">En curso</option>
+                    <option value="finalizado">Finalizado</option>
+                    <option value="cancelado">Cancelado</option>
+                  </Select>
+                )}
+              </Field>
             )}
 
-            {error && <p role="alert" className="text-sm text-red-600 bg-red-50 p-2 rounded">{error}</p>}
+            {error && (
+              <p role="alert" className="rounded-control bg-danger-tint p-2.5 text-sm text-danger">
+                {error}
+              </p>
+            )}
 
-            <div className="mt-4 flex justify-end gap-2 border-t pt-3">
-              <button
-                type="button"
-                onClick={cerrarModal}
-                className="px-4 py-2 text-sm font-medium text-gray-700 border border-gray-300 rounded hover:bg-gray-50"
-              >
+            <div className="mt-2 flex justify-end gap-2 border-t border-line pt-4">
+              <Button type="button" variant="secondary" size="md" onClick={cerrarModal}>
                 Cancelar
-              </button>
-              <button
-                type="submit"
-                className="bg-abb-red hover:bg-red-700 px-5 py-2 text-sm font-medium text-white rounded shadow"
-              >
-                {modal.tipo === "editar" ? "Guardar Cambios" : "Crear Proyecto"}
-              </button>
+              </Button>
+              <Button type="submit" variant="primary" size="md" isLoading={guardando}>
+                {modal.tipo === "editar" ? "Guardar cambios" : "Crear proyecto"}
+              </Button>
             </div>
           </form>
         </div>
