@@ -27,17 +27,20 @@
   --color-canvas: #f8fafc; /* fondo de página */
   --color-surface: #ffffff; /* tarjetas, paneles, modales */
   --color-surface-sunken: #f1f5f9; /* zonas anidadas, thead, filas alternas */
-  --color-surface-inverse: #0f172a; /* barras oscuras, viewport CAD */
+  --color-surface-inverse: #0f172a; /* sidebar, viewport CAD */
+  --color-surface-inverse-raised: #1e293b; /* hover/activo sobre superficie oscura */
 
   /* --- Texto ------------------------------------------------------------- */
   --color-ink: #0f172a; /* texto principal */
   --color-ink-muted: #475569; /* texto de apoyo, labels */
   --color-ink-subtle: #64748b; /* placeholders, metadata */
   --color-ink-inverse: #f8fafc; /* texto sobre superficie oscura */
+  --color-ink-inverse-muted: #94a3b8; /* texto de apoyo sobre superficie oscura */
 
   /* --- Bordes ------------------------------------------------------------ */
   --color-line: #e2e8f0; /* borde por defecto */
   --color-line-strong: #cbd5e1; /* borde de inputs, hover, divisiones fuertes */
+  --color-line-inverse: #334155; /* borde sobre superficie oscura */
 
   /* --- Marca (ABB) ------------------------------------------------------- */
   --color-brand: #e31f26;
