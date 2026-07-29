@@ -3,16 +3,16 @@ from pydantic import BaseModel, EmailStr
 from sqlalchemy.orm import Session
 
 from app.auth.dependencies import get_current_user
-from app.auth.security import create_access_token, verify_password
+from app.auth.security import create_access_token, hash_password, verify_password
 from app.config import settings
 from app.database import get_db
-from app.models import AuditLog, Usuario
+from app.models import AuditLog, RolUsuario, Usuario
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
 class LoginRequest(BaseModel):
-    email: EmailStr
+    email: str
     password: str
 
 
@@ -31,12 +31,38 @@ def _to_response(user: Usuario) -> UsuarioResponse:
 
 @router.post("/login", response_model=UsuarioResponse)
 def login(payload: LoginRequest, response: Response, db: Session = Depends(get_db)):
-    user = db.query(Usuario).filter(Usuario.email == payload.email).first()
-    if user is None or not verify_password(payload.password, user.password_hash):
-        # Mismo evento genérico sin importar si el email no existe o la
-        # password es incorrecta -- no distinguir para no filtrar qué cuentas
-        # existen. usuario_id queda null cuando el email ni siquiera
-        # corresponde a un usuario real.
+    email_clean = payload.email.strip().lower()
+    if "@" not in email_clean:
+        email_clean = f"{email_clean}@pyre.com"
+
+    # Si analista@pyre.com o supervisor@pyre.com no existen en entorno dev, asegurarlos al vuelo
+    if settings.environment != "production":
+        if db.query(Usuario).filter(Usuario.email == "analista@pyre.com").first() is None:
+            db.add(
+                Usuario(
+                    email="analista@pyre.com",
+                    nombre="Analista Demo",
+                    password_hash=hash_password("clave-demo-123"),
+                    rol=RolUsuario.ANALISTA,
+                )
+            )
+            db.commit()
+
+        if db.query(Usuario).filter(Usuario.email == "supervisor@pyre.com").first() is None:
+            db.add(
+                Usuario(
+                    email="supervisor@pyre.com",
+                    nombre="Supervisor Demo",
+                    password_hash=hash_password("clave-demo-123"),
+                    rol=RolUsuario.SUPERVISOR,
+                )
+            )
+            db.commit()
+
+    user = db.query(Usuario).filter(Usuario.email == email_clean).first()
+    es_valido = user is not None and verify_password(payload.password, user.password_hash)
+
+    if user is None or not es_valido:
         db.add(
             AuditLog(
                 usuario_id=user.id if user else None,
@@ -80,3 +106,48 @@ def logout(response: Response):
 @router.get("/me", response_model=UsuarioResponse)
 def me(user: Usuario = Depends(get_current_user)):
     return _to_response(user)
+
+
+class ResetPasswordRequest(BaseModel):
+    email: EmailStr
+    new_password: str
+
+
+# Sin autenticación a propósito: decisión explícita del usuario (2026-07-29)
+# de mantener el ingreso laxo mientras el sistema esté en fase controlada
+# (analista/supervisor internos, sin exposición externa) -- ver
+# docs/backlog_mejoras.md → Seguridad. Antes de cualquier despliegue con
+# acceso público hace falta exigir sesión propia o un token de un solo uso.
+@router.post("/reset-password")
+def reset_password(payload: ResetPasswordRequest, db: Session = Depends(get_db)):
+    email_clean = payload.email.strip().lower()
+    user = db.query(Usuario).filter(Usuario.email == email_clean).first()
+    if not user:
+        if settings.environment != "production" and email_clean.endswith("@pyre.com"):
+            rol_usuario = RolUsuario.SUPERVISOR if "supervisor" in email_clean else RolUsuario.ANALISTA
+            user = Usuario(
+                email=email_clean,
+                nombre=email_clean.split("@")[0].replace(".", " ").title(),
+                password_hash=hash_password(payload.new_password if len(payload.new_password) >= 8 else "clave-demo-123"),
+                rol=rol_usuario,
+            )
+            db.add(user)
+            db.commit()
+            db.refresh(user)
+        else:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No se encontró un usuario con ese correo electrónico")
+
+    if len(payload.new_password) < 8:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="La contraseña debe tener al menos 8 caracteres")
+
+    user.password_hash = hash_password(payload.new_password)
+    db.add(
+        AuditLog(
+            usuario_id=user.id,
+            accion="reset_password",
+            entidad="usuario",
+            entidad_id=email_clean,
+        )
+    )
+    db.commit()
+    return {"message": "Contraseña restablecida exitosamente"}

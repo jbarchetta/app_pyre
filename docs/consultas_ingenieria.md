@@ -1,4 +1,4 @@
-# Consultas pendientes para ingeniería de PYRE
+# Registro de Consultas para Ingeniería de PYRE
 
 Preguntas técnicas/de negocio encontradas durante el desarrollo que requieren el criterio de un ingeniero eléctrico de PYRE, no de quien esté programando el sistema. Se resuelven a medida que haya oportunidad de consultar, y la resolución se documenta en `reglas_negocio.md` (no acá).
 
@@ -55,6 +55,39 @@ Tienen polos, corriente nominal y capacidad de corte (los tres datos que necesit
 **Qué se necesita:** el usuario mismo va a terminar de revisar el resto de las líneas de interruptores ABB (caja moldeada, etc.) para confirmar si el patrón "fraccionario por debajo de cierto umbral, entero en adelante" es general o específico de MCB. Con eso confirmado, se decide la regla definitiva (ej. "entero salvo para calibres tabulados conocidos por debajo de 2A", o un enfoque distinto si otras líneas tienen sus propios calibres fraccionarios).
 
 **Mientras tanto:** la regla actual (entero exacto, sin excepciones) se mantiene sin cambios — el ciclo 10a solo mueve esta validación al frontend tal como está hoy, no la corrige.
+
+### 5. Búsqueda automática y poder de corte (Icn/Icu) en diferenciales puros
+
+**Encontrado:** 2026-07-21, durante el ajuste de la propuesta automática para interruptores diferenciales (`backend/app/motor/propuesta.py`).
+
+**Contexto:** el motor automático filtraba estrictamente por la capacidad de corte mínima contra el nivel de falla del tablero (`capacidad_corte_ka >= tablero.nivel_falla_ka`). Esto provocaba un bloqueo generalizado ("Sin match") de diferenciales válidos de 10 kA en tableros diseñados para 15 kA, mientras que la base de datos de ABB para diferenciales puros solo tiene modelos de 6 kA y 10 kA.
+
+**Acción provisional tomada:** se omitió el chequeo de poder de corte mínimo exclusivamente para los diferenciales puros (`seccional_diferencial`), dado que su capacidad en cortocircuitos es condicional y está respaldada por el interruptor termomagnético que se encuentra inmediatamente aguas arriba (coordinación de respaldo/filiación).
+
+**Por qué importa:** es una omisión de validación deliberada pero no confirmada con ingeniería — si la coordinación de respaldo no aplica en todos los casos, el sistema podría proponer un diferencial sin capacidad de corte suficiente para la falla real del tablero.
+
+**Qué se necesita:** confirmación de un ingeniero de PYRE sobre:
+1. **Atributos ausentes:** si un elemento del catálogo carece de `capacidad_corte_ka` (`NULL` o no cargado), ¿cómo debe actuar el selector automático? ¿asumir un valor por defecto seguro (ej. 4.5 kA o 6 kA), o alertar al usuario para que complete la ficha técnica del catálogo?
+2. **Reglas de respaldo (filiación):** ¿se desea formalizar una tabla de filiación en el motor de cálculo para permitir instalar diferenciales y termomagnéticos de menor capacidad de corte bajo termomagnéticos principales que limiten la energía de falla?
+3. **Diferenciales:** ¿es correcto omitir de forma definitiva el chequeo de poder de corte de los diferenciales puros en favor de su protección de sobrecarga por el interruptor principal?
+
+**Mientras tanto:** se mantiene la omisión del chequeo de capacidad de corte para diferenciales puros, sin tabla de filiación formal.
+
+### 6. Cablecanal: ¿tabla `ReglaCablecanal` configurable por corriente, o tabla fija por área acumulada de cables?
+
+**Encontrado:** 2026-07-29, durante la revisión integral del desarrollo de esta sesión.
+
+**Contexto:** existen hoy dos mecanismos de selección de cablecanal que no están conectados entre sí:
+- `backend/app/motor/motor_reglas.py::seleccionar_cablecanal_zoloda()` — la lógica que efectivamente usa `calcular_dimensiones_tablero()` — selecciona la medida mínima de cablecanal Zoloda cuya área cubre la sección acumulada de cables de la sección más congestionada, con un factor de llenado configurable (`ParametroCalculo.factor_llenado_cablecanal`).
+- El modelo `ReglaCablecanal` (`corriente_minima`, `corriente_maxima`, `medida_cablecanal`) con CRUD completo en `POST/GET/DELETE /tableros/config/reglas-cablecanal` y su propio seed (`backend/app/scripts/seed_reglas_construccion.py`) — selecciona por rango de corriente directo, sin considerar cantidad de cables ni factor de llenado.
+
+Un analista que edite las reglas desde `/config/reglas-cablecanal` no vería ningún efecto en el cálculo real del tablero, porque el motor nunca consulta esa tabla.
+
+**Por qué importa:** son dos filosofías de dimensionamiento distintas (área física ocupada por los cables vs. corriente nominal directa) y no es una decisión de programación — mezclarlas mal podría sub o sobre-dimensionar el cablecanal sugerido.
+
+**Qué se necesita:** decisión de PYRE/ingeniería: ¿`ReglaCablecanal` debería reemplazar completamente a `CABLECANAL_MEDIDAS` (y entonces el selector pasaría a usar corriente en vez de área acumulada), ¿debería ser un override manual por tramo de corriente que tiene prioridad sobre el cálculo por área cuando hay una regla que matchea, o es una tabla que quedó de una iteración de diseño anterior y se puede dar de baja?
+
+**Mientras tanto:** `seleccionar_cablecanal_zoloda()` sigue siendo la única lógica activa; `ReglaCablecanal` queda con su CRUD funcional pero sin efecto en el cálculo.
 
 ## Resueltas
 

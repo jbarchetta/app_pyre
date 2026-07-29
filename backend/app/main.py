@@ -1,32 +1,8 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy import text
 
 from app.config import settings
-from app.database import engine
 from app.routers import auth, bom, catalogo, health, parametros_calculo, proyectos, salidas, tableros
-
-
-def _ejecutar_migraciones_ligeras():
-    try:
-        with engine.begin() as conn:
-            conn.execute(
-                text(
-                    "ALTER TABLE salida ADD COLUMN IF NOT EXISTS alimentado_por_salida_id UUID REFERENCES salida(id) ON DELETE SET NULL;"
-                )
-            )
-            conn.execute(
-                text(
-                    "ALTER TABLE salida ADD COLUMN IF NOT EXISTS sensibilidad_ma INTEGER;"
-                )
-            )
-            conn.execute(
-                text(
-                    "ALTER TABLE salida ADD COLUMN IF NOT EXISTS admite_accesorios BOOLEAN DEFAULT FALSE;"
-                )
-            )
-    except Exception:
-        pass
 
 
 def _asegurar_usuarios_semilla():
@@ -38,31 +14,36 @@ def _asegurar_usuarios_semilla():
         db = SessionLocal()
         try:
             if db.query(Usuario).filter(Usuario.email == "analista@pyre.com").first() is None:
-                analista = Usuario(
-                    email="analista@pyre.com",
-                    nombre="Analista Demo",
-                    password_hash=hash_password("clave-demo-123"),
-                    rol=RolUsuario.ANALISTA,
-                )
-                db.add(analista)
+                try:
+                    analista = Usuario(
+                        email="analista@pyre.com",
+                        nombre="Analista Demo",
+                        password_hash=hash_password("clave-demo-123"),
+                        rol=RolUsuario.ANALISTA,
+                    )
+                    db.add(analista)
+                    db.commit()
+                except Exception:
+                    db.rollback()
 
             if db.query(Usuario).filter(Usuario.email == "supervisor@pyre.com").first() is None:
-                supervisor = Usuario(
-                    email="supervisor@pyre.com",
-                    nombre="Supervisor Demo",
-                    password_hash=hash_password("clave-demo-123"),
-                    rol=RolUsuario.SUPERVISOR,
-                )
-                db.add(supervisor)
-
-            db.commit()
+                try:
+                    supervisor = Usuario(
+                        email="supervisor@pyre.com",
+                        nombre="Supervisor Demo",
+                        password_hash=hash_password("clave-demo-123"),
+                        rol=RolUsuario.SUPERVISOR,
+                    )
+                    db.add(supervisor)
+                    db.commit()
+                except Exception:
+                    db.rollback()
         finally:
             db.close()
     except Exception as e:
         print("Error al asegurar usuarios semilla:", e)
 
 
-_ejecutar_migraciones_ligeras()
 _asegurar_usuarios_semilla()
 
 app = FastAPI(title="Configurador de Tableros PYRE")

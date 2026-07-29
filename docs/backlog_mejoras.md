@@ -22,6 +22,8 @@ Leyenda: ✅ hecho (con ciclo/commit) · 🟦 planeado (ciclo asignado) · ⬜ s
 | ⬜ | JWT sin refresh ni revocación (8h de validez, logout solo borra cookie del cliente) | Evaluar en Fase E si hay exposición externa |
 | ✅ | Sin política de contraseñas (`create_user` acepta `"a"`) | Ciclo 9d — mínimo 8 caracteres (`7207f90`) |
 | ⬜ | Upgrade `bcrypt>=4.1` (desbloqueado tras eliminar passlib) | Próximo mantenimiento de dependencias |
+| 🟡 | `POST /auth/reset-password` no requiere sesión ni prueba de identidad — cualquiera con un email conocido puede resetear la contraseña de otro usuario | Decisión explícita del usuario 2026-07-29: aceptado como laxo mientras el sistema esté en fase controlada (analista/supervisor internos, sin exposición externa) — **revisar antes de cualquier despliegue con acceso público, requiere auth o token de un solo uso** |
+| 🟡 | Login auto-crea `analista@pyre.com`/`supervisor@pyre.com` con password fija `clave-demo-123` si no existen, en todo entorno no-`production` | Mismo criterio que el ítem anterior — deuda de auth aceptada para esta fase, re-evaluar en Fase E |
 
 ## Estabilidad / performance
 
@@ -47,6 +49,10 @@ Leyenda: ✅ hecho (con ciclo/commit) · 🟦 planeado (ciclo asignado) · ⬜ s
 | ✅ | 3 ramas obsoletas mergeadas + CLAUDE.md desactualizado (ciclo 7) | Housekeeping 2026-07-19 (`a1bd59d`) |
 | 🟦 | Migración `7c4084aba894` (enum TRIPOLAR) sin downgrade posible (limitación de Postgres) | Aceptado — documentado, no requiere acción |
 | 🟡 | Asignación manual inconsistente con carga no se valida ni advierte | 🟡 `docs/consultas_ingenieria.md` #3 — pendiente decisión del usuario |
+| ✅ | `motor_reglas.seleccionar_gabinete_nollmann` tenía un `sort()`+`return` duplicado e inalcanzable (copy-paste) | Housekeeping 2026-07-29 |
+| ✅ | `app/main.py` aplicaba `ALTER TABLE ... IF NOT EXISTS` crudo para 3 columnas de `salida` en cada arranque, en paralelo a Alembic | Housekeeping 2026-07-29 — migración `7e765fcca671`, hack eliminado |
+| 🟡 | `ReglaCablecanal` (modelo + CRUD completo) no está conectado a `motor_reglas.seleccionar_cablecanal_zoloda` — editar reglas desde la API no afecta el cálculo | 🟡 `docs/consultas_ingenieria.md` #6 — pendiente decisión de ingeniería sobre cuál mecanismo es el autoritativo |
+| ✅ | `docs/consultas_ingenieria.md` había sido reemplazado entero, perdiendo 4 preguntas abiertas sin resolución real en el código | Housekeeping 2026-07-29 — restauradas + renumeradas, referencia rota en `reglas_negocio.md:71` verificada |
 
 ## UI/UX (del análisis de la auditoría)
 
@@ -66,7 +72,7 @@ Leyenda: ✅ hecho (con ciclo/commit) · 🟦 planeado (ciclo asignado) · ⬜ s
 
 | Estado | Ítem | Destino |
 |---|---|---|
-| 🟦 | BOM (generación + precios congelados + cascada `bom_linea` en borrados — ver `reglas_negocio.md` → Pendiente) | Ciclo 11 — cierra Fase C |
+| ✅ | BOM (generación + precios congelados + cascada `bom_linea` en borrados — ver `reglas_negocio.md` → Pendiente) | Ciclo 11 — cierra Fase C (`07d45e9`) |
 | 🟦 | Fase D: precios/mano de obra (usar estructura real de `MO IT 1`–`MO IT 8/9` del Excel de costeo — revisar junto al usuario) | Post-Fase C |
 | ⬜ | Fase E: exportables + hardening de deploy | — |
 | ⬜ | Pista B: agente de extracción CAD/PDF (guard-rail de ~3000 trazos vectoriales/página documentado en `CLAUDE.md`) | Paralela, sin asignar |
@@ -79,5 +85,5 @@ Leyenda: ✅ hecho (con ciclo/commit) · 🟦 planeado (ciclo asignado) · ⬜ s
 
 1. **Ciclo 8 — Hardening** ✅ mergeado (spec/plan en `docs/superpowers/`).
 2. **Ciclo 9 — Calidad y deuda técnica** ✅ implementado en la rama `feat/fase-c-calidad-infra`, pendiente de merge (spec/plan en `docs/superpowers/`).
-3. **Ciclo 10 — UX del analista**: ítems 🟦 de UI/UX.
-4. **Ciclo 11 — BOM**: cierra Fase C. Prerequisito: revisar con el usuario la estructura del Excel de costeo (`MAT`/`MO IT`) que el usuario habilitó para esta fase.
+3. **Ciclo 10 — UX del analista**: ítems 🟦 de UI/UX. ✅ implementado (`9f34c08`, `714eb1d`, etc.).
+4. **Ciclo 11 — BOM**: cierra Fase C. ✅ implementado (`07d45e9`).
