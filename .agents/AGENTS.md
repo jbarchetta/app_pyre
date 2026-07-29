@@ -83,3 +83,7 @@
 
 4. **Matriz de Calidad y Pruebas (TDD Inviolable)**:
    - Todo cálculo eléctrico, regla de construcción o endpoint debe contar con su correspondiente suite de pruebas unitarias e integrales antes de ser mergeado.
+
+5. **Rigor Técnico e Invarianza Física (Zero Silent Adaptation / No Guesswork)**:
+   - **Tolerancia Cero a la Asunción Silenciosa**: NUNCA modificar fórmulas de ingeniería, constantes físicas o capacidades de catálogo para "hacerlos encajar" con un dibujo CAD defectuoso, cota mal trazada o dimensión inconsistente.
+   - **Verificación contra Tablas de Verdad**: Si una dimensión ingresada (ej. 835x798 mm) o archivo DXF subido difiere de las tablas de ingeniería/catálogos oficiales (ej. planillas de Nollmann de 24 polos/fila), el agente y el sistema DEBEN rechazar la asunción, alertar explícitamente la discrepancia de cotas y consultar hasta tener el dato fuente correcto.
