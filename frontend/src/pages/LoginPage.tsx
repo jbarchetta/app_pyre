@@ -1,7 +1,6 @@
 import { useState, type FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  ArrowPathIcon,
   CheckCircleIcon,
   EnvelopeIcon,
   ExclamationTriangleIcon,
@@ -10,9 +9,45 @@ import {
   KeyIcon,
   LockClosedIcon,
   SparklesIcon,
-  XMarkIcon,
 } from "@heroicons/react/24/outline";
 import { login, restablecerPassword } from "../api/client";
+import { APP_VERSION } from "../appInfo";
+import { Button, Field, Input, Modal } from "../components/common";
+
+/** Aviso inline reutilizado por login y por el modal de reset. */
+function Aviso({ tono, children }: { tono: "danger" | "success"; children: React.ReactNode }) {
+  const estilos =
+    tono === "danger"
+      ? "bg-danger-tint border-danger-line text-danger"
+      : "bg-success-tint border-success-line text-success";
+  const Icono = tono === "danger" ? ExclamationTriangleIcon : CheckCircleIcon;
+
+  return (
+    <div
+      role="alert"
+      className={`flex items-start gap-2.5 rounded-control border p-3 text-xs font-medium ${estilos}`}
+    >
+      <Icono className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+      <span>{children}</span>
+    </div>
+  );
+}
+
+/** Botón de ojo para alternar la visibilidad de una clave. */
+function ToggleClave({ visible, onToggle }: { visible: boolean; onToggle: () => void }) {
+  const etiqueta = visible ? "Ocultar clave" : "Ver clave";
+  return (
+    <button
+      type="button"
+      aria-label={etiqueta}
+      title={etiqueta}
+      onClick={onToggle}
+      className="absolute inset-y-0 right-0 flex items-center pr-3 text-ink-subtle transition-colors hover:text-ink"
+    >
+      {visible ? <EyeSlashIcon className="h-4 w-4" /> : <EyeIcon className="h-4 w-4" />}
+    </button>
+  );
+}
 
 export function LoginPage() {
   const [email, setEmail] = useState("");
@@ -21,7 +56,7 @@ export function LoginPage() {
   const [cargando, setCargando] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Modal de Restablecer Contraseña
+  // Modal de restablecer contraseña
   const [modalReset, setModalReset] = useState(false);
   const [resetEmail, setResetEmail] = useState("");
   const [resetPassword, setResetPassword] = useState("");
@@ -52,6 +87,12 @@ export function LoginPage() {
     setError(null);
   }
 
+  function cerrarReset() {
+    setModalReset(false);
+    setResetError(null);
+    setResetExito(null);
+  }
+
   async function handleResetSubmit(event: FormEvent) {
     event.preventDefault();
     setResetError(null);
@@ -74,226 +115,166 @@ export function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-slate-900 p-4 relative overflow-hidden select-none">
-      {/* Fondo Industrial Decorativo */}
-      <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#b91c1c_1px,transparent_1px)] [background-size:16px_16px] pointer-events-none" />
+    <div className="relative flex min-h-screen items-center justify-center overflow-hidden bg-surface-inverse p-4">
+      {/* Trama de puntos en rojo de marca: da textura industrial sin competir
+          con la tarjeta. */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-0 opacity-10 [background-image:radial-gradient(var(--color-brand)_1px,transparent_1px)] [background-size:16px_16px]"
+      />
 
-      <div className="w-full max-w-md bg-white border border-gray-200 rounded-2xl shadow-2xl overflow-hidden z-10">
-        {/* Cabecera de Marca PYRE / ABB */}
-        <div className="bg-slate-950 p-6 text-white border-b-4 border-abb-red text-center space-y-2">
-          <div className="inline-flex items-center justify-center p-3 bg-abb-red/10 rounded-full border border-abb-red/30 mb-1">
-            <span className="font-mono text-xl font-extrabold text-abb-red tracking-wider">PYRE</span>
+      <div className="z-10 w-full max-w-md overflow-hidden rounded-modal border border-line bg-surface shadow-modal">
+        <div className="space-y-2 border-b-4 border-brand bg-surface-inverse p-6 text-center">
+          <div className="mb-1 inline-flex items-center justify-center rounded-full border border-brand/30 bg-brand/10 p-3">
+            <span className="dato-tecnico text-xl font-extrabold tracking-wider text-brand">PYRE</span>
           </div>
-          <h1 className="text-xl font-bold tracking-tight text-white uppercase font-mono">
-            Configurador de Tableros
-          </h1>
-          <p className="text-xs text-gray-400">Portal de Ingeniería y Selección de Componentes ABB</p>
+          <h1 className="text-xl font-bold tracking-tight text-ink-inverse">Configurador de Tableros</h1>
+          <p className="text-xs text-ink-inverse-muted">
+            Portal de ingeniería y selección de componentes ABB
+          </p>
         </div>
 
-        {/* Formulario de Login */}
-        <form onSubmit={handleSubmit} className="p-6 sm:p-8 space-y-5">
-          {/* Mensaje de Error en Login */}
-          {error && (
-            <div role="alert" className="p-3 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2.5 text-xs text-red-700 font-medium animate-fadeIn">
-              <ExclamationTriangleIcon className="w-4 h-4 text-abb-red shrink-0 mt-0.5" />
-              <span>{error}</span>
-            </div>
-          )}
+        <form onSubmit={handleSubmit} className="space-y-5 p-6 sm:p-8">
+          {error && <Aviso tono="danger">{error}</Aviso>}
 
-          {/* Campo Email */}
-          <div className="space-y-1.5">
-            <label htmlFor="email" className="block text-xs font-mono font-bold uppercase tracking-wider text-gray-700">
-              Email corporativo
-            </label>
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
-                <EnvelopeIcon className="w-4 h-4" />
+          <Field label="Email corporativo" hint="Ingresá el correo registrado en la plataforma." required>
+            {(p) => (
+              <div className="relative">
+                <EnvelopeIcon
+                  className="pointer-events-none absolute inset-y-0 left-3 my-auto h-4 w-4 text-ink-subtle"
+                  aria-hidden="true"
+                />
+                <Input
+                  {...p}
+                  type="email"
+                  autoComplete="username"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="ejemplo@pyre.com"
+                  required
+                  className="pl-9"
+                />
               </div>
-              <input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="ejemplo@pyre.com"
-                required
-                className="w-full pl-9 pr-3 py-2.5 text-sm bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-abb-red/20 focus:border-abb-red text-gray-900 font-mono transition outline-none"
-              />
-            </div>
-            <p className="text-[11px] text-gray-500">Ingrese su correo registrado en la plataforma.</p>
-          </div>
-
-          {/* Campo Contraseña con Toggle Ojo */}
-          <div className="space-y-1.5">
-            <div className="flex items-center justify-between">
-              <label htmlFor="password" className="block text-xs font-mono font-bold uppercase tracking-wider text-gray-700">
-                Contraseña
-              </label>
-              <button
-                type="button"
-                onClick={() => {
-                  setResetEmail(email || "analista@pyre.com");
-                  setModalReset(true);
-                }}
-                className="text-[11px] font-semibold text-abb-red hover:underline"
-              >
-                ¿Olvidaste tu contraseña?
-              </button>
-            </div>
-
-            <div className="relative">
-              <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
-                <LockClosedIcon className="w-4 h-4" />
-              </div>
-              <input
-                id="password"
-                type={mostrarPassword ? "text" : "password"}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
-                required
-                className="w-full pl-9 pr-10 py-2.5 text-sm bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-abb-red/20 focus:border-abb-red text-gray-900 font-mono transition outline-none"
-              />
-              <button
-                type="button"
-                aria-label={mostrarPassword ? "Ocultar clave" : "Ver clave"}
-                onClick={() => setMostrarPassword(!mostrarPassword)}
-                className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 focus:outline-none"
-                title={mostrarPassword ? "Ocultar clave" : "Ver clave"}
-              >
-                {mostrarPassword ? <EyeSlashIcon className="w-4 h-4" /> : <EyeIcon className="w-4 h-4" />}
-              </button>
-            </div>
-          </div>
-
-          {/* Botón Ingresar */}
-          <button
-            type="submit"
-            disabled={cargando}
-            className="w-full py-3 bg-abb-red hover:bg-red-700 text-white font-mono font-bold text-xs uppercase tracking-wider rounded-lg shadow-sm hover:shadow transition flex items-center justify-center gap-2 disabled:opacity-50"
-          >
-            {cargando ? (
-              <>
-                <ArrowPathIcon className="w-4 h-4 animate-spin" />
-                Validando...
-              </>
-            ) : (
-              "Ingresar"
             )}
-          </button>
+          </Field>
 
-          {/* Chip de Acceso Rápido Demo */}
-          <div className="pt-2 border-t border-gray-100 text-center">
+          <div className="space-y-1.5">
+            <Field label="Contraseña" required>
+              {(p) => (
+                <div className="relative">
+                  <LockClosedIcon
+                    className="pointer-events-none absolute inset-y-0 left-3 my-auto h-4 w-4 text-ink-subtle"
+                    aria-hidden="true"
+                  />
+                  <Input
+                    {...p}
+                    type={mostrarPassword ? "text" : "password"}
+                    autoComplete="current-password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••"
+                    required
+                    className="pl-9 pr-10"
+                  />
+                  <ToggleClave visible={mostrarPassword} onToggle={() => setMostrarPassword(!mostrarPassword)} />
+                </div>
+              )}
+            </Field>
+
             <button
               type="button"
-              onClick={handleRellenarDemo}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-50 hover:bg-red-100 text-abb-red border border-red-200 rounded-full text-xs font-semibold font-mono transition"
+              onClick={() => {
+                setResetEmail(email || "analista@pyre.com");
+                setModalReset(true);
+              }}
+              className="text-xs font-semibold text-brand hover:underline"
             >
-              <SparklesIcon className="w-3.5 h-3.5" />
-              Auto-completar credenciales demo (Analista)
+              ¿Olvidaste tu contraseña?
             </button>
+          </div>
+
+          <Button type="submit" variant="primary" size="lg" isLoading={cargando} className="w-full">
+            {cargando ? "Validando…" : "Ingresar"}
+          </Button>
+
+          <div className="border-t border-line pt-4 text-center">
+            <Button
+              type="button"
+              variant="danger"
+              size="sm"
+              onClick={handleRellenarDemo}
+              icon={<SparklesIcon className="h-3.5 w-3.5" />}
+              className="rounded-full"
+            >
+              Auto-completar credenciales demo (Analista)
+            </Button>
           </div>
         </form>
 
-        {/* Footer Informativo */}
-        <div className="bg-gray-50 px-6 py-3 border-t border-gray-200 text-center text-[11px] text-gray-500 font-mono">
-          PYRE v1.0 • Sistema Integrado de Ingeniería ABB
+        <div className="border-t border-line bg-surface-sunken px-6 py-3 text-center text-xs text-ink-subtle">
+          PYRE {APP_VERSION} · Sistema integrado de ingeniería ABB
         </div>
       </div>
 
-      {/* MODAL DE RESTABLECER CONTRASEÑA */}
       {modalReset && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm animate-fadeIn">
-          <div className="w-full max-w-md bg-white border border-gray-200 rounded-xl shadow-2xl overflow-hidden space-y-4 p-6 relative">
-            <button
-              type="button"
-              onClick={() => setModalReset(false)}
-              className="absolute top-4 right-4 p-1 text-gray-400 hover:text-gray-600 rounded-lg"
-            >
-              <XMarkIcon className="w-5 h-5" />
-            </button>
-
-            <div className="flex items-center gap-2.5 text-abb-red">
-              <KeyIcon className="w-6 h-6" />
-              <h2 className="text-base font-bold uppercase font-mono text-gray-900">Restablecer Contraseña</h2>
+        <Modal titulo="Restablecer contraseña" onClose={cerrarReset}>
+          <div className="space-y-4">
+            <div className="flex items-center gap-2.5 text-brand">
+              <KeyIcon className="h-5 w-5 shrink-0" aria-hidden="true" />
+              <p className="text-xs text-ink-muted">
+                Ingresá tu correo corporativo y definí una nueva contraseña para actualizar el acceso.
+              </p>
             </div>
-            <p className="text-xs text-gray-600">
-              Ingrese su correo corporativo y defina una nueva contraseña para actualizar el acceso.
-            </p>
 
-            {resetError && (
-              <div className="p-3 bg-red-50 border border-red-200 rounded-lg flex items-start gap-2 text-xs text-red-700">
-                <ExclamationTriangleIcon className="w-4 h-4 text-abb-red shrink-0 mt-0.5" />
-                <span>{resetError}</span>
-              </div>
-            )}
-
-            {resetExito && (
-              <div className="p-3 bg-green-50 border border-green-200 rounded-lg flex items-center gap-2 text-xs text-green-700 font-semibold">
-                <CheckCircleIcon className="w-4 h-4 text-green-600 shrink-0" />
-                <span>{resetExito}</span>
-              </div>
-            )}
+            {resetError && <Aviso tono="danger">{resetError}</Aviso>}
+            {resetExito && <Aviso tono="success">{resetExito}</Aviso>}
 
             <form onSubmit={handleResetSubmit} className="space-y-4">
-              <div className="space-y-1">
-                <label htmlFor="reset-email" className="block text-xs font-mono font-bold uppercase text-gray-700">
-                  Email registrado
-                </label>
-                <input
-                  id="reset-email"
-                  type="email"
-                  value={resetEmail}
-                  onChange={(e) => setResetEmail(e.target.value)}
-                  placeholder="analista@pyre.com"
-                  required
-                  className="w-full px-3 py-2 text-sm bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-abb-red/20 focus:border-abb-red font-mono outline-none"
-                />
-              </div>
-
-              <div className="space-y-1">
-                <label htmlFor="reset-pass" className="block text-xs font-mono font-bold uppercase text-gray-700">
-                  Nueva clave (mínimo 8 caracteres)
-                </label>
-                <div className="relative">
-                  <input
-                    id="reset-pass"
-                    type={mostrarResetPassword ? "text" : "password"}
-                    value={resetPassword}
-                    onChange={(e) => setResetPassword(e.target.value)}
-                    placeholder="Mínimo 8 caracteres"
-                    minLength={8}
+              <Field label="Email registrado" required>
+                {(p) => (
+                  <Input
+                    {...p}
+                    type="email"
+                    value={resetEmail}
+                    onChange={(e) => setResetEmail(e.target.value)}
+                    placeholder="analista@pyre.com"
                     required
-                    className="w-full px-3 py-2 pr-10 text-sm bg-gray-50 border border-gray-300 rounded-lg focus:ring-2 focus:ring-abb-red/20 focus:border-abb-red font-mono outline-none"
                   />
-                  <button
-                    type="button"
-                    onClick={() => setMostrarResetPassword(!mostrarResetPassword)}
-                    className="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600"
-                  >
-                    {mostrarResetPassword ? <EyeSlashIcon className="w-4 h-4" /> : <EyeIcon className="w-4 h-4" />}
-                  </button>
-                </div>
-              </div>
+                )}
+              </Field>
 
-              <div className="flex items-center justify-end gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setModalReset(false)}
-                  className="px-4 py-2 border border-gray-300 rounded-lg text-xs font-semibold text-gray-700 hover:bg-gray-100 transition"
-                >
+              <Field label="Nueva clave" hint="Mínimo 8 caracteres." required>
+                {(p) => (
+                  <div className="relative">
+                    <Input
+                      {...p}
+                      type={mostrarResetPassword ? "text" : "password"}
+                      autoComplete="new-password"
+                      value={resetPassword}
+                      onChange={(e) => setResetPassword(e.target.value)}
+                      minLength={8}
+                      required
+                      className="pr-10"
+                    />
+                    <ToggleClave
+                      visible={mostrarResetPassword}
+                      onToggle={() => setMostrarResetPassword(!mostrarResetPassword)}
+                    />
+                  </div>
+                )}
+              </Field>
+
+              <div className="flex items-center justify-end gap-2 border-t border-line pt-4">
+                <Button type="button" variant="secondary" size="md" onClick={cerrarReset}>
                   Cancelar
-                </button>
-                <button
-                  type="submit"
-                  disabled={resetCargando}
-                  className="px-4 py-2 bg-abb-red hover:bg-red-700 text-white font-mono font-bold text-xs uppercase tracking-wider rounded-lg transition disabled:opacity-50 inline-flex items-center gap-1.5"
-                >
-                  {resetCargando ? <ArrowPathIcon className="w-4 h-4 animate-spin" /> : "Actualizar Contraseña"}
-                </button>
+                </Button>
+                <Button type="submit" variant="primary" size="md" isLoading={resetCargando}>
+                  Actualizar contraseña
+                </Button>
               </div>
             </form>
           </div>
-        </div>
+        </Modal>
       )}
     </div>
   );

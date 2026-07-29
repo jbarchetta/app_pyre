@@ -10,11 +10,9 @@ import {
   CpuChipIcon,
 } from "@heroicons/react/24/outline";
 import { logout } from "../api/client";
+import { APP_VERSION } from "../appInfo";
 import { iniciales, useSesion } from "../auth/SesionContext";
 import { Badge, Button } from "./common";
-
-/** Única fuente de verdad de la versión mostrada en la UI. */
-const APP_VERSION = "v1.0";
 
 interface NavItem {
   label: string;
