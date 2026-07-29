@@ -1,5 +1,19 @@
 import React from "react";
 
+/**
+ * Botón canónico de la app. Usa exclusivamente tokens del design system
+ * (ver `src/index.css`) -- nada de paleta cruda de Tailwind acá, porque este
+ * componente es la referencia que se copia al escribir pantallas nuevas.
+ *
+ * Elección de variantes:
+ * - `primary`   rojo ABB sólido. Una sola por vista: la acción principal.
+ * - `secondary` superficie blanca con borde. El caballito de batalla.
+ * - `outline`   igual que secondary pero con borde más marcado (sobre gris).
+ * - `ghost`     sin fondo ni borde. Para acciones densas en tablas/toolbars.
+ * - `danger`    rojo tintado (NO sólido) -- distingue "cuidado" de "avanzar",
+ *               que es lo que evita que marca y destructivo se confundan.
+ * - `cad-tool` / `cad-tool-active` para toolbars sobre superficie oscura.
+ */
 export type ButtonVariant =
   | "primary"
   | "secondary"
@@ -21,27 +35,27 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
 
 const variantStyles: Record<ButtonVariant, string> = {
   primary:
-    "bg-abb-red text-white hover:bg-red-700 active:bg-red-800 border border-red-600 shadow-2xs focus:ring-2 focus:ring-red-400 font-semibold",
+    "bg-brand text-white border border-brand hover:bg-brand-hover hover:border-brand-hover active:bg-brand-active shadow-control font-semibold",
   secondary:
-    "bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 hover:border-slate-300 hover:text-slate-900 shadow-2xs font-medium",
+    "bg-surface text-ink border border-line hover:bg-surface-sunken hover:border-line-strong shadow-control font-medium",
   outline:
-    "bg-white border border-slate-300 text-slate-700 hover:bg-slate-50 hover:border-slate-400 font-medium shadow-2xs",
+    "bg-surface text-ink border border-line-strong hover:bg-surface-sunken hover:border-ink-subtle shadow-control font-medium",
   ghost:
-    "bg-transparent text-slate-600 hover:bg-slate-100 hover:text-slate-900 font-medium",
+    "bg-transparent text-ink-muted border border-transparent hover:bg-surface-sunken hover:text-ink font-medium",
   danger:
-    "bg-red-50 text-red-700 border border-red-200 hover:bg-red-100 hover:border-red-300 font-medium shadow-2xs",
+    "bg-danger-tint text-danger border border-danger-line hover:bg-brand-tint hover:border-danger font-medium shadow-control",
   "cad-tool":
-    "bg-slate-800 text-slate-300 hover:bg-slate-700 hover:text-white border border-slate-700 font-sans text-xs font-medium",
+    "bg-surface-inverse/90 text-ink-inverse/70 border border-white/10 hover:bg-surface-inverse hover:text-ink-inverse text-xs font-medium",
   "cad-tool-active":
-    "bg-abb-red text-white border border-red-600 font-sans text-xs font-semibold shadow-inner",
+    "bg-brand text-white border border-brand text-xs font-semibold shadow-control",
 };
 
 const sizeStyles: Record<ButtonSize, string> = {
-  xs: "px-2 py-1 text-xs gap-1.5 rounded-md",
-  sm: "px-2.5 py-1.5 text-xs gap-1.5 rounded-md",
-  md: "px-3.5 py-2 text-sm gap-2 rounded-md",
-  lg: "px-4 py-2.5 text-base gap-2 rounded-lg",
-  icon: "p-1.5 rounded-md",
+  xs: "px-2 py-1 text-xs gap-1.5 rounded-control",
+  sm: "px-2.5 py-1.5 text-xs gap-1.5 rounded-control",
+  md: "px-3.5 py-2 text-sm gap-2 rounded-control",
+  lg: "px-5 py-2.5 text-base gap-2 rounded-card",
+  icon: "p-1.5 rounded-control",
 };
 
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
@@ -59,22 +73,38 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     },
     ref
   ) => {
+    // El anillo de foco lo aplica `:focus-visible` global (index.css), así que
+    // acá no se pisa el outline -- mantiene la navegación por teclado usable.
     const baseClasses =
-      "inline-flex items-center justify-center font-sans tracking-wide transition-all duration-150 ease-in-out select-none disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none";
+      "inline-flex items-center justify-center font-sans whitespace-nowrap transition-colors duration-150 ease-out select-none disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none";
 
     const computedClass = `${baseClasses} ${variantStyles[variant]} ${sizeStyles[size]} ${className}`;
 
     return (
-      <button ref={ref} className={computedClass} disabled={disabled || isLoading} {...props}>
+      <button
+        ref={ref}
+        className={computedClass}
+        disabled={disabled || isLoading}
+        aria-busy={isLoading || undefined}
+        {...props}
+      >
         {isLoading ? (
-          <svg className="animate-spin w-4 h-4 text-current" fill="none" viewBox="0 0 24 24">
-            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-            <path
-              className="opacity-75"
-              fill="currentColor"
-              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-            />
-          </svg>
+          <>
+            <svg
+              className="h-4 w-4 shrink-0 animate-spin text-current"
+              fill="none"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+            >
+              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+              <path
+                className="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+              />
+            </svg>
+            {children && <span>{children}</span>}
+          </>
         ) : (
           <>
             {icon && iconPosition === "left" && <span className="inline-flex shrink-0">{icon}</span>}

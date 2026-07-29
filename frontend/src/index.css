@@ -1,39 +1,148 @@
 @import "tailwindcss";
 @plugin "@tailwindcss/forms";
 
+/* ============================================================================
+   Design system — PYRE Configurador de Tableros
+   ----------------------------------------------------------------------------
+   Dirección visual: SaaS profesional con acento de marca ABB.
+   - Superficies blancas sobre lienzo gris, radios suaves, sombras sutiles.
+   - Rojo ABB reservado para acción primaria, estado activo y marca.
+   - JetBrains Mono OBLIGATORIO para todo dato eléctrico (códigos SAP,
+     amperajes, kA, secciones mm²) -- ver utilidad `.dato-tecnico`.
+
+   La rampa neutra está deliberadamente alineada con la paleta `slate` de
+   Tailwind: el código heredado usa `slate-*` crudo en ~600 lugares, así que
+   alinearlas hace que la migración incremental no produzca saltos visuales.
+
+   Nomenclatura (evita clases redundantes tipo `border-border-x`):
+     superficies -> canvas / surface / surface-sunken / surface-inverse
+     texto       -> ink / ink-muted / ink-subtle / ink-inverse
+     bordes      -> line / line-strong
+     marca       -> brand / brand-hover / brand-active / brand-tint / brand-line
+     estados     -> success|warning|danger|info (+ -tint / -line)
+   ============================================================================ */
+
 @theme {
-  --color-background: #f9f9f9;
-  --color-surface: #f9f9f9;
+  /* --- Superficies ------------------------------------------------------- */
+  --color-canvas: #f8fafc; /* fondo de página */
+  --color-surface: #ffffff; /* tarjetas, paneles, modales */
+  --color-surface-sunken: #f1f5f9; /* zonas anidadas, thead, filas alternas */
+  --color-surface-inverse: #0f172a; /* barras oscuras, viewport CAD */
+
+  /* --- Texto ------------------------------------------------------------- */
+  --color-ink: #0f172a; /* texto principal */
+  --color-ink-muted: #475569; /* texto de apoyo, labels */
+  --color-ink-subtle: #64748b; /* placeholders, metadata */
+  --color-ink-inverse: #f8fafc; /* texto sobre superficie oscura */
+
+  /* --- Bordes ------------------------------------------------------------ */
+  --color-line: #e2e8f0; /* borde por defecto */
+  --color-line-strong: #cbd5e1; /* borde de inputs, hover, divisiones fuertes */
+
+  /* --- Marca (ABB) ------------------------------------------------------- */
+  --color-brand: #e31f26;
+  --color-brand-hover: #c41a20;
+  --color-brand-active: #a3161b;
+  --color-brand-tint: #fef2f2; /* fondo suave para destructivo/selección */
+  --color-brand-line: #fecaca;
+
+  /* --- Estados ----------------------------------------------------------- */
+  --color-success: #059669;
+  --color-success-tint: #ecfdf5;
+  --color-success-line: #a7f3d0;
+
+  --color-warning: #b45309;
+  --color-warning-tint: #fffbeb;
+  --color-warning-line: #fde68a;
+
+  --color-danger: #dc2626;
+  --color-danger-tint: #fef2f2;
+  --color-danger-line: #fecaca;
+
+  --color-info: #005ea5; /* azul técnico ABB -- propuestas automáticas, links */
+  --color-info-tint: #eff6ff;
+  --color-info-line: #bfdbfe;
+
+  /* --- Alias heredados --------------------------------------------------
+     Mantenidos para no romper los ~283 usos existentes. No usar en código
+     nuevo: preferir los nombres semánticos de arriba. */
+  --color-background: #f8fafc;
   --color-surface-container-lowest: #ffffff;
-  --color-on-background: #1a1c1c;
-  --color-secondary: #5e5e5f;
-  --color-surface-stroke: #d1d1d1;
-  --color-industrial-gray: #f4f4f4;
+  --color-on-background: #0f172a;
+  --color-secondary: #475569;
+  --color-surface-stroke: #e2e8f0;
+  --color-industrial-gray: #f1f5f9;
   --color-abb-red: #e31f26;
   --color-tech-blue: #005ea5;
-  --color-error: #ba1a1a;
+  --color-error: #dc2626;
 
-  --font-sans: "Hanken Grotesk", sans-serif;
-  --font-mono: "JetBrains Mono", monospace;
+  /* --- Tipografía -------------------------------------------------------- */
+  --font-sans: "Hanken Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+
+  /* --- Radios ------------------------------------------------------------
+     Escala cerrada y semántica. Evita el zoo actual de 6 escalas mezcladas:
+     usar `rounded-control` en botones/inputs/badges, `rounded-card` en
+     tarjetas y paneles, `rounded-modal` en diálogos, `rounded-full` en pills. */
+  --radius-control: 0.375rem; /* 6px */
+  --radius-card: 0.5rem; /* 8px */
+  --radius-modal: 0.75rem; /* 12px */
+
+  /* --- Sombras -----------------------------------------------------------
+     Sutiles a propósito: la jerarquía la dan las superficies y los bordes,
+     no sombras marcadas. */
+  --shadow-control: 0 1px 2px 0 rgb(15 23 42 / 0.04);
+  --shadow-card: 0 1px 3px 0 rgb(15 23 42 / 0.06), 0 1px 2px -1px rgb(15 23 42 / 0.04);
+  --shadow-raised: 0 4px 12px -2px rgb(15 23 42 / 0.1), 0 2px 4px -2px rgb(15 23 42 / 0.06);
+  --shadow-modal: 0 20px 40px -12px rgb(15 23 42 / 0.25);
 }
 
 body {
   margin: 0;
   font-family: var(--font-sans);
-  background: var(--color-background);
-  color: var(--color-on-background);
+  background: var(--color-canvas);
+  color: var(--color-ink);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Anillo de foco consistente en toda la app -- accesibilidad sin ruido
+   visual: solo aparece en navegación por teclado. */
+@layer base {
+  :focus-visible {
+    outline: 2px solid var(--color-brand);
+    outline-offset: 2px;
+  }
+}
+
+/* Todo dato eléctrico va en monoespaciado con tabular-nums para que las
+   columnas de amperajes/kA queden alineadas verticalmente. */
+@utility dato-tecnico {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+/* Etiqueta de sección en mayúsculas -- resto industrial que conservamos para
+   encabezados de tabla y titulos de panel. */
+@utility etiqueta {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--color-ink-subtle);
 }
 
 @utility blueprint-grid {
   background-image:
-    linear-gradient(var(--color-surface-stroke) 1px, transparent 1px),
-    linear-gradient(90deg, var(--color-surface-stroke) 1px, transparent 1px);
+    linear-gradient(var(--color-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--color-line) 1px, transparent 1px);
   background-size: 20px 20px;
 }
 
 @keyframes flash-success {
   0% {
-    background-color: rgba(74, 222, 128, 0.4);
+    background-color: color-mix(in srgb, var(--color-success) 25%, transparent);
   }
   100% {
     background-color: transparent;
