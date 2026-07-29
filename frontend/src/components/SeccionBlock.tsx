@@ -32,6 +32,7 @@ import {
 import { ComponentePicker } from "./ComponentePicker";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { useCerrarAlClickFuera } from "../hooks/useCerrarAlClickFuera";
+import { Badge, Button, Card, CardBody, CardHeader, CardTitle, Field, Input, Modal, Select } from "./common";
 
 import { ModalLimiteFilaOpciones } from "./ModalLimiteFilaOpciones";
 import { calcularCapacidadPolosFila, obtenerPolosSalida } from "../cad/generators/boardCadGenerator";
@@ -154,43 +155,40 @@ function FilaSalida({
       onDrop={(e) => onDrop(e, index)}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
-      className={`border-b border-surface-stroke border-l-4 transition-colors duration-150 cursor-grab active:cursor-grabbing ${
+      className={`border-b border-line border-l-4 transition-colors duration-150 cursor-grab active:cursor-grabbing ${
         isDirectHover
-          ? "bg-red-50 text-gray-900 border-l-abb-red font-medium"
+          ? "bg-brand-tint text-ink border-l-brand font-medium"
           : isAlimentadaPorHovered
-          ? "bg-blue-50 text-gray-900 border-l-blue-600 font-medium"
-          : "border-l-transparent odd:bg-gray-50/60 hover:bg-gray-100/80"
+          ? "bg-info-tint text-ink border-l-info font-medium"
+          : "border-l-transparent odd:bg-surface-sunken/40 hover:bg-surface-sunken"
       }`}
     >
       {/* Drag Handle & Auto-Code F1.1 */}
-      <td className="p-2 text-center text-gray-500 w-16">
-        <div className="flex items-center justify-center gap-1 font-mono text-xs font-bold text-gray-700">
-          <Bars3Icon className="w-3.5 h-3.5 text-gray-400 select-none cursor-grab" title="Arrastrar para reordenar" />
+      <td className="p-2 text-center text-ink-muted w-16">
+        <div className="flex items-center justify-center gap-1 dato-tecnico text-xs font-bold text-ink">
+          <Bars3Icon className="w-3.5 h-3.5 text-ink-subtle select-none cursor-grab" title="Arrastrar para reordenar" />
           <span>{codigoAuto}</span>
         </div>
       </td>
 
       {/* Etiqueta / Circuito (Limitado para no expandir la tabla) */}
-      <td className="p-3 font-semibold text-gray-900 text-sm max-w-[280px]">
+      <td className="p-3 font-semibold text-ink text-sm max-w-[280px]">
         <div className="flex items-center gap-1.5 flex-wrap">
           {salida.etiqueta ? (
             <span
-              className="text-gray-800 font-mono text-xs font-semibold truncate inline-block max-w-[240px] align-middle"
+              className="text-ink dato-tecnico text-xs font-semibold truncate inline-block max-w-[240px] align-middle"
               title={salida.etiqueta}
             >
               {salida.etiqueta}
             </span>
           ) : (
-            <span className="text-gray-400 italic text-xs">Sin tag</span>
+            <span className="text-ink-subtle italic text-xs">Sin tag</span>
           )}
 
           {salida.alimentado_por_codigo && (
-            <span
-              className={`px-1.5 py-0.5 rounded font-mono text-[11px] font-bold border inline-flex items-center gap-0.5 ${
-                hasLinkError
-                  ? "bg-amber-50 text-amber-800 border-amber-200"
-                  : "bg-red-50 text-abb-red border-red-200"
-              }`}
+            <Badge
+              tone={hasLinkError ? "warning" : "brand"}
+              className="inline-flex items-center gap-0.5 dato-tecnico text-[11px]"
               title={
                 hasLinkError
                   ? `Advertencia: Polos incompatibles con alimentación ${salida.alimentado_por_codigo}`
@@ -199,50 +197,50 @@ function FilaSalida({
             >
               <LinkIcon className="w-3 h-3" />
               {salida.alimentado_por_codigo}
-              {hasLinkError && <ExclamationTriangleIcon className="w-3.5 h-3.5 text-amber-600 shrink-0 ml-1 animate-pulse" />}
-            </span>
+              {hasLinkError && <ExclamationTriangleIcon className="w-3.5 h-3.5 text-warning shrink-0 ml-1 animate-pulse" />}
+            </Badge>
           )}
         </div>
       </td>
 
       {/* Carga */}
-      <td className="p-3 font-mono font-medium text-gray-900">
+      <td className="p-3 dato-tecnico font-medium text-ink">
         {salida.carga_unidad === "A" ? `${formatearCorriente(salida.carga_valor)} A` : `${salida.carga_valor} ${salida.carga_unidad}`}
       </td>
 
       {/* Formato & Protección (Compacto) */}
-      <td className="p-3 text-xs text-gray-700 whitespace-nowrap w-24">
-        <span className="inline-flex items-center gap-1 bg-gray-100 px-2 py-0.5 rounded text-[11px] font-medium text-gray-800 border border-gray-200">
-          <span className="font-bold text-gray-900">{formatoLabel[salida.formato]}</span>
-          <span className="text-gray-500">({salida.tipo_proteccion === "seccional_diferencial" ? "Diff" : "TM"})</span>
+      <td className="p-3 text-xs text-ink-muted whitespace-nowrap w-24">
+        <span className="inline-flex items-center gap-1 bg-surface-sunken px-2 py-0.5 rounded-control text-[11px] font-medium text-ink border border-line">
+          <span className="font-bold dato-tecnico text-ink">{formatoLabel[salida.formato]}</span>
+          <span className="text-ink-subtle">({salida.tipo_proteccion === "seccional_diferencial" ? "Diff" : "TM"})</span>
         </span>
       </td>
 
       {/* Celda 1: Código ABB / SAP */}
       <td
-        className={`p-3 font-mono text-xs ${animar ? "animate-flash" : ""}`}
+        className={`p-3 dato-tecnico text-xs ${animar ? "animate-flash" : ""}`}
         title={salida.componente_codigo_comercial ?? undefined}
       >
         <div className="flex items-center gap-1.5 whitespace-nowrap">
           {salida.componente_id ? (
             salida.asignado_manualmente ? (
               <PencilSquareIcon
-                className="w-3.5 h-3.5 text-abb-red shrink-0"
+                className="w-3.5 h-3.5 text-brand shrink-0"
                 title="Asignado manualmente por el analista"
               />
             ) : (
               <Cog6ToothIcon
-                className="w-3.5 h-3.5 text-blue-600 shrink-0"
+                className="w-3.5 h-3.5 text-info shrink-0"
                 title="Propuesta automática calculada"
               />
             )
           ) : (
             <ExclamationTriangleIcon
-              className="w-3.5 h-3.5 text-amber-500 shrink-0 cursor-help"
+              className="w-3.5 h-3.5 text-warning shrink-0 cursor-help"
               title={salida.motivo_sin_match ?? "Sin propuesta automática para esta carga"}
             />
           )}
-          <span className={salida.componente_id ? "font-bold text-gray-900" : "text-amber-600 font-normal italic text-xs"}>
+          <span className={salida.componente_id ? "font-bold text-ink" : "text-warning-line font-normal italic text-xs"}>
             {salida.componente_id ? (salida.componente_codigo ?? salida.componente_id) : "Sin match"}
           </span>
         </div>

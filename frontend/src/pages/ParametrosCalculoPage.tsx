@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { actualizarParametrosCalculo, obtenerParametrosCalculo, type ParametroCalculo } from "../api/client";
+import { Button, Card, CardBody, CardHeader, CardTitle, Field, Input } from "../components/common";
 
 export function ParametrosCalculoPage() {
   const [parametros, setParametros] = useState<ParametroCalculo | null>(null);
@@ -26,40 +27,86 @@ export function ParametrosCalculoPage() {
     }
   }
 
-  if (!parametros) return <p>Cargando...</p>;
+  if (!parametros) {
+    return (
+      <div className="p-8 text-center text-xs dato-tecnico text-ink-muted">
+        Cargando parámetros de cálculo...
+      </div>
+    );
+  }
 
   return (
-    <form onSubmit={handleSubmit} className="flex max-w-md flex-col gap-3 border border-surface-stroke bg-white p-8">
-      <h1 className="text-xl font-bold">Parámetros de cálculo</h1>
-      <label htmlFor="tension-mono">Tensión monofásica (V)</label>
-      <input
-        id="tension-mono"
-        value={parametros.tension_mono_v}
-        onChange={(e) => setParametros({ ...parametros, tension_mono_v: e.target.value })}
-      />
-      <label htmlFor="tension-tri">Tensión trifásica (V)</label>
-      <input
-        id="tension-tri"
-        value={parametros.tension_tri_v}
-        onChange={(e) => setParametros({ ...parametros, tension_tri_v: e.target.value })}
-      />
-      <label htmlFor="cos-phi">Cos φ</label>
-      <input
-        id="cos-phi"
-        value={parametros.cos_phi}
-        onChange={(e) => setParametros({ ...parametros, cos_phi: e.target.value })}
-      />
-      <label htmlFor="ratio-selectividad">Ratio de selectividad</label>
-      <input
-        id="ratio-selectividad"
-        value={parametros.ratio_selectividad}
-        onChange={(e) => setParametros({ ...parametros, ratio_selectividad: e.target.value })}
-      />
-      {error && <p role="alert" className="text-error">{error}</p>}
-      {guardado && <p>Guardado</p>}
-      <button type="submit" className="self-start bg-abb-red px-6 py-3 text-sm uppercase tracking-widest text-white">
-        Guardar
-      </button>
-    </form>
+    <div className="max-w-xl mx-auto py-6 px-4">
+      <Card>
+        <CardHeader>
+          <CardTitle>Parámetros de cálculo</CardTitle>
+        </CardHeader>
+        <CardBody>
+          <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+            <Field label="Tensión monofásica (V)">
+              {(props) => (
+                <Input
+                  {...props}
+                  value={parametros.tension_mono_v}
+                  onChange={(e) => setParametros({ ...parametros, tension_mono_v: e.target.value })}
+                  mono
+                />
+              )}
+            </Field>
+
+            <Field label="Tensión trifásica (V)">
+              {(props) => (
+                <Input
+                  {...props}
+                  value={parametros.tension_tri_v}
+                  onChange={(e) => setParametros({ ...parametros, tension_tri_v: e.target.value })}
+                  mono
+                />
+              )}
+            </Field>
+
+            <Field label="Cos φ">
+              {(props) => (
+                <Input
+                  {...props}
+                  value={parametros.cos_phi}
+                  onChange={(e) => setParametros({ ...parametros, cos_phi: e.target.value })}
+                  mono
+                />
+              )}
+            </Field>
+
+            <Field label="Ratio de selectividad">
+              {(props) => (
+                <Input
+                  {...props}
+                  value={parametros.ratio_selectividad}
+                  onChange={(e) => setParametros({ ...parametros, ratio_selectividad: e.target.value })}
+                  mono
+                />
+              )}
+            </Field>
+
+            {error && (
+              <p role="alert" className="text-xs font-medium text-danger">
+                {error}
+              </p>
+            )}
+
+            {guardado && (
+              <p className="text-xs font-medium text-success">
+                Guardado
+              </p>
+            )}
+
+            <div className="pt-2">
+              <Button type="submit" variant="primary">
+                Guardar
+              </Button>
+            </div>
+          </form>
+        </CardBody>
+      </Card>
+    </div>
   );
 }

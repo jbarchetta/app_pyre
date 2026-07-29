@@ -23,17 +23,17 @@ export function PanelOcupacionHUD({
     <div className="absolute top-3 left-3 z-20 flex flex-col items-start gap-1.5 pointer-events-none">
       {/* Panel HUD Ultra-Compacto con Soporte de Tema Dark/Light */}
       <div
-        className={`w-44 rounded-lg p-2.5 shadow-xl backdrop-blur-md space-y-1.5 animate-fadeIn border pointer-events-auto transition-colors duration-200 ${
+        className={`w-44 rounded-card p-2.5 shadow-card backdrop-blur-md space-y-1.5 border pointer-events-auto transition-colors duration-200 ${
           isLight
-            ? "bg-white/95 border-surface-stroke text-slate-900 shadow-slate-200/80"
-            : "bg-slate-900/95 border-slate-700/80 text-slate-100 shadow-black/50"
+            ? "bg-surface/95 border-line text-ink shadow-slate-200/80"
+            : "bg-surface-inverse/95 border-line-inverse text-ink-inverse shadow-black/50"
         }`}
       >
-        <div className={`border-b pb-1 flex items-center justify-between ${isLight ? "border-slate-100" : "border-slate-800"}`}>
-          <span className={`font-mono text-[10px] font-bold tracking-wider uppercase ${isLight ? "text-slate-700" : "text-sky-400"}`}>
+        <div className={`border-b pb-1 flex items-center justify-between ${isLight ? "border-line" : "border-line-inverse"}`}>
+          <span className={`font-mono text-[10px] font-bold tracking-wider uppercase ${isLight ? "text-ink-muted" : "text-sky-400"}`}>
             Ocupación
           </span>
-          <span className={`text-[10px] font-mono font-semibold ${isLight ? "text-slate-500" : "text-slate-400"}`}>
+          <span className={`text-[10px] dato-tecnico font-semibold ${isLight ? "text-ink-subtle" : "text-ink-inverse-muted"}`}>
             Máx: {capacidadFila} P/Fila
           </span>
         </div>

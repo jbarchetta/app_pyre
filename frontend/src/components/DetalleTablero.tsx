@@ -40,7 +40,7 @@ import { EsquemaVisualCanvas } from "./EsquemaVisualCanvas";
 import { ComponentePicker } from "./ComponentePicker";
 import { SeccionBlock } from "./SeccionBlock";
 import { ConfirmDialog } from "./ConfirmDialog";
-import { Button } from "./common/Button";
+import { Badge, Button, Card, CardBody, CardHeader, CardTitle, Field, Input, Modal, Select } from "./common";
 import { useCerrarAlClickFuera } from "../hooks/useCerrarAlClickFuera";
 import type { ModoVisual, ModoVisualState } from "../utils/vistaStorage";
 
@@ -1168,93 +1168,67 @@ export function DetalleTablero({
         )}
       </div>
       {modalNuevaFila && (
-        <div
-          className="fixed inset-0 z-20 flex items-center justify-center bg-black/40"
-          onMouseDown={onMouseDownModal}
-          onClick={onClickModal}
-        >
-          <form
-            onSubmit={handleCrearFila}
-            onClick={(e) => e.stopPropagation()}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="nueva-fila-titulo"
-            className="flex w-96 flex-col gap-2 border border-surface-stroke bg-white p-8"
-          >
-            <h2 id="nueva-fila-titulo" className="text-lg font-bold">
-              Nueva fila
-            </h2>
-            <label htmlFor="nombre-nueva-fila">Nombre</label>
-            <input
-              id="nombre-nueva-fila"
-              ref={nombreFilaInputRef}
-              value={nombreNuevaFila}
-              onChange={(e) => setNombreNuevaFila(e.target.value)}
-            />
-            {error && (
-              <p role="alert" className="text-error">
-                {error}
-              </p>
-            )}
-            <div className="mt-4 flex gap-2">
-              <button type="submit" className="bg-abb-red px-6 py-3 text-sm uppercase tracking-widest text-white">
+        <Modal
+          titulo="Nueva fila"
+          onClose={solicitarCierreModales}
+          error={error}
+          footer={
+            <>
+              <Button type="submit" variant="primary" form="form-nueva-fila">
                 Agregar fila
-              </button>
-              <button
-                type="button"
-                onClick={cerrarModales}
-                className="border border-surface-stroke px-6 py-3 text-sm uppercase tracking-widest"
-              >
+              </Button>
+              <Button type="button" variant="secondary" onClick={cerrarModales}>
                 Cancelar
-              </button>
-            </div>
+              </Button>
+            </>
+          }
+        >
+          <form id="form-nueva-fila" onSubmit={handleCrearFila} className="space-y-4">
+            <Field label="Nombre">
+              {(props) => (
+                <Input
+                  {...props}
+                  ref={nombreFilaInputRef}
+                  value={nombreNuevaFila}
+                  onChange={(e) => setNombreNuevaFila(e.target.value)}
+                  required
+                />
+              )}
+            </Field>
           </form>
-        </div>
+        </Modal>
       )}
 
       {filaEnEdicion && (
-        <div
-          className="fixed inset-0 z-20 flex items-center justify-center bg-black/40"
-          onMouseDown={onMouseDownModal}
-          onClick={onClickModal}
-        >
-          <form
-            onSubmit={handleRenombrarFila}
-            onClick={(e) => e.stopPropagation()}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="editar-fila-titulo"
-            className="flex w-96 flex-col gap-2 border border-surface-stroke bg-white p-8"
-          >
-            <h2 id="editar-fila-titulo" className="text-lg font-bold">
-              Renombrar fila
-            </h2>
-            <label htmlFor="nombre-fila-edit">Nombre</label>
-            <input
-              id="nombre-fila-edit"
-              ref={nombreFilaInputRef}
-              value={nombreFilaEdit}
-              onChange={(e) => setNombreFilaEdit(e.target.value)}
-            />
-            {error && (
-              <p role="alert" className="text-error">
-                {error}
-              </p>
-            )}
-            <div className="mt-4 flex gap-2">
-              <button type="submit" className="bg-abb-red px-6 py-3 text-sm uppercase tracking-widest text-white">
+        <Modal
+          titulo="Renombrar fila"
+          onClose={solicitarCierreModales}
+          error={error}
+          footer={
+            <>
+              <Button type="submit" variant="primary" form="form-renombrar-fila">
                 Guardar
-              </button>
-              <button
-                type="button"
-                onClick={solicitarCierreModales}
-                className="border border-surface-stroke px-6 py-3 text-sm uppercase tracking-widest"
-              >
+              </Button>
+              <Button type="button" variant="secondary" onClick={solicitarCierreModales}>
                 Cancelar
-              </button>
-            </div>
+              </Button>
+            </>
+          }
+        >
+          <form id="form-renombrar-fila" onSubmit={handleRenombrarFila} className="space-y-4">
+            <Field label="Nombre">
+              {(props) => (
+                <Input
+                  {...props}
+                  ref={nombreFilaInputRef}
+                  value={nombreFilaEdit}
+                  onChange={(e) => setNombreFilaEdit(e.target.value)}
+                  required
+                />
+              )}
+            </Field>
           </form>
-        </div>
+        </Modal>
       )}
 
       {filaABorrar && (
@@ -1273,50 +1247,36 @@ export function DetalleTablero({
       )}
 
       {modalIcc && (
-        <div
-          className="fixed inset-0 z-20 flex items-center justify-center bg-black/40"
-          onMouseDown={onMouseDownModal}
-          onClick={onClickModal}
-        >
-          <form
-            onSubmit={handleGuardarNivelFalla}
-            onClick={(e) => e.stopPropagation()}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="icc-modal-titulo"
-            className="flex w-96 flex-col gap-2 border border-surface-stroke bg-white p-8"
-          >
-            <h2 id="icc-modal-titulo" className="text-lg font-bold">
-              Intensidad de Cortocircuito (Icc)
-            </h2>
-            <label htmlFor="nivel-falla-edit">Nuevo nivel de falla (kA)</label>
-            <input
-              id="nivel-falla-edit"
-              ref={nivelFallaInputRef}
-              value={nivelFallaKaEdit}
-              onChange={(e) => setNivelFallaKaEdit(e.target.value)}
-            />
-            {error && (
-              <p role="alert" className="text-error">
-                {error}
-              </p>
-            )}
-            <div className="mt-4 flex gap-2">
-              <button type="submit" className="bg-abb-red px-6 py-3 text-sm uppercase tracking-widest text-white">
+        <Modal
+          titulo="Intensidad de Cortocircuito (Icc)"
+          onClose={solicitarCierreModales}
+          error={error}
+          footer={
+            <>
+              <Button type="submit" variant="primary" form="form-modal-icc">
                 Guardar
-              </button>
-              <button
-                type="button"
-                onClick={solicitarCierreModales}
-                className="border border-surface-stroke px-6 py-3 text-sm uppercase tracking-widest"
-              >
+              </Button>
+              <Button type="button" variant="secondary" onClick={solicitarCierreModales}>
                 Cancelar
-              </button>
-            </div>
+              </Button>
+            </>
+          }
+        >
+          <form id="form-modal-icc" onSubmit={handleGuardarNivelFalla} className="space-y-4">
+            <Field label="Nuevo nivel de falla (kA)">
+              {(props) => (
+                <Input
+                  {...props}
+                  ref={nivelFallaInputRef}
+                  value={nivelFallaKaEdit}
+                  onChange={(e) => setNivelFallaKaEdit(e.target.value)}
+                  mono
+                />
+              )}
+            </Field>
           </form>
-        </div>
+        </Modal>
       )}
-
 
       {modalInterruptor && (
         <ComponentePicker
@@ -1330,68 +1290,43 @@ export function DetalleTablero({
 
       {/* Modal para renombrar el tablero */}
       {modalRenombrarTablero && (
-        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 backdrop-blur-sm">
-          <div
-            onMouseDown={onMouseDownModal}
-            onClick={onClickModal}
-            className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 border border-gray-200"
-          >
-            <div className="flex items-center justify-between border-b border-gray-100 pb-3 mb-4">
-              <h2 className="text-base font-bold text-gray-900 flex items-center gap-2">
-                <PencilIcon className="w-5 h-5 text-abb-red" />
-                Renombrar Tablero
-              </h2>
-              <button
-                type="button"
-                onClick={solicitarCierreModales}
-                className="text-gray-400 hover:text-gray-600 p-1 rounded"
+        <Modal
+          titulo="Renombrar Tablero"
+          onClose={solicitarCierreModales}
+          error={error}
+          footer={
+            <>
+              <Button
+                type="submit"
+                variant="primary"
+                form="form-renombrar-tablero"
+                disabled={guardandoTablero || !nombreTableroEdit.trim()}
               >
-                <XMarkIcon className="w-5 h-5" />
-              </button>
-            </div>
-
-            {error && (
-              <div className="mb-4 p-3 bg-red-50 text-red-700 text-xs rounded border border-red-200">
-                {error}
-              </div>
-            )}
-
-            <form onSubmit={handleGuardarNombreTablero} className="space-y-4">
-              <div>
-                <label htmlFor="nombre-tablero-input" className="block text-xs font-semibold text-gray-700 mb-1">
-                  Nombre del Tablero
-                </label>
-                <input
+                {guardandoTablero ? "Guardando..." : "Guardar Nombre"}
+              </Button>
+              <Button type="button" variant="secondary" onClick={solicitarCierreModales}>
+                Cancelar
+              </Button>
+            </>
+          }
+        >
+          <form id="form-renombrar-tablero" onSubmit={handleGuardarNombreTablero} className="space-y-4">
+            <Field label="Nombre del Tablero">
+              {(props) => (
+                <Input
+                  {...props}
                   id="nombre-tablero-input"
                   ref={nombreTableroInputRef}
                   type="text"
                   value={nombreTableroEdit}
                   onChange={(e) => setNombreTableroEdit(e.target.value)}
-                  className="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:outline-none focus:border-abb-red"
                   placeholder="ej. Tablero General T-01"
                   required
                 />
-              </div>
-
-              <div className="flex justify-end gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={solicitarCierreModales}
-                  className="px-4 py-2 text-xs font-semibold text-gray-600 hover:bg-gray-100 rounded"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  disabled={guardandoTablero || !nombreTableroEdit.trim()}
-                  className="px-4 py-2 text-xs font-semibold bg-abb-red hover:bg-red-700 text-white rounded transition disabled:opacity-50"
-                >
-                  {guardandoTablero ? "Guardando..." : "Guardar Nombre"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+              )}
+            </Field>
+          </form>
+        </Modal>
       )}
 
       {modalAccesorioManual && (

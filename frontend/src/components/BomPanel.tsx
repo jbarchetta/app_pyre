@@ -135,22 +135,22 @@ export function BomPanel({ tableroId, tableroNombre, onAmpliar, isCompact = fals
   }, 0);
 
   return (
-    <div className="bg-white border border-slate-300 rounded-2xl shadow-sm overflow-hidden space-y-0">
+    <div className="bg-surface border border-line rounded-card shadow-sm overflow-hidden space-y-0">
       {/* Top Header matching reference image tag bar style */}
-      <div className="bg-[#2C3645] px-5 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-white">
+      <div className="bg-surface-inverse px-5 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-ink-inverse">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-lg bg-abb-red flex items-center justify-center text-white shrink-0 shadow-sm font-bold font-mono text-xs">
+          <div className="w-8 h-8 rounded-control bg-brand flex items-center justify-center text-white shrink-0 shadow-xs font-bold dato-tecnico text-xs">
             ABB
           </div>
           <div>
-            <h3 className="text-xs font-mono font-bold uppercase tracking-wider flex items-center gap-2 text-slate-100">
+            <h3 className="text-xs font-mono font-bold uppercase tracking-wider flex items-center gap-2 text-ink-inverse">
               LISTA DE MATERIALES · {tableroNombre}
             </h3>
-            <div className="flex items-center gap-1.5 mt-1 text-[10px] font-mono">
-              <span className="px-2 py-0.5 rounded bg-slate-700 text-slate-200 border border-slate-600">
+            <div className="flex items-center gap-1.5 mt-1 text-[10px] dato-tecnico">
+              <span className="px-2 py-0.5 rounded-control bg-surface-inverse-raised text-ink-inverse-muted border border-line-inverse">
                 PROYECTO PYRE
               </span>
-              <span className="px-2 py-0.5 rounded bg-red-950 text-red-300 border border-red-800 font-bold">
+              <span className="px-2 py-0.5 rounded-control bg-brand-tint text-brand border border-brand-line font-bold">
                 IEC 61439-1
               </span>
             </div>
@@ -160,7 +160,7 @@ export function BomPanel({ tableroId, tableroNombre, onAmpliar, isCompact = fals
         <div className="flex items-center gap-2 shrink-0">
           {onAmpliar && (
             <Button
-              variant="outline"
+              variant="secondary"
               size="sm"
               onClick={onAmpliar}
               title="Expandir vista completa del BOM"
@@ -204,26 +204,26 @@ export function BomPanel({ tableroId, tableroNombre, onAmpliar, isCompact = fals
 
       <div className="p-4 space-y-4">
         {error && (
-          <div className="p-3 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl font-medium">
+          <div className="p-3 bg-danger-tint border border-danger-line text-danger text-xs rounded-card font-medium">
             {error}
           </div>
         )}
 
         {/* State Handling */}
         {cargando ? (
-          <div className="py-12 text-center text-xs text-slate-500 font-mono">
-            <svg className="animate-spin h-6 w-6 mx-auto mb-2 text-abb-red" fill="none" viewBox="0 0 24 24">
+          <div className="py-12 text-center text-xs text-ink-muted dato-tecnico">
+            <svg className="animate-spin h-6 w-6 mx-auto mb-2 text-brand" fill="none" viewBox="0 0 24 24">
               <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
               <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
             </svg>
             Cargando BOM del tablero...
           </div>
         ) : !bom || !Array.isArray(bom?.lineas) || bom.lineas.length === 0 ? (
-          <div className="py-8 border-2 border-dashed border-slate-300 rounded-xl text-center p-6 space-y-3 bg-slate-50">
-            <p className="text-sm font-bold text-slate-800">
+          <div className="py-8 border-2 border-dashed border-line rounded-card text-center p-6 space-y-3 bg-surface-sunken">
+            <p className="text-sm font-bold text-ink">
               Sin lista de materiales generada
             </p>
-            <p className="text-xs text-slate-500 max-w-sm mx-auto">
+            <p className="text-xs text-ink-muted max-w-sm mx-auto">
               Consolida los interruptores y gabinetes del tablero congelando los precios netos de catálogo.
             </p>
             <Button variant="primary" size="sm" onClick={handleGenerar} isLoading={generando}>
@@ -233,14 +233,14 @@ export function BomPanel({ tableroId, tableroNombre, onAmpliar, isCompact = fals
         ) : (
           <div className="space-y-4">
             {/* Control Segmentado de Pestañas Categorizadas Normalizado */}
-            <div className="flex flex-wrap items-center gap-1 bg-slate-100 p-1.5 rounded-xl border border-slate-200 text-xs font-sans select-none">
+            <div className="flex flex-wrap items-center gap-1 bg-surface-sunken p-1.5 rounded-card border border-line text-xs font-sans select-none">
               <button
                 type="button"
                 onClick={() => setTabCatActiva("todos")}
-                className={`px-3 py-1.5 rounded-md transition-all ${
+                className={`px-3 py-1.5 rounded-control transition-all ${
                   tabCatActiva === "todos"
-                    ? "bg-abb-red text-white font-semibold shadow-2xs"
-                    : "text-slate-600 hover:text-slate-900 hover:bg-slate-200/60 font-medium"
+                    ? "bg-brand text-white font-semibold shadow-xs"
+                    : "text-ink-muted hover:text-ink hover:bg-surface font-medium"
                 }`}
               >
                 Total Unificado ({bom.lineas.length})
@@ -248,10 +248,10 @@ export function BomPanel({ tableroId, tableroNombre, onAmpliar, isCompact = fals
               <button
                 type="button"
                 onClick={() => setTabCatActiva("abb")}
-                className={`px-3 py-1.5 rounded-md transition-all ${
+                className={`px-3 py-1.5 rounded-control transition-all ${
                   tabCatActiva === "abb"
-                    ? "bg-abb-red text-white font-semibold shadow-2xs"
-                    : "text-slate-600 hover:text-slate-900 hover:bg-slate-200/60 font-medium"
+                    ? "bg-brand text-white font-semibold shadow-xs"
+                    : "text-ink-muted hover:text-ink hover:bg-surface font-medium"
                 }`}
               >
                 Componentes ABB
@@ -259,10 +259,10 @@ export function BomPanel({ tableroId, tableroNombre, onAmpliar, isCompact = fals
               <button
                 type="button"
                 onClick={() => setTabCatActiva("nollmann")}
-                className={`px-3 py-1.5 rounded-md transition-all ${
+                className={`px-3 py-1.5 rounded-control transition-all ${
                   tabCatActiva === "nollmann"
-                    ? "bg-abb-red text-white font-semibold shadow-2xs"
-                    : "text-slate-600 hover:text-slate-900 hover:bg-slate-200/60 font-medium"
+                    ? "bg-brand text-white font-semibold shadow-xs"
+                    : "text-ink-muted hover:text-ink hover:bg-surface font-medium"
                 }`}
               >
                 Gabinetes y Distribuidores (Nollmann / Nöllmed)
@@ -270,10 +270,10 @@ export function BomPanel({ tableroId, tableroNombre, onAmpliar, isCompact = fals
               <button
                 type="button"
                 onClick={() => setTabCatActiva("cables")}
-                className={`px-3 py-1.5 rounded-md transition-all ${
+                className={`px-3 py-1.5 rounded-control transition-all ${
                   tabCatActiva === "cables"
-                    ? "bg-abb-red text-white font-semibold shadow-2xs"
-                    : "text-slate-600 hover:text-slate-900 hover:bg-slate-200/60 font-medium"
+                    ? "bg-brand text-white font-semibold shadow-xs"
+                    : "text-ink-muted hover:text-ink hover:bg-surface font-medium"
                 }`}
               >
                 Cables y Conectores
@@ -281,10 +281,10 @@ export function BomPanel({ tableroId, tableroNombre, onAmpliar, isCompact = fals
               <button
                 type="button"
                 onClick={() => setTabCatActiva("terminales")}
-                className={`px-3 py-1.5 rounded-md transition-all ${
+                className={`px-3 py-1.5 rounded-control transition-all ${
                   tabCatActiva === "terminales"
-                    ? "bg-abb-red text-white font-semibold shadow-2xs"
-                    : "text-slate-600 hover:text-slate-900 hover:bg-slate-200/60 font-medium"
+                    ? "bg-brand text-white font-semibold shadow-xs"
+                    : "text-ink-muted hover:text-ink hover:bg-surface font-medium"
                 }`}
               >
                 Terminales y Accesorios
@@ -292,10 +292,10 @@ export function BomPanel({ tableroId, tableroNombre, onAmpliar, isCompact = fals
             </div>
 
             {/* High-Contrast Grid Table with Left Vertical Color Bars */}
-            <div className="overflow-x-auto border border-slate-300 rounded-xl shadow-2xs bg-white">
+            <div className="overflow-x-auto border border-line rounded-card shadow-xs bg-surface">
               <table className="w-full text-left border-collapse text-xs">
                 <thead>
-                  <tr className="bg-[#2C3645] text-slate-100 font-mono text-[11px] uppercase tracking-wider border-b border-slate-700">
+                  <tr className="bg-surface-inverse text-ink-inverse font-mono text-[11px] uppercase tracking-wider border-b border-line-inverse">
                     <th className="py-2.5 px-2 text-center font-bold w-10">ID</th>
                     <th className="py-2.5 px-3 font-bold">Código SAP</th>
                     <th className="py-2.5 px-3 font-bold">Desig. Comercial</th>
@@ -306,10 +306,10 @@ export function BomPanel({ tableroId, tableroNombre, onAmpliar, isCompact = fals
                     <th className="py-2.5 px-3 text-right font-bold">Subtotal</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-200 bg-white">
+                <tbody className="divide-y divide-line bg-surface">
                   {lineasFiltradas.length === 0 ? (
                     <tr>
-                      <td colSpan={isCompact ? 5 : 8} className="p-6 text-center text-xs text-slate-500 italic">
+                      <td colSpan={isCompact ? 5 : 8} className="p-6 text-center text-xs text-ink-muted italic">
                         No hay ítems en esta categoría.
                       </td>
                     </tr>
@@ -324,10 +324,10 @@ export function BomPanel({ tableroId, tableroNombre, onAmpliar, isCompact = fals
                         linea.componente_marca === "Nollmann" ||
                         linea.componente_categoria?.toLowerCase().includes("gabinete");
                       const borderClass = isBreaker
-                        ? "border-l-4 border-l-abb-red"
+                        ? "border-l-4 border-l-brand"
                         : isEnclosure
-                        ? "border-l-4 border-l-blue-600"
-                        : "border-l-4 border-l-amber-500";
+                        ? "border-l-4 border-l-info"
+                        : "border-l-4 border-l-warning";
 
                       const esGabineteNollmann =
                         linea.componente_marca === "Nollmann" ||
@@ -338,24 +338,24 @@ export function BomPanel({ tableroId, tableroNombre, onAmpliar, isCompact = fals
                         <tr
                           key={linea.id}
                           className={`transition-colors ${borderClass} ${
-                            idx % 2 === 0 ? "bg-white" : "bg-slate-50/80"
-                          } hover:bg-red-50/50`}
+                            idx % 2 === 0 ? "bg-surface" : "bg-surface-sunken/40"
+                          } hover:bg-brand-tint/50`}
                         >
-                          <td className="py-2.5 px-2 text-center font-mono font-bold text-slate-500 text-[11px]">
+                          <td className="py-2.5 px-2 text-center dato-tecnico font-bold text-ink-muted text-[11px]">
                             #{idx + 1}
                           </td>
-                          <td className="py-2.5 px-3 font-mono font-bold text-slate-800 text-[11px]">
+                          <td className="py-2.5 px-3 dato-tecnico font-bold text-ink text-[11px]">
                             {linea.componente_codigo}
                           </td>
-                          <td className="py-2.5 px-3 font-sans font-bold text-slate-900 text-xs">
+                          <td className="py-2.5 px-3 font-sans font-bold text-ink text-xs">
                             {linea.componente_codigo_comercial ? (
                               <span>
                                 {esGabineteNollmann ? (
-                                  <span className="text-blue-700 font-extrabold mr-1">Nollmann</span>
+                                  <span className="text-info font-extrabold mr-1">Nollmann</span>
                                 ) : linea.componente_marca === "ABB" || !linea.componente_marca ? (
-                                  <span className="text-abb-red font-extrabold mr-1">ABB</span>
+                                  <span className="text-brand font-extrabold mr-1">ABB</span>
                                 ) : (
-                                  <span className="text-slate-800 font-extrabold mr-1">{linea.componente_marca}</span>
+                                  <span className="text-ink font-extrabold mr-1">{linea.componente_marca}</span>
                                 )}
                                 {linea.componente_codigo_comercial}
                               </span>
@@ -364,26 +364,26 @@ export function BomPanel({ tableroId, tableroNombre, onAmpliar, isCompact = fals
                             )}
                           </td>
                           {!isCompact && (
-                            <td className="py-2.5 px-3 text-slate-800 max-w-xs truncate text-[11px]" title={linea.componente_descripcion}>
+                            <td className="py-2.5 px-3 text-ink max-w-xs truncate text-[11px]" title={linea.componente_descripcion}>
                               {linea.componente_descripcion}
                             </td>
                           )}
                           {!isCompact && (
-                            <td className="py-2.5 px-3 text-slate-600 text-[11px] font-medium">
-                              <span className="px-2 py-0.5 rounded bg-slate-100 border border-slate-200 text-slate-700 text-[10px]">
+                            <td className="py-2.5 px-3 text-ink-muted text-[11px] font-medium">
+                              <span className="px-2 py-0.5 rounded-control bg-surface-sunken border border-line text-ink-muted text-[10px]">
                                 {linea.componente_categoria || "General"}
                               </span>
                             </td>
                           )}
-                          <td className="py-2.5 px-2 text-center font-mono font-bold text-slate-900 text-xs">
+                          <td className="py-2.5 px-2 text-center dato-tecnico font-bold text-ink text-xs">
                             {linea.cantidad}
                           </td>
                           {!isCompact && (
-                            <td className="py-2.5 px-3 text-right font-mono text-slate-700 text-[11px]">
+                            <td className="py-2.5 px-3 text-right dato-tecnico text-ink-muted text-[11px]">
                               {formatearMoneda(linea.precio_unitario_congelado)}
                             </td>
                           )}
-                          <td className="py-2.5 px-3 text-right font-mono font-extrabold text-slate-900 text-xs">
+                          <td className="py-2.5 px-3 text-right dato-tecnico font-extrabold text-ink text-xs">
                             {formatearMoneda(linea.subtotal)}
                           </td>
                         </tr>
@@ -396,14 +396,14 @@ export function BomPanel({ tableroId, tableroNombre, onAmpliar, isCompact = fals
 
             {/* Total Financial Summary Card */}
             <div className="flex flex-col sm:flex-row justify-between items-center gap-3 pt-2">
-              <div className="text-xs font-mono text-slate-500">
-                Mostrando <strong className="text-slate-900">{lineasFiltradas.length}</strong> de <strong className="text-slate-900">{bom.lineas.length}</strong> ítems
+              <div className="text-xs dato-tecnico text-ink-muted">
+                Mostrando <strong className="text-ink">{lineasFiltradas.length}</strong> de <strong className="text-ink">{bom.lineas.length}</strong> ítems
               </div>
-              <div className="bg-[#2C3645] text-white p-4 rounded-xl flex items-center justify-between gap-6 w-full sm:w-auto border border-slate-800 shadow-md">
-                <span className="text-xs font-mono uppercase tracking-wider text-slate-300 font-bold">
+              <div className="bg-surface-inverse text-ink-inverse p-4 rounded-card flex items-center justify-between gap-6 w-full sm:w-auto border border-line-inverse shadow-card">
+                <span className="text-xs font-mono uppercase tracking-wider text-ink-inverse-muted font-bold">
                   {tabCatActiva === "todos" ? "Total General Tablero" : `Subtotal (${lineasFiltradas.length} ítems)`}
                 </span>
-                <span className="text-2xl font-mono font-extrabold text-abb-red">
+                <span className="text-2xl dato-tecnico font-extrabold text-brand">
                   {formatearMoneda(tabCatActiva === "todos" ? bom.costo_total : subtotalFiltrado)}
                 </span>
               </div>
