@@ -115,16 +115,21 @@ y_bot_chan = RAIL_CY[-1] - DIN_PASO_Y / 2.0 - cw / 2.0
 
 # Vertical Izquierda
 msp.add_line((x_left, y_first_chan + cw), (x_left, y_bot_chan), dxfattribs={'layer': 'CANALETAS'})
-msp.add_line((x_left + cw, y_first_chan + cw), (x_left + cw, y_bot_chan + cw), dxfattribs={'layer': 'CANALETAS'})
-msp.add_line((x_left, y_first_chan + cw), (x_left + cw, y_first_chan + cw), dxfattribs={'layer': 'CANALETAS'})
+msp.add_line((x_left + cw, y_first_chan), (x_left + cw, y_bot_chan + cw), dxfattribs={'layer': 'CANALETAS'})
 
 # Vertical Derecha
 msp.add_line((x_right, y_first_chan + cw), (x_right, y_bot_chan), dxfattribs={'layer': 'CANALETAS'})
-msp.add_line((x_right - cw, y_first_chan + cw), (x_right - cw, y_bot_chan + cw), dxfattribs={'layer': 'CANALETAS'})
-msp.add_line((x_right - cw, y_first_chan + cw), (x_right, y_first_chan + cw), dxfattribs={'layer': 'CANALETAS'})
+msp.add_line((x_right - cw, y_first_chan), (x_right - cw, y_bot_chan + cw), dxfattribs={'layer': 'CANALETAS'})
+
+# Horizontal Superior bajo Q1 con Ingletes a 45°
+msp.add_line((x_left, y_first_chan + cw), (x_right, y_first_chan + cw), dxfattribs={'layer': 'CANALETAS'})
+msp.add_line((x_left + cw, y_first_chan), (x_right - cw, y_first_chan), dxfattribs={'layer': 'CANALETAS'})
+# Ingletes 45° superiores bajo Q1
+msp.add_line((x_left, y_first_chan + cw), (x_left + cw, y_first_chan), dxfattribs={'layer': 'CANALETAS'})
+msp.add_line((x_right, y_first_chan + cw), (x_right - cw, y_first_chan), dxfattribs={'layer': 'CANALETAS'})
 
 # Horizontales Intermedias
-for i in range(len(RAIL_CY) - 1):
+for i in range(1, len(RAIL_CY) - 1):
     y_ch = (RAIL_CY[i] + RAIL_CY[i + 1]) / 2.0 - cw / 2.0
     msp.add_line((x_left + cw, y_ch), (x_right - cw, y_ch), dxfattribs={'layer': 'CANALETAS'})
     msp.add_line((x_left + cw, y_ch + cw), (x_right - cw, y_ch + cw), dxfattribs={'layer': 'CANALETAS'})
@@ -132,7 +137,7 @@ for i in range(len(RAIL_CY) - 1):
 # Horizontal Inferior con Ingletes a 45°
 msp.add_line((x_left, y_bot_chan), (x_right, y_bot_chan), dxfattribs={'layer': 'CANALETAS'})
 msp.add_line((x_left + cw, y_bot_chan + cw), (x_right - cw, y_bot_chan + cw), dxfattribs={'layer': 'CANALETAS'})
-# Ingletes 45°
+# Ingletes 45° inferiores
 msp.add_line((x_left, y_bot_chan), (x_left + cw, y_bot_chan + cw), dxfattribs={'layer': 'CANALETAS'})
 msp.add_line((x_right, y_bot_chan), (x_right - cw, y_bot_chan + cw), dxfattribs={'layer': 'CANALETAS'})
 
