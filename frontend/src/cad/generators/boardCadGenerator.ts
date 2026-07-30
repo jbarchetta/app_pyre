@@ -1,5 +1,5 @@
 import type { Salida, Seccion } from "../../api/client";
-import type { CadDocument, CadLayer, CadPrimitive } from "../core/types";
+import type { CadDocument, CadLayer, CadPoint, CadPrimitive } from "../core/types";
 import { symbolRegistry } from "../symbols/symbolRegistry";
 import { NOLLBOX_CABINETS } from "../symbols/nollboxSymbols";
 
@@ -314,6 +314,133 @@ export function envolverTexto(texto: string, maxCharsPorLinea = 15): string[] {
 
   if (lineaActual) lineas.push(lineaActual);
   return lineas;
+}
+
+// Medidas del riel DIN TH35 tomadas del bloque "RIEL DIN" del NOLLBOX real:
+// perfil de 35 mm de alto con cejas de ~5 mm y ranuras oblongas de 5 mm de
+// alto (extremos R2,5) a paso de 25 mm. Se dibuja por código para cualquier
+// largo -- nada pegado.
+const RIEL_ALTO = 35;
+const RIEL_CEJA = 5;
+const RIEL_RANURA_ALTO = 5;
+const RIEL_RANURA_ANCHO = 18;
+const RIEL_RANURA_PASO = 25;
+const RIEL_RANURA_MARGEN = 14;
+
+/**
+ * Empuja un riel DIN TH35 fiel y paramétrico: contorno + cejas del perfil
+ * sombrero + hilera de ranuras oblongas centradas. `x,y` es la esquina
+ * inferior izquierda; `largo` es libre (el riel se adapta al ancho pedido).
+ */
+function pushDinRail(
+  primitives: CadPrimitive[],
+  idPrefix: string,
+  x: number,
+  y: number,
+  largo: number,
+  layerId: string,
+  color = "#64748B",
+) {
+  // Contorno del perfil.
+  primitives.push({
+    id: `${idPrefix}-body`,
+    layerId,
+    type: "rect",
+    x,
+    y,
+    width: largo,
+    height: RIEL_ALTO,
+    color,
+    stroke: color,
+    fill: "none",
+    lineWidth: 0.8,
+  });
+  // Cejas (doblez del sombrero) como dos líneas horizontales.
+  for (const [i, yy] of [y + RIEL_CEJA, y + RIEL_ALTO - RIEL_CEJA].entries()) {
+    primitives.push({
+      id: `${idPrefix}-ceja-${i}`,
+      layerId,
+      type: "line",
+      start: { x, y: yy },
+      end: { x: x + largo, y: yy },
+      color,
+      lineWidth: 0.5,
+    });
+  }
+  // Ranuras oblongas (rect con rx = alto/2 => forma de estadio), centradas.
+  const cy = y + RIEL_ALTO / 2;
+  const util = largo - 2 * RIEL_RANURA_MARGEN;
+  const n = Math.max(0, Math.floor(util / RIEL_RANURA_PASO));
+  if (n >= 1) {
+    const span = (n - 1) * RIEL_RANURA_PASO;
+    const xIni = x + largo / 2 - span / 2;
+    for (let i = 0; i < n; i++) {
+      const cx = xIni + i * RIEL_RANURA_PASO;
+      primitives.push({
+        id: `${idPrefix}-slot-${i}`,
+        layerId,
+        type: "rect",
+        x: cx - RIEL_RANURA_ANCHO / 2,
+        y: cy - RIEL_RANURA_ALTO / 2,
+        width: RIEL_RANURA_ANCHO,
+        height: RIEL_RANURA_ALTO,
+        rx: RIEL_RANURA_ALTO / 2,
+        color,
+        stroke: color,
+        fill: "none",
+        lineWidth: 0.4,
+      });
+    }
+  }
+}
+
+// Tapa (superior o inferior) del gabinete: placa superpuesta que sobresale del
+// borde y arranca a 2,5 mm de cada lado (regla confirmada por el usuario: el
+// ancho de la tapa es el del armario menos 2,5 mm por lado, en cualquier
+// tamaño). Sus dos esquinas EXTERNAS van achaflanadas a 45° con un chaflán de
+// 2 mm (hipotenusa 2,8284 mm, medida en el DXF real). El borde interno coincide
+// con el borde del armario.
+const TAPA_INSET_LATERAL = 2.5;   // mm desde cada lado del armario
+const TAPA_SALIENTE = 3;          // mm que sobresale del borde
+const TAPA_CHAFLAN = 2;           // cateto del chaflán a 45°
+
+/**
+ * Dibuja una tapa biselada. `yBorde` es el borde del armario donde apoya;
+ * `afuera` = -1 para la tapa superior (sobresale hacia arriba, y menor) o +1
+ * para la inferior. El contorno se arma con líneas (el chaflán no es un rect).
+ */
+function pushTapaBiselada(
+  primitives: CadPrimitive[],
+  idPrefix: string,
+  xLeft: number,
+  xRight: number,
+  yBorde: number,
+  afuera: -1 | 1,
+  layerId: string,
+  color = "#475569",
+) {
+  const yo = yBorde + afuera * TAPA_SALIENTE;       // borde externo (saliente)
+  const yChaflan = yo - afuera * TAPA_CHAFLAN;       // inicio del chaflán sobre los laterales
+  const pts: CadPoint[] = [
+    { x: xLeft, y: yBorde },
+    { x: xLeft, y: yChaflan },
+    { x: xLeft + TAPA_CHAFLAN, y: yo },
+    { x: xRight - TAPA_CHAFLAN, y: yo },
+    { x: xRight, y: yChaflan },
+    { x: xRight, y: yBorde },
+    { x: xLeft, y: yBorde }, // cierra contra el borde del armario
+  ];
+  for (let i = 0; i < pts.length - 1; i++) {
+    primitives.push({
+      id: `${idPrefix}-e${i}`,
+      layerId,
+      type: "line",
+      start: pts[i],
+      end: pts[i + 1],
+      color,
+      lineWidth: 1.0,
+    });
+  }
 }
 
 export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDocument {
@@ -1001,9 +1128,14 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
     const anchoGabinete = params.gabineteAnchoMm || 600;
     const altoGabinete = params.gabineteAltoMm || 600;
 
-    // Buscar definición DXF precargada si coincide exacto, o usar el Motor Paramétrico Vectorial
+    // Motor Paramétrico como camino PRINCIPAL para todos los tamaños. La
+    // biblioteca de bloques pegados (nollboxSymbols.ts) queda como escape
+    // reversible: al no escalar a tamaños arbitrarios y ser geometría estática,
+    // se prefiere generar todo por código. Poné USAR_BLOQUES_PEGADOS = true
+    // solo para comparar contra la versión pegada.
+    const USAR_BLOQUES_PEGADOS = false;
     const keyNollbox = `nollbox_${anchoGabinete}x${altoGabinete}`;
-    const cabDef = NOLLBOX_CABINETS[keyNollbox];
+    const cabDef = USAR_BLOQUES_PEGADOS ? NOLLBOX_CABINETS[keyNollbox] : undefined;
 
     // Dimensiones de carátula útil y subpanel parametrizados
     const winW = (anchoGabinete <= 300) ? 180 : (anchoGabinete <= 450 ? 290 : (anchoGabinete <= 600 ? 440 : (anchoGabinete <= 750 ? 576 : 810)));
@@ -1037,7 +1169,11 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
       });
     } else {
       // Motor Paramétrico Pure Software: Dibujo Vectorial 1:1 de Gabinete Nollmann NIS Completo
-      // A. Marco Exterior Gabinete Nollmann (Esquinas redondeadas rx = 12)
+      // A. Marco Exterior Gabinete Nollmann.
+      // Radio real medido del NOLLBOX: R3,2 en el marco externo (confirmado por
+      // cota del usuario 2026-07-30), no un valor inventado.
+      const RADIO_MARCO_EXT = 3.2;
+      const RADIO_MARCO_INT = 1.6;
       primitives.push({
         id: "gab-outer-frame",
         layerId: "0_Gabinete",
@@ -1046,7 +1182,7 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
         y: marginY,
         width: anchoGabinete,
         height: altoGabinete,
-        rx: 12,
+        rx: RADIO_MARCO_EXT,
         stroke: "#64748B",
         color: "#64748B",
         fill: "none",
@@ -1069,64 +1205,14 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
         lineWidth: 1.0,
       });
 
-      // C. Placa Techo Desmontable Pasa-Cables (Top Gland Flange Plate)
-      const plateW = Math.min(anchoGabinete - 80, 400);
-      const plateX = marginX + (anchoGabinete - plateW) / 2;
-      primitives.push({
-        id: "gab-top-plate",
-        layerId: "0_Gabinete",
-        type: "rect",
-        x: plateX,
-        y: marginY + 3,
-        width: plateW,
-        height: 14,
-        rx: 4,
-        stroke: "#475569",
-        color: "#475569",
-        fill: "none",
-        lineWidth: 1.0,
-      });
-      // Tornillos M6 de Placa Techo (Círculos)
-      [plateX + 12, plateX + plateW - 12].forEach((sx, idx) => {
-        primitives.push({
-          id: `top-screw-${idx}`,
-          layerId: "0_Gabinete",
-          type: "circle",
-          cx: sx,
-          cy: marginY + 10,
-          r: 3.5,
-          color: "#64748B",
-          lineWidth: 0.8,
-        });
-      });
-
-      // D. Placa Tapa Inferior Desmontable Pasa-Cables (Bottom Gland Flange Plate)
-      primitives.push({
-        id: "gab-bottom-plate",
-        layerId: "0_Gabinete",
-        type: "rect",
-        x: plateX,
-        y: marginY + altoGabinete - 17,
-        width: plateW,
-        height: 14,
-        rx: 4,
-        stroke: "#475569",
-        color: "#475569",
-        fill: "none",
-        lineWidth: 1.0,
-      });
-      [plateX + 12, plateX + plateW - 12].forEach((sx, idx) => {
-        primitives.push({
-          id: `bot-screw-${idx}`,
-          layerId: "0_Gabinete",
-          type: "circle",
-          cx: sx,
-          cy: marginY + altoGabinete - 10,
-          r: 3.5,
-          color: "#64748B",
-          lineWidth: 0.8,
-        });
-      });
+      // C/D. Tapas superior e inferior biseladas (placas superpuestas reales
+      // del NOLLBOX). Empiezan a 2,5 mm de cada lado, sobresalen 3 mm y llevan
+      // las dos esquinas externas achaflanadas a 45° (2 mm). Reemplazan a las
+      // placas pasa-cables con tornillos M6 que estaban inventadas.
+      const tapaXL = marginX + TAPA_INSET_LATERAL;
+      const tapaXR = marginX + anchoGabinete - TAPA_INSET_LATERAL;
+      pushTapaBiselada(primitives, "gab-tapa-sup", tapaXL, tapaXR, marginY, -1, "0_Gabinete");
+      pushTapaBiselada(primitives, "gab-tapa-inf", tapaXL, tapaXR, marginY + altoGabinete, 1, "0_Gabinete");
 
       // E. Perfiles de Doble Laberinto de Estanqueidad IP65 (Rubber Seal Channels)
       primitives.push({
@@ -1167,7 +1253,7 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
         y: marginY + 14,
         width: anchoGabinete - 16,
         height: altoGabinete - 28,
-        rx: 10,
+        rx: RADIO_MARCO_INT,
         stroke: "#64748B",
         color: "#64748B",
         fill: "none",
@@ -1305,20 +1391,9 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
           lineWidth: 1,
         });
 
-        // Riel DIN 35 en el chasis detrás de la ventana
-        primitives.push({
-          id: `rail-din-${rIdx}`,
-          layerId: "1_Equipos_DIN",
-          type: "rect",
-          x: winX - 10,
-          y: centerY - 17.5,
-          width: winW + 20,
-          height: 35,
-          color: "#64748B",
-          stroke: "#64748B",
-          fill: "none",
-          lineWidth: 0.8,
-        });
+        // Riel DIN TH35 fiel y paramétrico (perfil + ranuras), detrás de la
+        // ventana y adaptado al ancho de la fila.
+        pushDinRail(primitives, `rail-din-${rIdx}`, winX - 10, centerY - RIEL_ALTO / 2, winW + 20, "1_Equipos_DIN");
       });
     }
 
