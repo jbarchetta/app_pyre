@@ -210,16 +210,32 @@ export class CadCanvasEngine {
         const w = prim.width * transform.zoom;
         const h = prim.height * transform.zoom;
 
+        // Radio de esquina real (en mm) escalado a pantalla y acotado a la
+        // mitad del lado menor. Si es 0, se dibuja con esquinas rectas.
+        const rPx = Math.min(Math.abs(prim.rx ?? 0) * transform.zoom, Math.abs(w) / 2, Math.abs(h) / 2);
+        const soportaRound = typeof (ctx as CanvasRenderingContext2D & { roundRect?: unknown }).roundRect === "function";
+        const trazarRect = () => {
+          if (rPx > 0.5 && soportaRound) {
+            ctx.beginPath();
+            ctx.roundRect(s.x, s.y, w, h, rPx);
+          } else {
+            ctx.beginPath();
+            ctx.rect(s.x, s.y, w, h);
+          }
+        };
+
         if (prim.fill && prim.fill !== "none" && !isSelected && !isHovered) {
           ctx.fillStyle = prim.fill === "bg" ? (theme === "light" ? "#F8FAFC" : "#0F172A") : prim.fill;
-          ctx.fillRect(s.x, s.y, w, h);
+          trazarRect();
+          ctx.fill();
         }
 
         const strokeColor = prim.stroke || prim.color || color;
         if (strokeColor && strokeColor !== "none" && (prim.lineWidth ?? 0.8) > 0) {
           ctx.strokeStyle = isSelected ? "#0284C7" : (isHovered ? "#DC2626" : strokeColor);
           ctx.lineWidth = Math.max(0.5, (prim.lineWidth || 0.8) * transform.zoom);
-          ctx.strokeRect(s.x, s.y, w, h);
+          trazarRect();
+          ctx.stroke();
         }
 
         if (prim.label && w > 30 && h > 15) {
