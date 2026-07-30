@@ -991,24 +991,33 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
   }
 
   // =========================================================================
-  // 2. VISTA TOPOGRÁFICA (ELEVACIÓN FÍSICA A ESCALA 1:1 CON GEOMETRÍA DXF AISLADA NOLLBOX)
+  // 2. VISTA TOPOGRÁFICA (MOTOR PARAMÉTRICO VECTORIAL CAD 1:1 CON GEOMETRÍA NOLLMANN)
   // =========================================================================
   if (modoVisual === "topografico") {
     const marginX = 60;
     const marginY = 60;
+    const pasoMm = params.pasoMm === 200 ? 200 : 150;
 
     const anchoGabinete = params.gabineteAnchoMm || 600;
     const altoGabinete = params.gabineteAltoMm || 600;
 
-    // Buscar la definición vectorial aislada del DXF Nollbox
+    // Buscar definición DXF precargada si coincide exacto, o usar el Motor Paramétrico Vectorial
     const keyNollbox = `nollbox_${anchoGabinete}x${altoGabinete}`;
-    const cabDef = NOLLBOX_CABINETS[keyNollbox] || NOLLBOX_CABINETS["nollbox_600x600"] || NOLLBOX_CABINETS["nollbox_450x600"];
+    const cabDef = NOLLBOX_CABINETS[keyNollbox];
 
-    const winW = (anchoGabinete <= 300) ? 180 : (anchoGabinete <= 450 ? 290 : 440);
+    // Dimensiones de carátula útil y subpanel parametrizados
+    const winW = (anchoGabinete <= 300) ? 180 : (anchoGabinete <= 450 ? 290 : (anchoGabinete <= 600 ? 440 : (anchoGabinete <= 750 ? 576 : 810)));
+    const winH = 45;
     const winX = marginX + (anchoGabinete - winW) / 2;
 
-    // 1. Renderizar la geometría vectorial exacta del DXF aislada del Gabinete (0_Gabinete & 1_Equipos_DIN)
-    if (cabDef && cabDef.primitives) {
+    const anchoUtil = anchoGabinete <= 300 ? 240 : (anchoGabinete <= 450 ? 395 : (anchoGabinete <= 600 ? 540 : 690));
+    const altoUtil = Math.max(300, altoGabinete - 80);
+    const trayX = marginX + (anchoGabinete - anchoUtil) / 2;
+    const trayY = marginY + (altoGabinete - altoUtil) / 2;
+
+    // 1. Dibujo de Gabinete y Carátula
+    if (cabDef && cabDef.primitives && cabDef.primitives.length > 0) {
+      // Dibujo importado directo del DXF aislados
       cabDef.primitives.forEach((p: any, idx) => {
         if (p.type === "line") {
           primitives.push({
@@ -1026,10 +1035,141 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
           } as CadPrimitive);
         }
       });
+    } else {
+      // Motor Paramétrico Pure Software: Dibujo Vectorial 1:1 de Gabinete Nollmann NIS
+      // A. Marco Exterior Gabinete
+      primitives.push({
+        id: "gab-outer-frame",
+        layerId: "0_Gabinete",
+        type: "rect",
+        x: marginX,
+        y: marginY,
+        width: anchoGabinete,
+        height: altoGabinete,
+        stroke: "#64748B",
+        color: "#64748B",
+        fill: "none",
+        lineWidth: 2,
+        label: `GABINETE NOLLMANN NIS ${anchoGabinete}x${altoGabinete}x225 mm`,
+      });
+
+      // B. Bisel Interno Puerta / Burlete
+      primitives.push({
+        id: "gab-door-bezel",
+        layerId: "0_Gabinete",
+        type: "rect",
+        x: marginX + 15,
+        y: marginY + 15,
+        width: anchoGabinete - 30,
+        height: altoGabinete - 30,
+        stroke: "#475569",
+        color: "#475569",
+        fill: "none",
+        lineWidth: 1,
+      });
+
+      // C. Bisagras Nollmann (Izquierda)
+      primitives.push({
+        id: "gab-hinge-top",
+        layerId: "0_Gabinete",
+        type: "rect",
+        x: marginX + 4,
+        y: marginY + 40,
+        width: 10,
+        height: 35,
+        fill: "none",
+        stroke: "#64748B",
+        lineWidth: 1,
+      });
+      primitives.push({
+        id: "gab-hinge-bottom",
+        layerId: "0_Gabinete",
+        type: "rect",
+        x: marginX + 4,
+        y: marginY + altoGabinete - 75,
+        width: 10,
+        height: 35,
+        fill: "none",
+        stroke: "#64748B",
+        lineWidth: 1,
+      });
+
+      // D. Cierre ¼ de Vuelta Nollmann (Derecha)
+      primitives.push({
+        id: "gab-lock-circle",
+        layerId: "0_Gabinete",
+        type: "circle",
+        cx: marginX + anchoGabinete - 20,
+        cy: marginY + altoGabinete / 2,
+        r: 12,
+        color: "#64748B",
+        lineWidth: 1,
+      });
+
+      // E. Subpanel / Chasis Interior
+      primitives.push({
+        id: "gab-inner-frame",
+        layerId: "0_Gabinete",
+        type: "rect",
+        x: trayX,
+        y: trayY,
+        width: anchoUtil,
+        height: altoUtil,
+        stroke: "#94A3B8",
+        color: "#94A3B8",
+        fill: "none",
+        lineWidth: 1,
+      });
     }
 
-    // Centros Y exactos de cada fila extraídos directamente de la geometría del DXF Nollbox
-    const rowCentersY = cabDef.rowCentersFromTopMm.map((yTop) => marginY + yTop);
+    // Centros Y de cada fila (vienen del DXF o calculados paramétricamente con el pasoMm)
+    const numTotalFilas = secciones.length + (tieneInterruptorPrincipal ? 1 : 0);
+    const rowCentersY: number[] = [];
+
+    for (let i = 0; i < numTotalFilas; i++) {
+      if (cabDef && cabDef.rowCentersFromTopMm && cabDef.rowCentersFromTopMm[i] !== undefined) {
+        rowCentersY.push(marginY + cabDef.rowCentersFromTopMm[i]);
+      } else {
+        // Cálculo paramétrico de entrecentros según pasoMm (150 mm o 200 mm)
+        const topOffset = (altoGabinete >= 750) ? 150 : 120;
+        rowCentersY.push(marginY + topOffset + i * pasoMm);
+      }
+    }
+
+    // Dibujo Paramétrico de Ventanas y Rieles si se está usando el Motor Paramétrico
+    if (!cabDef) {
+      rowCentersY.forEach((centerY, rIdx) => {
+        // Ventana Calada de Carátula
+        primitives.push({
+          id: `win-cutout-${rIdx}`,
+          layerId: "0_Gabinete",
+          type: "rect",
+          x: winX,
+          y: centerY - winH / 2,
+          width: winW,
+          height: winH,
+          stroke: "#334155",
+          color: "#334155",
+          fill: "none",
+          lineWidth: 1,
+        });
+
+        // Riel DIN 35 en el chasis detrás de la ventana
+        primitives.push({
+          id: `rail-din-${rIdx}`,
+          layerId: "1_Equipos_DIN",
+          type: "rect",
+          x: winX - 10,
+          y: centerY - 17.5,
+          width: winW + 20,
+          height: 35,
+          color: "#64748B",
+          stroke: "#64748B",
+          fill: "none",
+          lineWidth: 0.8,
+        });
+      });
+    }
 
     // Fila 0: Interruptor Principal Q1 si existe
     let rowIdxOffset = 0;
@@ -1104,10 +1244,10 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
       rowIdxOffset = 1;
     }
 
-    // Secciones y Salidas colocadas sobre las filas exactas del DXF
+    // Secciones y Salidas colocadas sobre las filas parametrizadas
     secciones.forEach((secGroup, secIdx) => {
       const targetRowIdx = secIdx + rowIdxOffset;
-      const rowCenterY = rowCentersY[targetRowIdx] || (marginY + 150 + targetRowIdx * 150);
+      const rowCenterY = rowCentersY[targetRowIdx] || (marginY + 150 + targetRowIdx * pasoMm);
 
       let currentCompX = winX + 4;
 
