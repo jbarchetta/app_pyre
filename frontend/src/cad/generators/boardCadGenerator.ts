@@ -152,9 +152,11 @@ function agregarTicksPolos(
 
 export function calcularCapacidadPolosFila(anchoGabineteMm?: number | null): number {
   const width = anchoGabineteMm || 600;
-  const usefulWidth = (width <= 300) ? 200 : ((width <= 450) ? 350 : ((width <= 600) ? 500 : ((width <= 750) ? 650 : 900)));
-  const railW = usefulWidth - 110;
-  return Math.floor(railW / 17.5);
+  if (width <= 300) return 10;
+  if (width <= 450) return 16;
+  if (width <= 600) return 24;
+  if (width <= 750) return 32;
+  return 45;
 }
 
 export function obtenerPolosSalida(salida: Salida): number {
@@ -998,10 +1000,6 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
     const anchoGabinete = params.gabineteAnchoMm || 450;
     const altoGabinete = params.gabineteAltoMm || 600;
 
-    // Identificar el bloque DXF de Gabinete Nollbox correspondiente si existe en symbolRegistry
-    const keyNollbox = `nollbox_${anchoGabinete}x${altoGabinete}`;
-    const dxfGabinete = symbolRegistry.getSymbol(keyNollbox);
-
     // Dimensiones de ventana calada en carátula según nuestro catálogo verificado docs/CATALOGO_NOLLMANN.md
     const winW = (anchoGabinete <= 300) ? 180 : (anchoGabinete <= 450 ? 290 : 440);
     const winH = 45;
@@ -1014,63 +1012,36 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
     const trayX = marginX + (anchoGabinete - anchoUtil) / 2;
     const trayY = marginY + (altoGabinete - altoUtil) / 2;
 
-    // 1. Renderizar el Gabinete DXF si está registrado o dibujar el Marco Exterior 1:1
-    if (dxfGabinete && dxfGabinete.primitives && dxfGabinete.primitives.length > 0) {
-      dxfGabinete.primitives.forEach((p: any, idx) => {
-        if (p.type === "line") {
-          primitives.push({
-            ...p,
-            id: `gab-dxf-line-${idx}`,
-            layerId: "0_Gabinete",
-            start: { x: marginX + p.start.x, y: marginY + p.start.y },
-            end: { x: marginX + p.end.x, y: marginY + p.end.y },
-            color: "#64748B",
-            lineWidth: 1,
-          } as CadPrimitive);
-        } else if (p.type === "circle") {
-          primitives.push({
-            ...p,
-            id: `gab-dxf-circle-${idx}`,
-            layerId: "0_Gabinete",
-            cx: marginX + p.cx,
-            cy: marginY + p.cy,
-            color: "#64748B",
-            lineWidth: 1,
-          } as CadPrimitive);
-        }
-      });
-    } else {
-      // Dibujo paramétrico de Gabinete Nollmann NIS
-      primitives.push({
-        id: "gab-outer-stroke",
-        layerId: "0_Gabinete",
-        type: "rect",
-        x: marginX,
-        y: marginY,
-        width: anchoGabinete,
-        height: altoGabinete,
-        stroke: "#64748B",
-        color: "#64748B",
-        fill: "none",
-        lineWidth: 2,
-        label: `GABINETE NOLLMANN NIS ${anchoGabinete}x${altoGabinete}x225 mm`,
-      });
+    // Dibujo paramétrico de Gabinete Nollmann NIS 1:1
+    primitives.push({
+      id: "gab-outer-stroke",
+      layerId: "0_Gabinete",
+      type: "rect",
+      x: marginX,
+      y: marginY,
+      width: anchoGabinete,
+      height: altoGabinete,
+      stroke: "#64748B",
+      color: "#64748B",
+      fill: "none",
+      lineWidth: 2,
+      label: `GABINETE NOLLMANN NIS ${anchoGabinete}x${altoGabinete}x225 mm`,
+    });
 
-      // Marco Bandeja Útil / Subpanel Interior
-      primitives.push({
-        id: "gab-inner-frame",
-        layerId: "0_Gabinete",
-        type: "rect",
-        x: trayX,
-        y: trayY,
-        width: anchoUtil,
-        height: altoUtil,
-        stroke: "#94A3B8",
-        color: "#94A3B8",
-        fill: "none",
-        lineWidth: 1,
-      });
-    }
+    // Marco Bandeja Útil / Subpanel Interior
+    primitives.push({
+      id: "gab-inner-frame",
+      layerId: "0_Gabinete",
+      type: "rect",
+      x: trayX,
+      y: trayY,
+      width: anchoUtil,
+      height: altoUtil,
+      stroke: "#94A3B8",
+      color: "#94A3B8",
+      fill: "none",
+      lineWidth: 1,
+    });
 
     // Canaletas Laterales Verticales
     const canaletaWidth = 35;
