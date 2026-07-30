@@ -32,7 +32,7 @@ import {
 import { ComponentePicker } from "./ComponentePicker";
 import { ConfirmDialog } from "./ConfirmDialog";
 import { useCerrarAlClickFuera } from "../hooks/useCerrarAlClickFuera";
-import { Badge, Button, Card, CardBody, CardHeader, CardTitle, Field, Input, Modal, Select } from "./common";
+import { Badge } from "./common";
 
 import { ModalLimiteFilaOpciones } from "./ModalLimiteFilaOpciones";
 import { calcularCapacidadPolosFila, obtenerPolosSalida } from "../cad/generators/boardCadGenerator";

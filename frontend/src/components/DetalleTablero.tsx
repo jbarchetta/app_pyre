@@ -6,7 +6,6 @@ import {
   ShieldCheckIcon,
   PencilSquareIcon,
   ExclamationTriangleIcon,
-  XMarkIcon,
   BoltIcon,
   CheckCircleIcon,
   CubeIcon,
@@ -40,8 +39,7 @@ import { EsquemaVisualCanvas } from "./EsquemaVisualCanvas";
 import { ComponentePicker } from "./ComponentePicker";
 import { SeccionBlock } from "./SeccionBlock";
 import { ConfirmDialog } from "./ConfirmDialog";
-import { Badge, Button, Card, CardBody, CardHeader, CardTitle, Field, Input, Modal, Select } from "./common";
-import { useCerrarAlClickFuera } from "../hooks/useCerrarAlClickFuera";
+import { Button, Field, Input, Modal } from "./common";
 import type { ModoVisual, ModoVisualState } from "../utils/vistaStorage";
 
 interface SeccionConSalidas {
@@ -225,8 +223,6 @@ export function DetalleTablero({
   function solicitarCierreModales() {
     cerrarModales();
   }
-
-  const { onMouseDown: onMouseDownModal, onClick: onClickModal } = useCerrarAlClickFuera(solicitarCierreModales);
 
   useEffect(() => {
     const hayModalAbierto = modalIcc || modalInterruptor || modalNuevaFila || filaEnEdicion !== null || modalRenombrarTablero || modalAccesorioManual;
