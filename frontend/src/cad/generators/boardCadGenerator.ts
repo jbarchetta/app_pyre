@@ -317,7 +317,6 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
   const { tieneInterruptorPrincipal, interruptorPrincipal, secciones, modoVisual } = params;
   const primitives: CadPrimitive[] = [];
 
-  const numSecciones = Math.max(1, secciones.length);
   const maxSalidas = Math.max(1, ...secciones.map((s) => s.salidas.length));
 
   // =========================================================================
@@ -989,63 +988,100 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
   }
 
   // =========================================================================
-  // 2. VISTA TOPOGRÁFICA (ELEVACIÓN FÍSICA A ESCALA DE GABINETE EN MM)
+  // 2. VISTA TOPOGRÁFICA (ELEVACIÓN FÍSICA Y MAQUETADO DE GABINETE NOLLMANN NIS 1:1)
   // =========================================================================
   if (modoVisual === "topografico") {
     const marginX = 60;
     const marginY = 60;
     const pasoMm = params.pasoMm === 200 ? 200 : 150;
 
-    const anchoGabinete = params.gabineteAnchoMm || 600;
-    const altoGabinete = params.gabineteAltoMm || Math.max(600, (numSecciones + (tieneInterruptorPrincipal ? 1 : 0)) * pasoMm + 100);
+    const anchoGabinete = params.gabineteAnchoMm || 450;
+    const altoGabinete = params.gabineteAltoMm || 600;
 
-    // Dimensionación de Bandeja Útil / Chasis exacto según Hoja de Datos Nollmann NIS
-    const anchoUtil = (anchoGabinete <= 300) ? 200 : ((anchoGabinete <= 450) ? 350 : ((anchoGabinete <= 600) ? 500 : ((anchoGabinete <= 750) ? 650 : 900)));
-    const altoUtil = Math.max(200, altoGabinete - 100);
+    // Identificar el bloque DXF de Gabinete Nollbox correspondiente si existe en symbolRegistry
+    const keyNollbox = `nollbox_${anchoGabinete}x${altoGabinete}`;
+    const dxfGabinete = symbolRegistry.getSymbol(keyNollbox);
+
+    // Dimensiones de ventana calada en carátula según nuestro catálogo verificado docs/CATALOGO_NOLLMANN.md
+    const winW = (anchoGabinete <= 300) ? 180 : (anchoGabinete <= 450 ? 290 : 440);
+    const winH = 45;
+    const polosPorFilaMax = Math.floor(winW / 18);
+
+    // Chasis útil
+    const anchoUtil = anchoGabinete <= 300 ? 240 : (anchoGabinete <= 450 ? 395 : 540);
+    const altoUtil = Math.max(300, altoGabinete - 80);
 
     const trayX = marginX + (anchoGabinete - anchoUtil) / 2;
     const trayY = marginY + (altoGabinete - altoUtil) / 2;
 
-    // 1. Marco Exterior del Gabinete Nollmann NIS
-    primitives.push({
-      id: "gab-outer-stroke",
-      layerId: "0_Gabinete",
-      type: "rect",
-      x: marginX,
-      y: marginY,
-      width: anchoGabinete,
-      height: altoGabinete,
-      stroke: "#94A3B8",
-      color: "#94A3B8",
-      fill: "none",
-      lineWidth: 2,
-    });
+    // 1. Renderizar el Gabinete DXF si está registrado o dibujar el Marco Exterior 1:1
+    if (dxfGabinete && dxfGabinete.primitives && dxfGabinete.primitives.length > 0) {
+      dxfGabinete.primitives.forEach((p: any, idx) => {
+        if (p.type === "line") {
+          primitives.push({
+            ...p,
+            id: `gab-dxf-line-${idx}`,
+            layerId: "0_Gabinete",
+            start: { x: marginX + p.start.x, y: marginY + p.start.y },
+            end: { x: marginX + p.end.x, y: marginY + p.end.y },
+            color: "#64748B",
+            lineWidth: 1,
+          } as CadPrimitive);
+        } else if (p.type === "circle") {
+          primitives.push({
+            ...p,
+            id: `gab-dxf-circle-${idx}`,
+            layerId: "0_Gabinete",
+            cx: marginX + p.cx,
+            cy: marginY + p.cy,
+            color: "#64748B",
+            lineWidth: 1,
+          } as CadPrimitive);
+        }
+      });
+    } else {
+      // Dibujo paramétrico de Gabinete Nollmann NIS
+      primitives.push({
+        id: "gab-outer-stroke",
+        layerId: "0_Gabinete",
+        type: "rect",
+        x: marginX,
+        y: marginY,
+        width: anchoGabinete,
+        height: altoGabinete,
+        stroke: "#64748B",
+        color: "#64748B",
+        fill: "none",
+        lineWidth: 2,
+        label: `GABINETE NOLLMANN NIS ${anchoGabinete}x${altoGabinete}x225 mm`,
+      });
 
-    // 2. Marco Bandeja Útil (Chasis Nollmann NIS exacto según Hoja de Datos)
-    primitives.push({
-      id: "gab-inner-frame",
-      layerId: "0_Gabinete",
-      type: "rect",
-      x: trayX,
-      y: trayY,
-      width: anchoUtil,
-      height: altoUtil,
-      stroke: "#475569",
-      color: "#475569",
-      fill: "none",
-      lineWidth: 1,
-    });
+      // Marco Bandeja Útil / Subpanel Interior
+      primitives.push({
+        id: "gab-inner-frame",
+        layerId: "0_Gabinete",
+        type: "rect",
+        x: trayX,
+        y: trayY,
+        width: anchoUtil,
+        height: altoUtil,
+        stroke: "#94A3B8",
+        color: "#94A3B8",
+        fill: "none",
+        lineWidth: 1,
+      });
+    }
 
     // Canaletas Laterales Verticales
-    const canaletaWidth = 40;
+    const canaletaWidth = 35;
     primitives.push({
       id: "duct-v-left",
       layerId: "3_Cablecanal",
       type: "rect",
-      x: trayX + 10,
-      y: trayY + 10,
+      x: trayX + 8,
+      y: trayY + 15,
       width: canaletaWidth,
-      height: altoUtil - 20,
+      height: altoUtil - 30,
       color: "#64748B",
       stroke: "#64748B",
       fill: "none",
@@ -1056,67 +1092,62 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
       id: "duct-v-right",
       layerId: "3_Cablecanal",
       type: "rect",
-      x: trayX + anchoUtil - 50,
-      y: trayY + 10,
+      x: trayX + anchoUtil - canaletaWidth - 8,
+      y: trayY + 15,
       width: canaletaWidth,
-      height: altoUtil - 20,
+      height: altoUtil - 30,
       color: "#64748B",
       stroke: "#64748B",
       fill: "none",
       lineWidth: 0.8,
     });
 
-    // Ejes de Riel DIN 35
-    const railX = trayX + 55;
-    const railW = anchoUtil - 110;
+    // Centrado de Ventanas Caladas en Carátula y Rieles DIN 35
+    const winX = marginX + (anchoGabinete - winW) / 2;
+    let currentWinCenterY = marginY + 75;
 
-    let currentRailCenterY = trayY + 60;
-
-    // Riel Principal si existe Q1
+    // Riel DIN Principal si existe Q1 (Fila 0)
     if (tieneInterruptorPrincipal) {
-      const railY = currentRailCenterY - 17.5;
+      // Ventana calada en carátula Q1
+      primitives.push({
+        id: "win-q1-cutout",
+        layerId: "0_Gabinete",
+        type: "rect",
+        x: winX,
+        y: currentWinCenterY - winH / 2,
+        width: winW,
+        height: winH,
+        stroke: "#334155",
+        color: "#334155",
+        fill: "none",
+        lineWidth: 1,
+        label: `VENTANA CARÁTULA Q1 (${polosPorFilaMax} POLOS MAX)`,
+      });
+
+      // Riel DIN 35 de Q1
       primitives.push({
         id: "rail-main-din",
         layerId: "1_Equipos_DIN",
         type: "rect",
-        x: railX,
-        y: railY,
-        width: railW,
+        x: winX - 10,
+        y: currentWinCenterY - 17.5,
+        width: winW + 20,
         height: 35,
         color: "#94A3B8",
         stroke: "#94A3B8",
         fill: "none",
         lineWidth: 0.8,
       });
-      primitives.push({
-        id: "rail-main-din-inner1",
-        layerId: "1_Equipos_DIN",
-        type: "line",
-        start: { x: railX, y: railY + 7.5 },
-        end: { x: railX + railW, y: railY + 7.5 },
-        color: "#CBD5E1",
-        lineWidth: 0.5,
-      });
-      primitives.push({
-        id: "rail-main-din-inner2",
-        layerId: "1_Equipos_DIN",
-        type: "line",
-        start: { x: railX, y: railY + 27.5 },
-        end: { x: railX + railW, y: railY + 27.5 },
-        color: "#CBD5E1",
-        lineWidth: 0.5,
-      });
 
       const q1Width = Math.max(90, (interruptorPrincipal?.polos || 3) * 30);
-      const q1X = railX + (railW - q1Width) / 2;
-
+      const q1X = winX + (winW - q1Width) / 2;
       const es4PolosQ1 = (interruptorPrincipal?.polos === 4) || (interruptorPrincipal?.descripcion || "").toLowerCase().includes("4p") || (interruptorPrincipal?.codigo || "").toLowerCase().includes("s204");
-      const keyQ1 = (es4PolosQ1 ? "abb_topo_temx4" : "abb_topo_temx4");
+      const keyQ1 = es4PolosQ1 ? "abb_topo_cbr_x4f" : "abb_topo_cbr_x3f";
       const dxfBlockQ1 = symbolRegistry.getSymbol(interruptorPrincipal?.codigo || keyQ1) || symbolRegistry.getSymbol(keyQ1);
       const q1H = dxfBlockQ1?.heightMm || 85;
-      const q1Y = currentRailCenterY - q1H / 2;
+      const q1Y = currentWinCenterY - q1H / 2;
 
-      // Máscara opaca de fondo para tapar el riel DIN 35 bajo Q1
+      // Máscara opaca para tapar el riel bajo Q1
       primitives.push({
         id: "q1-bg-mask",
         layerId: "1_Equipos_DIN",
@@ -1174,26 +1205,25 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
         });
       }
 
-      currentRailCenterY += pasoMm;
+      currentWinCenterY += pasoMm;
     }
 
     // Secciones y Salidas en Rieles DIN
     secciones.forEach((secGroup, secIdx) => {
-      const railY = currentRailCenterY - 17.5;
-
-      // Canaleta horizontal centrada exactamente a medio paso entre rieles (Sin relleno sombreado)
+      // Ventana calada en carátula para la sección
       primitives.push({
-        id: `duct-h-${secIdx}`,
-        layerId: "3_Cablecanal",
+        id: `win-sec-${secIdx}-cutout`,
+        layerId: "0_Gabinete",
         type: "rect",
-        x: trayX + 50,
-        y: currentRailCenterY - Math.round(pasoMm / 2) - 15,
-        width: anchoUtil - 100,
-        height: 30,
-        color: "#64748B",
-        stroke: "#64748B",
+        x: winX,
+        y: currentWinCenterY - winH / 2,
+        width: winW,
+        height: winH,
+        stroke: "#334155",
+        color: "#334155",
         fill: "none",
-        lineWidth: 0.8,
+        lineWidth: 1,
+        label: `VENTANA FILA ${secIdx + 1} (${polosPorFilaMax} POLOS MAX)`,
       });
 
       // Riel DIN 35 de Sección
@@ -1201,35 +1231,32 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
         id: `rail-sec-${secIdx}`,
         layerId: "1_Equipos_DIN",
         type: "rect",
-        x: railX,
-        y: railY,
-        width: railW,
+        x: winX - 10,
+        y: currentWinCenterY - 17.5,
+        width: winW + 20,
         height: 35,
         color: "#94A3B8",
         stroke: "#94A3B8",
         fill: "none",
         lineWidth: 0.8,
       });
+
+      // Canaleta horizontal intermedia entre filas
       primitives.push({
-        id: `rail-sec-${secIdx}-inner1`,
-        layerId: "1_Equipos_DIN",
-        type: "line",
-        start: { x: railX, y: railY + 7.5 },
-        end: { x: railX + railW, y: railY + 7.5 },
-        color: "#CBD5E1",
-        lineWidth: 0.5,
-      });
-      primitives.push({
-        id: `rail-sec-${secIdx}-inner2`,
-        layerId: "1_Equipos_DIN",
-        type: "line",
-        start: { x: railX, y: railY + 27.5 },
-        end: { x: railX + railW, y: railY + 27.5 },
-        color: "#CBD5E1",
-        lineWidth: 0.5,
+        id: `duct-h-${secIdx}`,
+        layerId: "3_Cablecanal",
+        type: "rect",
+        x: trayX + canaletaWidth + 12,
+        y: currentWinCenterY - Math.round(pasoMm / 2) - 12,
+        width: anchoUtil - (canaletaWidth * 2) - 24,
+        height: 24,
+        color: "#64748B",
+        stroke: "#64748B",
+        fill: "none",
+        lineWidth: 0.8,
       });
 
-      let currentCompX = railX + 5;
+      let currentCompX = winX + 4;
 
       secGroup.salidas.forEach((salida) => {
         const polos = obtenerPolosSalida(salida);
@@ -1237,35 +1264,26 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
 
         let keySalida = "abb_topo_cbr_x2f";
         if (diff) {
-          if (polos >= 4) {
-            keySalida = "abb_topo_f204";
-          } else {
-            keySalida = "abb_topo_diyx2";
-          }
+          keySalida = (polos >= 4) ? "abb_topo_cbr_x4f" : "abb_topo_cbr_x2f";
         } else {
-          if (polos === 1) {
-            keySalida = "abb_topo_cbr_x1f";
-          } else if (polos === 2) {
-            keySalida = "abb_topo_cbr_x2f";
-          } else if (polos === 3) {
-            keySalida = "abb_topo_cbr_x3f";
-          } else {
-            keySalida = "abb_topo_cbr_x4f";
-          }
+          if (polos === 1) keySalida = "abb_topo_cbr_x1f";
+          else if (polos === 2) keySalida = "abb_topo_cbr_x2f";
+          else if (polos === 3) keySalida = "abb_topo_cbr_x3f";
+          else keySalida = "abb_topo_cbr_x4f";
         }
 
         const dxfBlock = symbolRegistry.getSymbol(keySalida) || (salida.componente_codigo ? symbolRegistry.getSymbol(salida.componente_codigo) : null) || symbolRegistry.getSymbol(`abb_topo_cbr_x${polos}f`) || symbolRegistry.getSymbol("abb_topo_cbr_x1f");
 
         const compW = obtenerAnchoSalidaMm(salida);
         const compH = dxfBlock?.heightMm || 85;
-        const compY = currentRailCenterY - compH / 2;
+        const compY = currentWinCenterY - compH / 2;
 
-        // Evitar sobre-dibujo si sobrepasa la longitud física del riel DIN
-        if (currentCompX + compW > railX + railW - 5) {
+        // Evitar sobre-dibujo si sobrepasa la luz libre de la ventana de carátula
+        if (currentCompX + compW > winX + winW - 2) {
           return;
         }
 
-        // Máscara opaca de fondo para tapar el riel DIN 35 bajo cada equipo
+        // Máscara opaca de fondo para tapar el riel DIN bajo cada equipo
         primitives.push({
           id: `sal-${salida.id}-bg-mask`,
           layerId: "1_Equipos_DIN",
@@ -1322,26 +1340,11 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
           });
         }
 
-        // Elementos en la misma fila quedan yuxtapuestos uno al lado del otro (0 mm de separación)
+        // Elementos en la misma fila quedan yuxtapuestos uno al lado del otro
         currentCompX += compW;
       });
 
-      currentRailCenterY += pasoMm;
-    });
-
-    // Regleta de Bornes al fondo del Chasis
-    const borneraY = marginY + altoGabinete - 60;
-    primitives.push({
-      id: "term-strip-bg",
-      layerId: "5_Borneras",
-      type: "rect",
-      x: railX,
-      y: borneraY,
-      width: railW,
-      height: 30,
-      stroke: "#8B5CF6",
-      fill: "rgba(139, 92, 246, 0.2)",
-      label: "REGLETA DE BORNES DE SALIDA X1",
+      currentWinCenterY += pasoMm;
     });
 
     return {

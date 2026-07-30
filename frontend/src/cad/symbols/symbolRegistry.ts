@@ -156,6 +156,10 @@ export async function preloadDxfSymbols(): Promise<void> {
         { url: "/dxf/abb_unif_4p.dxf", id: "abb_unif_4p", name: "Símbolo Unifilar 4P", w: 30, h: 60 },
         { url: "/dxf/abb_unif_term.dxf", id: "abb_unif_term", name: "Símbolo Unifilar Termomagnético", w: 20, h: 40 },
         { url: "/dxf/abb_unif_born.dxf", id: "abb_unif_born", name: "Símbolo Unifilar Borne", w: 10, h: 20 },
+        { url: "/dxf/NOLLBOX 450x600x225 + kit din.dxf", id: "nollbox_450x600", name: "Gabinete Nollbox 450x600x225", w: 450, h: 600 },
+        { url: "/dxf/NOLLBOX 600x600x225 + kit din.dxf", id: "nollbox_600x600", name: "Gabinete Nollbox 600x600x225", w: 600, h: 600 },
+        { url: "/dxf/NOLLBOX 600x750x225 + kit din.dxf", id: "nollbox_600x750", name: "Gabinete Nollbox 600x750x225", w: 600, h: 750 },
+        { url: "/dxf/NOLLBOX 600X1050x225 + kit din.dxf", id: "nollbox_600x1050", name: "Gabinete Nollbox 600x1050x225", w: 600, h: 1050 },
       ];
 
       for (const item of dxfFiles) {
