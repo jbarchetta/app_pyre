@@ -1,6 +1,7 @@
 import type { Salida, Seccion } from "../../api/client";
 import type { CadDocument, CadLayer, CadPrimitive } from "../core/types";
 import { symbolRegistry } from "../symbols/symbolRegistry";
+import { NOLLBOX_CABINETS } from "../symbols/nollboxSymbols";
 
 export interface InterruptorPrincipalInfo {
   id?: string | null;
@@ -990,135 +991,59 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
   }
 
   // =========================================================================
-  // 2. VISTA TOPOGRÁFICA (ELEVACIÓN FÍSICA Y MAQUETADO DE GABINETE NOLLMANN NIS 1:1)
+  // 2. VISTA TOPOGRÁFICA (ELEVACIÓN FÍSICA A ESCALA 1:1 CON GEOMETRÍA DXF AISLADA NOLLBOX)
   // =========================================================================
   if (modoVisual === "topografico") {
     const marginX = 60;
     const marginY = 60;
-    const pasoMm = params.pasoMm === 200 ? 200 : 150;
 
-    const anchoGabinete = params.gabineteAnchoMm || 450;
+    const anchoGabinete = params.gabineteAnchoMm || 600;
     const altoGabinete = params.gabineteAltoMm || 600;
 
-    // Dimensiones de ventana calada en carátula según nuestro catálogo verificado docs/CATALOGO_NOLLMANN.md
+    // Buscar la definición vectorial aislada del DXF Nollbox
+    const keyNollbox = `nollbox_${anchoGabinete}x${altoGabinete}`;
+    const cabDef = NOLLBOX_CABINETS[keyNollbox] || NOLLBOX_CABINETS["nollbox_600x600"] || NOLLBOX_CABINETS["nollbox_450x600"];
+
     const winW = (anchoGabinete <= 300) ? 180 : (anchoGabinete <= 450 ? 290 : 440);
-    const winH = 45;
-    const polosPorFilaMax = Math.floor(winW / 18);
-
-    // Chasis útil
-    const anchoUtil = anchoGabinete <= 300 ? 240 : (anchoGabinete <= 450 ? 395 : 540);
-    const altoUtil = Math.max(300, altoGabinete - 80);
-
-    const trayX = marginX + (anchoGabinete - anchoUtil) / 2;
-    const trayY = marginY + (altoGabinete - altoUtil) / 2;
-
-    // Dibujo paramétrico de Gabinete Nollmann NIS 1:1
-    primitives.push({
-      id: "gab-outer-stroke",
-      layerId: "0_Gabinete",
-      type: "rect",
-      x: marginX,
-      y: marginY,
-      width: anchoGabinete,
-      height: altoGabinete,
-      stroke: "#64748B",
-      color: "#64748B",
-      fill: "none",
-      lineWidth: 2,
-      label: `GABINETE NOLLMANN NIS ${anchoGabinete}x${altoGabinete}x225 mm`,
-    });
-
-    // Marco Bandeja Útil / Subpanel Interior
-    primitives.push({
-      id: "gab-inner-frame",
-      layerId: "0_Gabinete",
-      type: "rect",
-      x: trayX,
-      y: trayY,
-      width: anchoUtil,
-      height: altoUtil,
-      stroke: "#94A3B8",
-      color: "#94A3B8",
-      fill: "none",
-      lineWidth: 1,
-    });
-
-    // Canaletas Laterales Verticales
-    const canaletaWidth = 35;
-    primitives.push({
-      id: "duct-v-left",
-      layerId: "3_Cablecanal",
-      type: "rect",
-      x: trayX + 8,
-      y: trayY + 15,
-      width: canaletaWidth,
-      height: altoUtil - 30,
-      color: "#64748B",
-      stroke: "#64748B",
-      fill: "none",
-      lineWidth: 0.8,
-    });
-
-    primitives.push({
-      id: "duct-v-right",
-      layerId: "3_Cablecanal",
-      type: "rect",
-      x: trayX + anchoUtil - canaletaWidth - 8,
-      y: trayY + 15,
-      width: canaletaWidth,
-      height: altoUtil - 30,
-      color: "#64748B",
-      stroke: "#64748B",
-      fill: "none",
-      lineWidth: 0.8,
-    });
-
-    // Centrado de Ventanas Caladas en Carátula y Rieles DIN 35
     const winX = marginX + (anchoGabinete - winW) / 2;
-    let currentWinCenterY = marginY + 75;
 
-    // Riel DIN Principal si existe Q1 (Fila 0)
+    // 1. Renderizar la geometría vectorial exacta del DXF aislada del Gabinete (0_Gabinete & 1_Equipos_DIN)
+    if (cabDef && cabDef.primitives) {
+      cabDef.primitives.forEach((p: any, idx) => {
+        if (p.type === "line") {
+          primitives.push({
+            ...p,
+            id: `gab-dxf-line-${idx}`,
+            start: { x: marginX + p.start.x, y: marginY + p.start.y },
+            end: { x: marginX + p.end.x, y: marginY + p.end.y },
+          } as CadPrimitive);
+        } else if (p.type === "circle") {
+          primitives.push({
+            ...p,
+            id: `gab-dxf-circle-${idx}`,
+            cx: marginX + p.cx,
+            cy: marginY + p.cy,
+          } as CadPrimitive);
+        }
+      });
+    }
+
+    // Centros Y exactos de cada fila extraídos directamente de la geometría del DXF Nollbox
+    const rowCentersY = cabDef.rowCentersFromTopMm.map((yTop) => marginY + yTop);
+
+    // Fila 0: Interruptor Principal Q1 si existe
+    let rowIdxOffset = 0;
     if (tieneInterruptorPrincipal) {
-      // Ventana calada en carátula Q1
-      primitives.push({
-        id: "win-q1-cutout",
-        layerId: "0_Gabinete",
-        type: "rect",
-        x: winX,
-        y: currentWinCenterY - winH / 2,
-        width: winW,
-        height: winH,
-        stroke: "#334155",
-        color: "#334155",
-        fill: "none",
-        lineWidth: 1,
-        label: `VENTANA CARÁTULA Q1 (${polosPorFilaMax} POLOS MAX)`,
-      });
-
-      // Riel DIN 35 de Q1
-      primitives.push({
-        id: "rail-main-din",
-        layerId: "1_Equipos_DIN",
-        type: "rect",
-        x: winX - 10,
-        y: currentWinCenterY - 17.5,
-        width: winW + 20,
-        height: 35,
-        color: "#94A3B8",
-        stroke: "#94A3B8",
-        fill: "none",
-        lineWidth: 0.8,
-      });
-
+      const q1CenterY = rowCentersY[0] || (marginY + 150);
       const q1Width = Math.max(90, (interruptorPrincipal?.polos || 3) * 30);
       const q1X = winX + (winW - q1Width) / 2;
       const es4PolosQ1 = (interruptorPrincipal?.polos === 4) || (interruptorPrincipal?.descripcion || "").toLowerCase().includes("4p") || (interruptorPrincipal?.codigo || "").toLowerCase().includes("s204");
       const keyQ1 = es4PolosQ1 ? "abb_topo_cbr_x4f" : "abb_topo_cbr_x3f";
       const dxfBlockQ1 = symbolRegistry.getSymbol(interruptorPrincipal?.codigo || keyQ1) || symbolRegistry.getSymbol(keyQ1);
       const q1H = dxfBlockQ1?.heightMm || 85;
-      const q1Y = currentWinCenterY - q1H / 2;
+      const q1Y = q1CenterY - q1H / 2;
 
-      // Máscara opaca para tapar el riel bajo Q1
+      // Máscara opaca para tapar las líneas de fondo del DXF bajo Q1
       primitives.push({
         id: "q1-bg-mask",
         layerId: "1_Equipos_DIN",
@@ -1176,56 +1101,13 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
         });
       }
 
-      currentWinCenterY += pasoMm;
+      rowIdxOffset = 1;
     }
 
-    // Secciones y Salidas en Rieles DIN
+    // Secciones y Salidas colocadas sobre las filas exactas del DXF
     secciones.forEach((secGroup, secIdx) => {
-      // Ventana calada en carátula para la sección
-      primitives.push({
-        id: `win-sec-${secIdx}-cutout`,
-        layerId: "0_Gabinete",
-        type: "rect",
-        x: winX,
-        y: currentWinCenterY - winH / 2,
-        width: winW,
-        height: winH,
-        stroke: "#334155",
-        color: "#334155",
-        fill: "none",
-        lineWidth: 1,
-        label: `VENTANA FILA ${secIdx + 1} (${polosPorFilaMax} POLOS MAX)`,
-      });
-
-      // Riel DIN 35 de Sección
-      primitives.push({
-        id: `rail-sec-${secIdx}`,
-        layerId: "1_Equipos_DIN",
-        type: "rect",
-        x: winX - 10,
-        y: currentWinCenterY - 17.5,
-        width: winW + 20,
-        height: 35,
-        color: "#94A3B8",
-        stroke: "#94A3B8",
-        fill: "none",
-        lineWidth: 0.8,
-      });
-
-      // Canaleta horizontal intermedia entre filas
-      primitives.push({
-        id: `duct-h-${secIdx}`,
-        layerId: "3_Cablecanal",
-        type: "rect",
-        x: trayX + canaletaWidth + 12,
-        y: currentWinCenterY - Math.round(pasoMm / 2) - 12,
-        width: anchoUtil - (canaletaWidth * 2) - 24,
-        height: 24,
-        color: "#64748B",
-        stroke: "#64748B",
-        fill: "none",
-        lineWidth: 0.8,
-      });
+      const targetRowIdx = secIdx + rowIdxOffset;
+      const rowCenterY = rowCentersY[targetRowIdx] || (marginY + 150 + targetRowIdx * 150);
 
       let currentCompX = winX + 4;
 
@@ -1247,14 +1129,13 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
 
         const compW = obtenerAnchoSalidaMm(salida);
         const compH = dxfBlock?.heightMm || 85;
-        const compY = currentWinCenterY - compH / 2;
+        const compY = rowCenterY - compH / 2;
 
-        // Evitar sobre-dibujo si sobrepasa la luz libre de la ventana de carátula
         if (currentCompX + compW > winX + winW - 2) {
           return;
         }
 
-        // Máscara opaca de fondo para tapar el riel DIN bajo cada equipo
+        // Máscara opaca de fondo para tapar las líneas del DXF bajo cada equipo
         primitives.push({
           id: `sal-${salida.id}-bg-mask`,
           layerId: "1_Equipos_DIN",
@@ -1311,11 +1192,8 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
           });
         }
 
-        // Elementos en la misma fila quedan yuxtapuestos uno al lado del otro
         currentCompX += compW;
       });
-
-      currentWinCenterY += pasoMm;
     });
 
     return {
