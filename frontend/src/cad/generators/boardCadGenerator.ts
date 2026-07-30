@@ -1137,15 +1137,10 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
     const keyNollbox = `nollbox_${anchoGabinete}x${altoGabinete}`;
     const cabDef = USAR_BLOQUES_PEGADOS ? NOLLBOX_CABINETS[keyNollbox] : undefined;
 
-    // Dimensiones de carátula útil y subpanel parametrizados
+    // Ancho útil de fila (donde entra el riel y los equipos). winH/subpanel se
+    // eliminaron junto con la ventana de carátula y el chasis interno.
     const winW = (anchoGabinete <= 300) ? 180 : (anchoGabinete <= 450 ? 290 : (anchoGabinete <= 600 ? 440 : (anchoGabinete <= 750 ? 576 : 810)));
-    const winH = 45;
     const winX = marginX + (anchoGabinete - winW) / 2;
-
-    const anchoUtil = anchoGabinete <= 300 ? 240 : (anchoGabinete <= 450 ? 395 : (anchoGabinete <= 600 ? 540 : 690));
-    const altoUtil = Math.max(300, altoGabinete - 80);
-    const trayX = marginX + (anchoGabinete - anchoUtil) / 2;
-    const trayY = marginY + (altoGabinete - altoUtil) / 2;
 
     // 1. Dibujo de Gabinete y Carátula
     if (cabDef && cabDef.primitives && cabDef.primitives.length > 0) {
@@ -1178,10 +1173,12 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
       // DXF): gabinete exterior → contorno de puerta → junta → marco interno →
       // placa de montaje. Se eliminaron el reborde perimetral, los laberintos
       // IP65 y la puerta duplicada que estaban inventados y saturaban la vista.
+      // El borde del tablero es SOLO dos líneas: el filo de chapa (continua) y
+      // el pliegue que marca el contorno total (gris). Adentro, una única placa
+      // de montaje. Nada más de marcos.
       const marcos: { off: number; r: number; lw: number; color: string }[] = [
-        { off: 0, r: RADIO_MARCO_EXT, lw: 2.0, color: "#64748B" },   // gabinete exterior
-        { off: 1.6, r: RADIO_MARCO_EXT, lw: 1.0, color: "#64748B" }, // contorno de puerta
-        { off: 8.5, r: RADIO_MARCO_INT, lw: 0.8, color: "#475569" }, // marco interno
+        { off: 0, r: RADIO_MARCO_EXT, lw: 2.0, color: "#64748B" },   // filo de chapa
+        { off: 1.6, r: RADIO_MARCO_EXT, lw: 1.0, color: "#94A3B8" }, // pliegue de chapa (gris)
         { off: 35.5, r: RADIO_MARCO_INT, lw: 1.0, color: "#64748B" }, // placa de montaje
       ];
       marcos.forEach((m, i) => {
@@ -1209,103 +1206,9 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
       pushTapaBiselada(primitives, "gab-tapa-sup", tapaXL, tapaXR, marginY, -1, "0_Gabinete");
       pushTapaBiselada(primitives, "gab-tapa-inf", tapaXL, tapaXR, marginY + altoGabinete, 1, "0_Gabinete");
 
-      // G. Bisagras Nollmann (Izquierda)
-      const numHinges = (altoGabinete >= 1050) ? 3 : 2;
-      const hingeYList = (numHinges === 3)
-        ? [marginY + 45, marginY + altoGabinete / 2 - 20, marginY + altoGabinete - 85]
-        : [marginY + 50, marginY + altoGabinete - 90];
-
-      hingeYList.forEach((hy, idx) => {
-        // Cuerpo de Bisagra
-        primitives.push({
-          id: `hinge-body-${idx}`,
-          layerId: "0_Gabinete",
-          type: "rect",
-          x: marginX - 2,
-          y: hy,
-          width: 14,
-          height: 40,
-          rx: 3,
-          stroke: "#475569",
-          color: "#475569",
-          fill: "none",
-          lineWidth: 1.2,
-        });
-        // Perno de bisagra (línea de quiebre central)
-        primitives.push({
-          id: `hinge-pin-${idx}`,
-          layerId: "0_Gabinete",
-          type: "line",
-          start: { x: marginX + 5, y: hy },
-          end: { x: marginX + 5, y: hy + 40 },
-          color: "#64748B",
-          lineWidth: 0.8,
-        });
-      });
-
-      // H. Cierres Nollmann ¼ de Vuelta (Derecha)
-      const numLocks = (altoGabinete < 600) ? 1 : ((altoGabinete >= 1050) ? 3 : 2);
-      const lockYList = (numLocks === 1)
-        ? [marginY + altoGabinete / 2]
-        : ((numLocks === 3)
-            ? [marginY + 80, marginY + altoGabinete / 2, marginY + altoGabinete - 80]
-            : [marginY + Math.round(altoGabinete * 0.28), marginY + Math.round(altoGabinete * 0.72)]);
-
-      lockYList.forEach((ly, idx) => {
-        // Anillo Exterior del Cierre
-        primitives.push({
-          id: `lock-ring-${idx}`,
-          layerId: "0_Gabinete",
-          type: "circle",
-          cx: marginX + anchoGabinete - 22,
-          cy: ly,
-          r: 13,
-          color: "#475569",
-          lineWidth: 1.2,
-        });
-        // Cilindro Interior
-        primitives.push({
-          id: `lock-cyl-${idx}`,
-          layerId: "0_Gabinete",
-          type: "circle",
-          cx: marginX + anchoGabinete - 22,
-          cy: ly,
-          r: 9,
-          color: "#64748B",
-          lineWidth: 1.0,
-        });
-        // Ranura Central ¼ de Vuelta
-        primitives.push({
-          id: `lock-slot-${idx}`,
-          layerId: "0_Gabinete",
-          type: "rect",
-          x: marginX + anchoGabinete - 24.5,
-          y: ly - 7,
-          width: 5,
-          height: 14,
-          rx: 1,
-          stroke: "#334155",
-          color: "#334155",
-          fill: "none",
-          lineWidth: 1,
-        });
-      });
-
-      // I. Subpanel Interior / Chasis
-      primitives.push({
-        id: "gab-inner-frame",
-        layerId: "0_Gabinete",
-        type: "rect",
-        x: trayX,
-        y: trayY,
-        width: anchoUtil,
-        height: altoUtil,
-        rx: 4,
-        stroke: "#94A3B8",
-        color: "#94A3B8",
-        fill: "none",
-        lineWidth: 1,
-      });
+      // Sin bisagras, sin cierres/falleba y sin subpanel extra: no existen en el
+      // DXF aportado y pertenecen a la tapa frontal. Estamos dibujando el
+      // tablero ABIERTO (sin la tapa), así que solo queda el cuerpo del gabinete.
     }
 
     // Centros Y de cada fila (vienen del DXF o calculados paramétricamente con el pasoMm)
@@ -1325,23 +1228,8 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
     // Dibujo Paramétrico de Ventanas y Rieles si se está usando el Motor Paramétrico
     if (!cabDef) {
       rowCentersY.forEach((centerY, rIdx) => {
-        // Ventana Calada de Carátula
-        primitives.push({
-          id: `win-cutout-${rIdx}`,
-          layerId: "0_Gabinete",
-          type: "rect",
-          x: winX,
-          y: centerY - winH / 2,
-          width: winW,
-          height: winH,
-          stroke: "#334155",
-          color: "#334155",
-          fill: "none",
-          lineWidth: 1,
-        });
-
-        // Riel DIN TH35 fiel y paramétrico (perfil + ranuras), detrás de la
-        // ventana y adaptado al ancho de la fila.
+        // Un solo riel DIN TH35 fiel por fila (sin la ventana calada de
+        // carátula, que era el "segundo riel" de 45 mm que no correspondía).
         pushDinRail(primitives, `rail-din-${rIdx}`, winX - 10, centerY - RIEL_ALTO / 2, winW + 20, "1_Equipos_DIN");
       });
     }
