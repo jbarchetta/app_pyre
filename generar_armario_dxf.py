@@ -21,7 +21,7 @@ TAPA_ESPESOR = 3.00     # Grosor tapa pasacables (mm)
 TAPA_BISEL = 2.00       # Cateto bisel a 45° (mm)
 
 # Posicionamiento Rieles DIN 35 desde borde superior nominal (Y=0)
-DIN_FIRST_Y_FROM_TOP = 152.50         # 152.5mm desde el borde superior nominal del gabinete
+DIN_FIRST_Y_FROM_TOP = 153.80         # 153.80mm desde el borde superior nominal (108.80mm desde borde de bandeja)
 DIN_PASO_Y = 150.00                   # Paso constante entre filas (150mm)
 
 # Rieles DIN en gabinete 600x600 (3 filas, ordenadas de abajo hacia arriba en AutoCAD Y)
