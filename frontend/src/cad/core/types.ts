@@ -51,6 +51,7 @@ export interface RectPrimitive extends BasePrimitive {
   fill?: CadColor;
   stroke?: CadColor;
   label?: string;
+  lineDash?: number[];
 }
 
 export interface CirclePrimitive extends BasePrimitive {

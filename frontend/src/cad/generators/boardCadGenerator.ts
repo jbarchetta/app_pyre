@@ -1176,10 +1176,11 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
       // El borde del tablero es SOLO dos líneas: el filo de chapa (continua) y
       // el pliegue que marca el contorno total (gris). Adentro, una única placa
       // de montaje. Nada más de marcos.
-      const marcos: { off: number; r: number; lw: number; color: string }[] = [
-        { off: 0, r: RADIO_MARCO_EXT, lw: 2.0, color: "#64748B" },   // filo de chapa
-        { off: 1.6, r: RADIO_MARCO_EXT, lw: 1.0, color: "#94A3B8" }, // pliegue de chapa (gris)
-        { off: 35.5, r: RADIO_MARCO_INT, lw: 1.0, color: "#64748B" }, // placa de montaje
+      const marcos: { off: number; r: number; lw: number; color: string; dash?: number[] }[] = [
+        { off: 0, r: RADIO_MARCO_EXT, lw: 2.0, color: "#64748B" },              // filo de chapa
+        { off: 1.6, r: RADIO_MARCO_EXT, lw: 1.0, color: "#94A3B8" },            // pliegue de chapa (gris)
+        { off: 8.5, r: RADIO_MARCO_INT, lw: 0.8, color: "#94A3B8", dash: [6, 4] }, // asiento de puerta (punteado)
+        { off: 35.5, r: RADIO_MARCO_INT, lw: 1.0, color: "#64748B" },          // placa de montaje / bandeja
       ];
       marcos.forEach((m, i) => {
         primitives.push({
@@ -1195,6 +1196,7 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
           color: m.color,
           fill: "none",
           lineWidth: m.lw,
+          lineDash: m.dash,
         });
       });
 

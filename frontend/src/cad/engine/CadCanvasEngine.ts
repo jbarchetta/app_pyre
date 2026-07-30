@@ -234,8 +234,12 @@ export class CadCanvasEngine {
         if (strokeColor && strokeColor !== "none" && (prim.lineWidth ?? 0.8) > 0) {
           ctx.strokeStyle = isSelected ? "#0284C7" : (isHovered ? "#DC2626" : strokeColor);
           ctx.lineWidth = Math.max(0.5, (prim.lineWidth || 0.8) * transform.zoom);
+          if (prim.lineDash && prim.lineDash.length > 0) {
+            ctx.setLineDash(prim.lineDash.map((d) => d * transform.zoom));
+          }
           trazarRect();
           ctx.stroke();
+          ctx.setLineDash([]);
         }
 
         if (prim.label && w > 30 && h > 15) {
