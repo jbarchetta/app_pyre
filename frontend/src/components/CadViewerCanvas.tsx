@@ -181,6 +181,75 @@ export function CadViewerCanvas({
         cable: "-",
       };
     }
+
+    if (canvasHoveredId === "q1-busbar-block") {
+      return {
+        tag: "EMBARRADO",
+        titulo: "Bloque Distribuidor / Embarrado General",
+        codigo: "DIST-COBRE-160A",
+        corriente: "160A / 250A",
+        polos: "3P+N / 4P",
+        seccion: "Fila 1 (Cabecera)",
+        cable: "Barras de Cobre",
+        alimentadoPor: "Q1 MAIN",
+      };
+    }
+
+    if (canvasHoveredId.startsWith("canal-")) {
+      if (canvasHoveredId.includes("vert-izq")) {
+        return {
+          tag: "CANALETA VERT-IZQ",
+          titulo: "Cable Canal Vertical Izquierdo (25x40 mm)",
+          codigo: "CANAL-RAN-25X40",
+          corriente: "25 x 40 mm",
+          polos: "Ranurada",
+          seccion: "Canalización Z=0",
+          cable: "Llenado Máx 65%",
+        };
+      }
+      if (canvasHoveredId.includes("vert-der")) {
+        return {
+          tag: "CANALETA VERT-DER",
+          titulo: "Cable Canal Vertical Derecho (25x40 mm)",
+          codigo: "CANAL-RAN-25X40",
+          corriente: "25 x 40 mm",
+          polos: "Ranurada",
+          seccion: "Canalización Z=0",
+          cable: "Llenado Máx 65%",
+        };
+      }
+      if (canvasHoveredId.includes("horiz-bot")) {
+        return {
+          tag: "CANALETA HORIZ-BOT",
+          titulo: "Cable Canal Horizontal Inferior con Ingletes a 45°",
+          codigo: "CANAL-RAN-25X40",
+          corriente: "25 x 40 mm",
+          polos: "Ingletes 45°",
+          seccion: "Canalización Z=0",
+          cable: "Llenado Máx 65%",
+        };
+      }
+      if (canvasHoveredId.includes("corner")) {
+        return {
+          tag: "INGLETE 45°",
+          titulo: "Empalme Biselado a 45° en Esquina de Canaleta Inferior",
+          codigo: "INGLETE-45",
+          corriente: "Bisel 45°",
+          polos: "BOM Real",
+          seccion: "Canalización Z=0",
+          cable: "Empalme Esquina",
+        };
+      }
+      return {
+        tag: "CANALETA HORIZ",
+        titulo: "Cable Canal Horizontal Intermedio (25x40 mm)",
+        codigo: "CANAL-RAN-25X40",
+        corriente: "25 x 40 mm",
+        polos: "Ranurada",
+        seccion: "Canalización Z=0",
+        cable: "Llenado Máx 65%",
+      };
+    }
     for (const sec of secciones) {
       const found = sec.salidas.find((sal) => sal.id === canvasHoveredId);
       if (found) {

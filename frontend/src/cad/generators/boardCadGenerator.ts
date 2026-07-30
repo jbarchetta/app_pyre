@@ -1246,34 +1246,34 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
       // 1. Canaletas Verticales Laterales (Nacen en la 1er canaleta bajo Q1 y bajan hasta la canaleta inferior)
       // Canaleta Izquierda
       primitives.push(
-        { id: "canal-vert-izq-outer", layerId: "0_Gabinete", type: "line", start: { x: xLeftBandeja, y: yFirstChan }, end: { x: xLeftBandeja, y: yBotChan + cw }, color: "#64748B", lineWidth: 0.8 },
-        { id: "canal-vert-izq-inner", layerId: "0_Gabinete", type: "line", start: { x: xLeftBandeja + cw, y: yFirstChan }, end: { x: xLeftBandeja + cw, y: yBotChan }, color: "#64748B", lineWidth: 0.8 },
-        { id: "canal-vert-izq-top", layerId: "0_Gabinete", type: "line", start: { x: xLeftBandeja, y: yFirstChan }, end: { x: xLeftBandeja + cw, y: yFirstChan }, color: "#64748B", lineWidth: 0.8 }
+        { id: "canal-vert-izq-outer", dataId: "canal-vert-izq", layerId: "0_Gabinete", type: "line", start: { x: xLeftBandeja, y: yFirstChan }, end: { x: xLeftBandeja, y: yBotChan + cw }, color: "#64748B", lineWidth: 0.8 },
+        { id: "canal-vert-izq-inner", dataId: "canal-vert-izq", layerId: "0_Gabinete", type: "line", start: { x: xLeftBandeja + cw, y: yFirstChan }, end: { x: xLeftBandeja + cw, y: yBotChan }, color: "#64748B", lineWidth: 0.8 },
+        { id: "canal-vert-izq-top", dataId: "canal-vert-izq", layerId: "0_Gabinete", type: "line", start: { x: xLeftBandeja, y: yFirstChan }, end: { x: xLeftBandeja + cw, y: yFirstChan }, color: "#64748B", lineWidth: 0.8 }
       );
 
       // Canaleta Derecha
       primitives.push(
-        { id: "canal-vert-der-outer", layerId: "0_Gabinete", type: "line", start: { x: xRightBandeja, y: yFirstChan }, end: { x: xRightBandeja, y: yBotChan + cw }, color: "#64748B", lineWidth: 0.8 },
-        { id: "canal-vert-der-inner", layerId: "0_Gabinete", type: "line", start: { x: xRightBandeja - cw, y: yFirstChan }, end: { x: xRightBandeja - cw, y: yBotChan }, color: "#64748B", lineWidth: 0.8 },
-        { id: "canal-vert-der-top", layerId: "0_Gabinete", type: "line", start: { x: xRightBandeja - cw, y: yFirstChan }, end: { x: xRightBandeja, y: yFirstChan }, color: "#64748B", lineWidth: 0.8 }
+        { id: "canal-vert-der-outer", dataId: "canal-vert-der", layerId: "0_Gabinete", type: "line", start: { x: xRightBandeja, y: yFirstChan }, end: { x: xRightBandeja, y: yBotChan + cw }, color: "#64748B", lineWidth: 0.8 },
+        { id: "canal-vert-der-inner", dataId: "canal-vert-der", layerId: "0_Gabinete", type: "line", start: { x: xRightBandeja - cw, y: yFirstChan }, end: { x: xRightBandeja - cw, y: yBotChan }, color: "#64748B", lineWidth: 0.8 },
+        { id: "canal-vert-der-top", dataId: "canal-vert-der", layerId: "0_Gabinete", type: "line", start: { x: xRightBandeja - cw, y: yFirstChan }, end: { x: xRightBandeja, y: yFirstChan }, color: "#64748B", lineWidth: 0.8 }
       );
 
       // 2. Canaletas Horizontales Intermedias (Entre Fila 0 y Fila 1, Fila 1 y Fila 2, etc.)
       for (let i = 0; i < numFilas - 1; i++) {
         const yChan = (rowCentersY[i] + rowCentersY[i + 1]) / 2 - cw / 2;
         primitives.push(
-          { id: `canal-horiz-${i}-top`, layerId: "0_Gabinete", type: "line", start: { x: xLeftBandeja + cw, y: yChan }, end: { x: xRightBandeja - cw, y: yChan }, color: "#64748B", lineWidth: 0.8 },
-          { id: `canal-horiz-${i}-bot`, layerId: "0_Gabinete", type: "line", start: { x: xLeftBandeja + cw, y: yChan + cw }, end: { x: xRightBandeja - cw, y: yChan + cw }, color: "#64748B", lineWidth: 0.8 }
+          { id: `canal-horiz-${i}-top`, dataId: `canal-horiz-${i}`, layerId: "0_Gabinete", type: "line", start: { x: xLeftBandeja + cw, y: yChan }, end: { x: xRightBandeja - cw, y: yChan }, color: "#64748B", lineWidth: 0.8 },
+          { id: `canal-horiz-${i}-bot`, dataId: `canal-horiz-${i}`, layerId: "0_Gabinete", type: "line", start: { x: xLeftBandeja + cw, y: yChan + cw }, end: { x: xRightBandeja - cw, y: yChan + cw }, color: "#64748B", lineWidth: 0.8 }
         );
       }
 
       // 3. Canaleta Horizontal Inferior (Por debajo de la última fila, con empalmes a 45° en esquinas)
       primitives.push(
-        { id: "canal-horiz-bot-outer", layerId: "0_Gabinete", type: "line", start: { x: xLeftBandeja, y: yBotChan + cw }, end: { x: xRightBandeja, y: yBotChan + cw }, color: "#64748B", lineWidth: 0.8 },
-        { id: "canal-horiz-bot-inner", layerId: "0_Gabinete", type: "line", start: { x: xLeftBandeja + cw, y: yBotChan }, end: { x: xRightBandeja - cw, y: yBotChan }, color: "#64748B", lineWidth: 0.8 },
+        { id: "canal-horiz-bot-outer", dataId: "canal-horiz-bot", layerId: "0_Gabinete", type: "line", start: { x: xLeftBandeja, y: yBotChan + cw }, end: { x: xRightBandeja, y: yBotChan + cw }, color: "#64748B", lineWidth: 0.8 },
+        { id: "canal-horiz-bot-inner", dataId: "canal-horiz-bot", layerId: "0_Gabinete", type: "line", start: { x: xLeftBandeja + cw, y: yBotChan }, end: { x: xRightBandeja - cw, y: yBotChan }, color: "#64748B", lineWidth: 0.8 },
         // Cortes biselados a 45° (ingletes) en esquinas inferiores
-        { id: "canal-corner-bot-left-45", layerId: "0_Gabinete", type: "line", start: { x: xLeftBandeja, y: yBotChan + cw }, end: { x: xLeftBandeja + cw, y: yBotChan }, color: "#64748B", lineWidth: 0.8 },
-        { id: "canal-corner-bot-right-45", layerId: "0_Gabinete", type: "line", start: { x: xRightBandeja, y: yBotChan + cw }, end: { x: xRightBandeja - cw, y: yBotChan }, color: "#64748B", lineWidth: 0.8 }
+        { id: "canal-corner-bot-left-45", dataId: "canal-corner-left-45", layerId: "0_Gabinete", type: "line", start: { x: xLeftBandeja, y: yBotChan + cw }, end: { x: xLeftBandeja + cw, y: yBotChan }, color: "#64748B", lineWidth: 0.8 },
+        { id: "canal-corner-bot-right-45", dataId: "canal-corner-right-45", layerId: "0_Gabinete", type: "line", start: { x: xRightBandeja, y: yBotChan + cw }, end: { x: xRightBandeja - cw, y: yBotChan }, color: "#64748B", lineWidth: 0.8 }
       );
 
       // 4. Rieles DIN 35
@@ -1314,6 +1314,7 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
 
       primitives.push({
         id: "q1-busbar-block",
+        dataId: "q1-busbar-block",
         layerId: "0_Gabinete",
         type: "rect",
         x: busbarX,
