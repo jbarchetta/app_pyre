@@ -283,46 +283,49 @@ export function EsquemaVisualCanvas({
     }
 
     if (canvasHoveredId.startsWith("canal-")) {
-      if (canvasHoveredId.includes("vert-izq")) {
+      const [tagKey, largoVal] = canvasHoveredId.split(":");
+      const largoText = largoVal ? `Largo: ${largoVal} mm` : "Ranurada";
+
+      if (tagKey.includes("vert-izq")) {
         return {
           tag: "CANALETA VERT-IZQ",
           titulo: "Cable Canal Vertical Izquierdo (25x40 mm)",
           codigo: "CANAL-RAN-25X40",
           corriente: "25 x 40 mm",
-          polos: "Ranurada",
+          polos: largoText,
           seccion: "Canalización Z=0",
           cable: "Llenado Máx 65%",
         };
       }
-      if (canvasHoveredId.includes("vert-der")) {
+      if (tagKey.includes("vert-der")) {
         return {
           tag: "CANALETA VERT-DER",
           titulo: "Cable Canal Vertical Derecho (25x40 mm)",
           codigo: "CANAL-RAN-25X40",
           corriente: "25 x 40 mm",
-          polos: "Ranurada",
+          polos: largoText,
           seccion: "Canalización Z=0",
           cable: "Llenado Máx 65%",
         };
       }
-      if (canvasHoveredId.includes("horiz-bot")) {
+      if (tagKey.includes("horiz-bot")) {
         return {
           tag: "CANALETA HORIZ-BOT",
           titulo: "Cable Canal Horizontal Inferior con Ingletes a 45°",
           codigo: "CANAL-RAN-25X40",
           corriente: "25 x 40 mm",
-          polos: "Ingletes 45°",
+          polos: largoText,
           seccion: "Canalización Z=0",
           cable: "Llenado Máx 65%",
         };
       }
-      if (canvasHoveredId.includes("corner")) {
+      if (tagKey.includes("corner")) {
         return {
           tag: "INGLETE 45°",
-          titulo: "Corte a 45° en Esquina de Canaleta Inferior",
+          titulo: "Empalme Biselado a 45° en Esquina de Canaleta",
           codigo: "INGLETE-45",
           corriente: "Bisel 45°",
-          polos: "BOM Real",
+          polos: largoText,
           seccion: "Canalización Z=0",
           cable: "Empalme Esquina",
         };
@@ -332,7 +335,7 @@ export function EsquemaVisualCanvas({
         titulo: "Cable Canal Horizontal Intermedio (25x40 mm)",
         codigo: "CANAL-RAN-25X40",
         corriente: "25 x 40 mm",
-        polos: "Ranurada",
+        polos: largoText,
         seccion: "Canalización Z=0",
         cable: "Llenado Máx 65%",
       };
