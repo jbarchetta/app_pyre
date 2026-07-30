@@ -31,7 +31,7 @@ export const NOLLMANN_NIS_GEOMETRY = {
   RADIO_MARCO_INT: 1.60,       // Radio de esquina interior de marco
   TAPA_ESPESOR_MM: 3.00,       // Grosor de tapas superior e inferior
   TAPA_BISEL_MM: 2.00,         // Cateto de bisel a 45°
-  DIN_FIRST_ROW_Y_FROM_TOP: 153.80, // Y del 1er riel DIN desde el borde superior nominal (Y=0), logrando 108.80mm desde borde de bandeja
+  DIN_FIRST_ROW_Y_FROM_TOP: 149.80, // Y del 1er riel DIN desde el borde superior nominal (Y=0), logrando 104.80mm desde borde de bandeja
   DIN_ROW_STEP_Y: 150.00,      // Paso constante entre rieles DIN (150mm)
 };
 
