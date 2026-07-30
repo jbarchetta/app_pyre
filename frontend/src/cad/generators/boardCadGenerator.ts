@@ -22,6 +22,19 @@ export interface BoardCadGeneratorParams {
   pasoMm?: number | null;
 }
 
+export const NOLLMANN_NIS_GEOMETRY = {
+  DELTA_PESTANA_EXT: 19.00,    // Distancia a la pestaña de apoyo de puerta exterior (W - 38)
+  DELTA_ASIENTO_DOBLEZ: 20.60, // Distancia al asiento/pliegue de doblez de chapa (W - 41.20)
+  DELTA_MARCO_INTERNO: 25.90,  // Distancia al marco interior de soporte (W - 51.80)
+  DELTA_BANDEJA_POSTERIOR: 27.50, // Distancia a la bandeja interior / subpanel posterior (W - 55)
+  RADIO_MARCO_EXT: 3.20,       // Radio de esquina exterior de gabinete
+  RADIO_MARCO_INT: 1.60,       // Radio de esquina interior de marco
+  TAPA_ESPESOR_MM: 3.00,       // Grosor de tapas superior e inferior
+  TAPA_BISEL_MM: 2.00,         // Cateto de bisel a 45°
+  DIN_FIRST_ROW_Y_FROM_TOP: 152.50, // Y del 1er riel DIN desde el borde superior nominal (Y=0)
+  DIN_ROW_STEP_Y: 150.00,      // Paso constante entre rieles DIN (150mm)
+};
+
 // =========================================================================
 // REGLAS ESTRUCTURALES DE MAQUETADO UNIFILAR (CAPAS Y PUNTOS FIJOS EN EJE Y)
 // =========================================================================
@@ -1164,23 +1177,20 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
       });
     } else {
       // Motor Paramétrico Pure Software: Dibujo Vectorial 1:1 de Gabinete Nollmann NIS Completo
-      // A. Marco Exterior Gabinete Nollmann.
-      // Radio real medido del NOLLBOX: R3,2 en el marco externo (confirmado por
-      // cota del usuario 2026-07-30), no un valor inventado.
-      const RADIO_MARCO_EXT = 3.2;
-      const RADIO_MARCO_INT = 1.6;
-      // Marcos concéntricos REALES del NOLLBOX (offsets por lado medidos del
-      // DXF): gabinete exterior → contorno de puerta → junta → marco interno →
-      // placa de montaje. Se eliminaron el reborde perimetral, los laberintos
-      // IP65 y la puerta duplicada que estaban inventados y saturaban la vista.
-      // El borde del tablero es SOLO dos líneas: el filo de chapa (continua) y
-      // el pliegue que marca el contorno total (gris). Adentro, una única placa
-      // de montaje. Nada más de marcos.
+      // Marcos concéntricos REALES del NOLLBOX medidos 1:1 del DXF oficial:
+      // Marco 0 (Filo Exterior Chapa Gabinete): 0.00 mm (W x H, R3.2)
+      // Marco 1 (Pliegue Exterior Chapa): 1.60 mm (W-3.2, H-3.2, R3.2)
+      // Marco 2 (Pestaña Exterior Apoyo Puerta): 19.00 mm (W-38, H-38, R3.2)
+      // Marco 3 (Asiento Doblez / Pestaña Punteada): 20.60 mm (W-41.2, H-41.2, R3.2, punteado)
+      // Marco 4 (Marco Interior Soporte Placa): 25.90 mm (W-51.8, H-51.8, R1.6)
+      // Marco 5 (Bandeja Interior / Subpanel Posterior): 27.50 mm (W-55, H-55, R1.6)
       const marcos: { off: number; r: number; lw: number; color: string; dash?: number[] }[] = [
-        { off: 0, r: RADIO_MARCO_EXT, lw: 2.0, color: "#64748B" },              // filo de chapa
-        { off: 1.6, r: RADIO_MARCO_EXT, lw: 1.0, color: "#94A3B8" },            // pliegue de chapa (gris)
-        { off: 8.5, r: RADIO_MARCO_INT, lw: 0.8, color: "#94A3B8", dash: [6, 4] }, // asiento de puerta (punteado)
-        { off: 35.5, r: RADIO_MARCO_INT, lw: 1.0, color: "#64748B" },          // placa de montaje / bandeja
+        { off: 0.00, r: NOLLMANN_NIS_GEOMETRY.RADIO_MARCO_EXT, lw: 2.0, color: "#64748B" },                    // 0. Filo exterior gabinete (W x H)
+        { off: 1.60, r: NOLLMANN_NIS_GEOMETRY.RADIO_MARCO_EXT, lw: 1.0, color: "#94A3B8" },                    // 1. Pliegue exterior chapa
+        { off: NOLLMANN_NIS_GEOMETRY.DELTA_PESTANA_EXT, r: NOLLMANN_NIS_GEOMETRY.RADIO_MARCO_EXT, lw: 1.2, color: "#64748B" },                    // 2. Pestaña de apoyo exterior (W-38, H-38)
+        { off: NOLLMANN_NIS_GEOMETRY.DELTA_ASIENTO_DOBLEZ, r: NOLLMANN_NIS_GEOMETRY.RADIO_MARCO_EXT, lw: 0.8, color: "#94A3B8", dash: [6, 4] },   // 3. Asiento de doblez de chapa (punteado)
+        { off: NOLLMANN_NIS_GEOMETRY.DELTA_MARCO_INTERNO, r: NOLLMANN_NIS_GEOMETRY.RADIO_MARCO_INT, lw: 1.0, color: "#64748B" },                  // 4. Marco interior de soporte
+        { off: NOLLMANN_NIS_GEOMETRY.DELTA_BANDEJA_POSTERIOR, r: NOLLMANN_NIS_GEOMETRY.RADIO_MARCO_INT, lw: 1.8, color: "#475569" },              // 5. Bandeja interior / subpanel posterior (W-55, H-55)
       ];
       marcos.forEach((m, i) => {
         primitives.push({
@@ -1200,20 +1210,14 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
         });
       });
 
-      // Tapas superior e inferior biseladas (placas superpuestas reales):
-      // arrancan a 2,5 mm de cada lado, sobresalen 3 mm, esquinas externas
-      // achaflanadas a 45° (2 mm).
+      // Tapas superior e inferior pasacables de 3mm con biseles a 45° (2mm x 2mm)
       const tapaXL = marginX + TAPA_INSET_LATERAL;
       const tapaXR = marginX + anchoGabinete - TAPA_INSET_LATERAL;
       pushTapaBiselada(primitives, "gab-tapa-sup", tapaXL, tapaXR, marginY, -1, "0_Gabinete");
       pushTapaBiselada(primitives, "gab-tapa-inf", tapaXL, tapaXR, marginY + altoGabinete, 1, "0_Gabinete");
-
-      // Sin bisagras, sin cierres/falleba y sin subpanel extra: no existen en el
-      // DXF aportado y pertenecen a la tapa frontal. Estamos dibujando el
-      // tablero ABIERTO (sin la tapa), así que solo queda el cuerpo del gabinete.
     }
 
-    // Centros Y de cada fila (vienen del DXF o calculados paramétricamente con el pasoMm)
+    // Centros Y de cada fila (vienen del DXF o calculados paramétricamente desde el fondo de bandeja)
     const numTotalFilas = secciones.length + (tieneInterruptorPrincipal ? 1 : 0);
     const rowCentersY: number[] = [];
 
@@ -1221,32 +1225,107 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
       if (cabDef && cabDef.rowCentersFromTopMm && cabDef.rowCentersFromTopMm[i] !== undefined) {
         rowCentersY.push(marginY + cabDef.rowCentersFromTopMm[i]);
       } else {
-        // Cálculo paramétrico de entrecentros según pasoMm (150 mm o 200 mm)
-        const topOffset = (altoGabinete >= 750) ? 150 : 120;
-        rowCentersY.push(marginY + topOffset + i * pasoMm);
+        // Posicionamiento 1:1 desde el borde superior nominal (152.50mm desde top)
+        const yFirstRow = marginY + NOLLMANN_NIS_GEOMETRY.DIN_FIRST_ROW_Y_FROM_TOP;
+        rowCentersY.push(yFirstRow + i * pasoMm);
       }
     }
 
-    // Dibujo Paramétrico de Ventanas y Rieles si se está usando el Motor Paramétrico
+    // Dibujo Paramétrico de Canaletas Ranuradas (Cable Canal Nivel Z=0) y Rieles DIN
     if (!cabDef) {
+      const cw = 25; // Ancho estándar del Cable Canal (25mm)
+      const xLeftBandeja = marginX + NOLLMANN_NIS_GEOMETRY.DELTA_BANDEJA_POSTERIOR;
+      const xRightBandeja = marginX + anchoGabinete - NOLLMANN_NIS_GEOMETRY.DELTA_BANDEJA_POSTERIOR;
+
+      // La primera canaleta horizontal se ubica entre Fila 0 (Q1) y Fila 1
+      const numFilas = rowCentersY.length;
+      const yFirstChan = numFilas > 1 ? (rowCentersY[0] + rowCentersY[1]) / 2 - cw / 2 : rowCentersY[0] + pasoMm / 2 - cw / 2;
+      const lastRowIdx = numFilas - 1;
+      const yBotChan = rowCentersY[lastRowIdx] + pasoMm / 2 - cw / 2;
+
+      // 1. Canaletas Verticales Laterales (Nacen en la 1er canaleta bajo Q1 y bajan hasta la canaleta inferior)
+      // Canaleta Izquierda
+      primitives.push(
+        { id: "canal-vert-izq-outer", layerId: "0_Gabinete", type: "line", start: { x: xLeftBandeja, y: yFirstChan }, end: { x: xLeftBandeja, y: yBotChan + cw }, color: "#64748B", lineWidth: 0.8 },
+        { id: "canal-vert-izq-inner", layerId: "0_Gabinete", type: "line", start: { x: xLeftBandeja + cw, y: yFirstChan }, end: { x: xLeftBandeja + cw, y: yBotChan }, color: "#64748B", lineWidth: 0.8 },
+        { id: "canal-vert-izq-top", layerId: "0_Gabinete", type: "line", start: { x: xLeftBandeja, y: yFirstChan }, end: { x: xLeftBandeja + cw, y: yFirstChan }, color: "#64748B", lineWidth: 0.8 }
+      );
+
+      // Canaleta Derecha
+      primitives.push(
+        { id: "canal-vert-der-outer", layerId: "0_Gabinete", type: "line", start: { x: xRightBandeja, y: yFirstChan }, end: { x: xRightBandeja, y: yBotChan + cw }, color: "#64748B", lineWidth: 0.8 },
+        { id: "canal-vert-der-inner", layerId: "0_Gabinete", type: "line", start: { x: xRightBandeja - cw, y: yFirstChan }, end: { x: xRightBandeja - cw, y: yBotChan }, color: "#64748B", lineWidth: 0.8 },
+        { id: "canal-vert-der-top", layerId: "0_Gabinete", type: "line", start: { x: xRightBandeja - cw, y: yFirstChan }, end: { x: xRightBandeja, y: yFirstChan }, color: "#64748B", lineWidth: 0.8 }
+      );
+
+      // 2. Canaletas Horizontales Intermedias (Entre Fila 0 y Fila 1, Fila 1 y Fila 2, etc.)
+      for (let i = 0; i < numFilas - 1; i++) {
+        const yChan = (rowCentersY[i] + rowCentersY[i + 1]) / 2 - cw / 2;
+        primitives.push(
+          { id: `canal-horiz-${i}-top`, layerId: "0_Gabinete", type: "line", start: { x: xLeftBandeja + cw, y: yChan }, end: { x: xRightBandeja - cw, y: yChan }, color: "#64748B", lineWidth: 0.8 },
+          { id: `canal-horiz-${i}-bot`, layerId: "0_Gabinete", type: "line", start: { x: xLeftBandeja + cw, y: yChan + cw }, end: { x: xRightBandeja - cw, y: yChan + cw }, color: "#64748B", lineWidth: 0.8 }
+        );
+      }
+
+      // 3. Canaleta Horizontal Inferior (Por debajo de la última fila, con empalmes a 45° en esquinas)
+      primitives.push(
+        { id: "canal-horiz-bot-outer", layerId: "0_Gabinete", type: "line", start: { x: xLeftBandeja, y: yBotChan + cw }, end: { x: xRightBandeja, y: yBotChan + cw }, color: "#64748B", lineWidth: 0.8 },
+        { id: "canal-horiz-bot-inner", layerId: "0_Gabinete", type: "line", start: { x: xLeftBandeja + cw, y: yBotChan }, end: { x: xRightBandeja - cw, y: yBotChan }, color: "#64748B", lineWidth: 0.8 },
+        // Cortes biselados a 45° (ingletes) en esquinas inferiores
+        { id: "canal-corner-bot-left-45", layerId: "0_Gabinete", type: "line", start: { x: xLeftBandeja, y: yBotChan + cw }, end: { x: xLeftBandeja + cw, y: yBotChan }, color: "#64748B", lineWidth: 0.8 },
+        { id: "canal-corner-bot-right-45", layerId: "0_Gabinete", type: "line", start: { x: xRightBandeja, y: yBotChan + cw }, end: { x: xRightBandeja - cw, y: yBotChan }, color: "#64748B", lineWidth: 0.8 }
+      );
+
+      // 4. Rieles DIN 35
       rowCentersY.forEach((centerY, rIdx) => {
-        // Un solo riel DIN TH35 fiel por fila (sin la ventana calada de
-        // carátula, que era el "segundo riel" de 45 mm que no correspondía).
-        pushDinRail(primitives, `rail-din-${rIdx}`, winX - 10, centerY - RIEL_ALTO / 2, winW + 20, "1_Equipos_DIN");
+        if (rIdx === 0 && tieneInterruptorPrincipal) {
+          // Rule 8: Riel DIN corto solo para Q1 en el lado izquierdo
+          const es4P = (interruptorPrincipal?.polos === 4) || (interruptorPrincipal?.descripcion || "").toLowerCase().includes("4p") || (interruptorPrincipal?.codigo || "").toLowerCase().includes("s204");
+          const keyQ1 = es4P ? "abb_topo_cbr_x4f" : "abb_topo_cbr_x3f";
+          const symbolQ1 = symbolRegistry.getSymbol(interruptorPrincipal?.codigo || keyQ1) || symbolRegistry.getSymbol(keyQ1);
+          const q1W = symbolQ1 ? symbolQ1.widthMm : ((interruptorPrincipal?.polos || 3) * 17.5);
+          pushDinRail(primitives, `rail-din-${rIdx}`, winX - 10, centerY - RIEL_ALTO / 2, q1W + 20, "1_Equipos_DIN");
+        } else {
+          pushDinRail(primitives, `rail-din-${rIdx}`, winX - 10, centerY - RIEL_ALTO / 2, winW + 20, "1_Equipos_DIN");
+        }
       });
     }
 
-    // Fila 0: Interruptor Principal Q1 si existe
+    // Fila 0: Interruptor Principal Q1 si existe y Bloque Distribuidor a su derecha (Regla 8)
     let rowIdxOffset = 0;
     if (tieneInterruptorPrincipal) {
       const q1CenterY = rowCentersY[0] || (marginY + 150);
-      const q1Width = Math.max(90, (interruptorPrincipal?.polos || 3) * 30);
-      const q1X = winX + (winW - q1Width) / 2;
       const es4PolosQ1 = (interruptorPrincipal?.polos === 4) || (interruptorPrincipal?.descripcion || "").toLowerCase().includes("4p") || (interruptorPrincipal?.codigo || "").toLowerCase().includes("s204");
       const keyQ1 = es4PolosQ1 ? "abb_topo_cbr_x4f" : "abb_topo_cbr_x3f";
       const dxfBlockQ1 = symbolRegistry.getSymbol(interruptorPrincipal?.codigo || keyQ1) || symbolRegistry.getSymbol(keyQ1);
-      const q1H = dxfBlockQ1?.heightMm || 85;
+      
+      // Ancho real del símbolo: si es Multi 9 / DIN modular = 17.5mm por polo (52.5mm para 3P, 70mm para 4P)
+      const q1Width = dxfBlockQ1 ? dxfBlockQ1.widthMm : ((interruptorPrincipal?.polos || 3) * 17.5);
+      const q1H = dxfBlockQ1 ? dxfBlockQ1.heightMm : 85;
       const q1Y = q1CenterY - q1H / 2;
+      // Regla 8: Q1 alineado al extremo izquierdo de la primera fila
+      const q1X = winX;
+
+      // Regla 8: Bloque reservado para Embarrado / Barras Distribuidoras a la derecha de Q1 (sin texto)
+      const busbarX = q1X + q1Width + 25;
+      const busbarW = Math.max(100, winW - q1Width - 25);
+      const busbarH = 65;
+      const busbarY = q1CenterY - busbarH / 2;
+
+      primitives.push({
+        id: "q1-busbar-block",
+        layerId: "0_Gabinete",
+        type: "rect",
+        x: busbarX,
+        y: busbarY,
+        width: busbarW,
+        height: busbarH,
+        stroke: "#059669",
+        color: "#059669",
+        fill: "none",
+        lineWidth: 1.2,
+        lineDash: [6, 4],
+      });
 
       // Máscara opaca para tapar las líneas de fondo del DXF bajo Q1
       primitives.push({

@@ -214,13 +214,21 @@ export class CadCanvasEngine {
         // mitad del lado menor. Si es 0, se dibuja con esquinas rectas.
         const rPx = Math.min(Math.abs(prim.rx ?? 0) * transform.zoom, Math.abs(w) / 2, Math.abs(h) / 2);
         const soportaRound = typeof (ctx as CanvasRenderingContext2D & { roundRect?: unknown }).roundRect === "function";
+        const soportaRect = typeof ctx.rect === "function";
         const trazarRect = () => {
           if (rPx > 0.5 && soportaRound) {
-            ctx.beginPath();
-            ctx.roundRect(s.x, s.y, w, h, rPx);
+            ctx.beginPath?.();
+            ctx.roundRect?.(s.x, s.y, w, h, rPx);
+          } else if (soportaRect) {
+            ctx.beginPath?.();
+            ctx.rect?.(s.x, s.y, w, h);
           } else {
-            ctx.beginPath();
-            ctx.rect(s.x, s.y, w, h);
+            ctx.beginPath?.();
+            ctx.moveTo?.(s.x, s.y);
+            ctx.lineTo?.(s.x + w, s.y);
+            ctx.lineTo?.(s.x + w, s.y + h);
+            ctx.lineTo?.(s.x, s.y + h);
+            ctx.closePath?.();
           }
         };
 

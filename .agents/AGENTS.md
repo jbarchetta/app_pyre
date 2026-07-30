@@ -87,3 +87,26 @@
 5. **Rigor Técnico e Invarianza Física (Zero Silent Adaptation / No Guesswork)**:
    - **Tolerancia Cero a la Asunción Silenciosa**: NUNCA modificar fórmulas de ingeniería, constantes físicas o capacidades de catálogo para "hacerlos encajar" con un dibujo CAD defectuoso, cota mal trazada o dimensión inconsistente.
    - **Verificación contra Tablas de Verdad**: Si una dimensión ingresada (ej. 835x798 mm) o archivo DXF subido difiere de las tablas de ingeniería/catálogos oficiales (ej. planillas de Nollmann de 24 polos/fila), el agente y el sistema DEBEN rechazar la asunción, alertar explícitamente la discrepancia de cotas y consultar hasta tener el dato fuente correcto.
+
+6. **Estructura Tridimensional Z & Layout Coherente de Cable Canal (Canaletas Ranuradas)**:
+   - **Niveles de Profundidad Z**: El Cable Canal (canaleta ranurada) se monta **directamente sobre la bandeja posterior** ($Z = 0\text{ mm}$). Los rieles DIN y los equipos (termomagnéticos, diferenciales) se elevan **$110\text{ mm}$ sobre banquitos regulables** ($Z = 110\text{ mm}$).
+   - **Ausencia de Colisión X, Y, Z**: Las canaletas corren por el fondo sin interferir ni colisionar con las carcasas de los equipos que flotan en el nivel superior ($Z = 110\text{ mm}$).
+   - **Líneas Continuas Sólidas**: Las canaletas se dibujan vectorialmente con **líneas continuas sólidas** (nunca punteadas).
+   - **Prohibición de Canaleta en Borde Superior**: Bajo ningún concepto se dibuja canaleta horizontal en el borde superior por encima de Fila 0 (espacio reservado para acometida y bloque distribuidor).
+   - **Origen de Canaletas Verticales Laterales**: Las canaletas verticales pegadas a los bordes laterales izquierdo y derecho nacen **debajo de Fila 0 / $Q1$** (en la canaleta horizontal situada entre Fila 0 y Fila 1).
+   - **Ingletes a 45° en Esquinas Inferiores**: En la canaleta horizontal inferior (ubicada por debajo de la última fila), los empalmes de las esquinas izquierda y derecha se trazan con **cortes biselados exactos a 45° (ingletes)** para cómputo real de metraje en BOM.
+   - **Invarianza Perimétrica**: Si se selecciona un cable canal de mayor sección, el perímetro exterior extremo del trazado se mantiene fijo e inalterable.
+
+7. **Linkeo de Elementos y Flexibilidad de Ubicación**:
+   - **Disposición en Misma Fila o Filas Distintas**: Los elementos vinculados (ej. Termomagnética seccional y Disyuntor diferencial asociado) pueden posicionarse **en la misma fila adyacentes (lado a lado)** o en filas separadas según el espacio del tablero.
+   - **Cálculo de Cable de Interconexión**:
+     - *Misma Fila (Lado a Lado)*: Salida inferior de termomagnética conecta directamente a la entrada superior del diferencial por puente corto de peinado ($15\text{ cm} - 25\text{ cm}$).
+     - *Filas Distintas*: El cable discurre por la canaleta vertical lateral recorriendo la distancia inter-filas.
+   - **Permisividad Total de Polos Aguas Arriba / Abajo**: Queda **estrictamente eliminada** cualquier restricción o alarma por alimentar salidas bipolares/unipolares desde interruptores o diferenciales tetrapolares ($4\text{P}$) o tripolares ($3\text{P}$) aguas arriba. La distribución monofásica/bifásica derivada de cabeceras polifásicas es un patrón estándar totalmente válido.
+
+8. **Disposición del Interruptor Principal ($Q1$) y Bloque de Embarrado Distribuidor**:
+   - **Ubicación del Interruptor Principal ($Q1$)**: Se posiciona alineado al **extremo izquierdo** de la fila superior (Fila 1), al mismo nivel X que los primeros módulos de las filas inferiores.
+   - **Longitud del Riel DIN de Cabecera**: El riel DIN 35 que soporta a $Q1$ se acorta para tener **únicamente la longitud justa y exacta para alojar la carcasa del interruptor principal**.
+   - **Reserva de Espacio para Barras / Distribuidoras**: El espacio libre generado a la derecha de $Q1$ en la misma fila superior se reserva para el **Bloque de Barras / Distribuidoras de Cobre**, montado al nivel de la bandeja posterior. Se renderiza vectorialmente como un contenedor rectangular delimitado con etiqueta *"Bloque Distribuidor / Embarrado"* hasta definir su diseño vectorial definitivo.
+
+
