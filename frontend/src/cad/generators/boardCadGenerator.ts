@@ -1036,8 +1036,8 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
         }
       });
     } else {
-      // Motor Paramétrico Pure Software: Dibujo Vectorial 1:1 de Gabinete Nollmann NIS
-      // A. Marco Exterior Gabinete
+      // Motor Paramétrico Pure Software: Dibujo Vectorial 1:1 de Gabinete Nollmann NIS Completo
+      // A. Marco Exterior Gabinete Nollmann (Esquinas redondeadas rx = 12)
       primitives.push({
         id: "gab-outer-frame",
         layerId: "0_Gabinete",
@@ -1046,67 +1046,217 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
         y: marginY,
         width: anchoGabinete,
         height: altoGabinete,
+        rx: 12,
         stroke: "#64748B",
         color: "#64748B",
         fill: "none",
-        lineWidth: 2,
-        label: `GABINETE NOLLMANN NIS ${anchoGabinete}x${altoGabinete}x225 mm`,
+        lineWidth: 2.0,
       });
 
-      // B. Bisel Interno Puerta / Burlete
+      // B. Bisel / Rebabado Perimetral de Carcasa
       primitives.push({
-        id: "gab-door-bezel",
+        id: "gab-outer-rim",
         layerId: "0_Gabinete",
         type: "rect",
-        x: marginX + 15,
-        y: marginY + 15,
-        width: anchoGabinete - 30,
-        height: altoGabinete - 30,
+        x: marginX + 3,
+        y: marginY + 3,
+        width: anchoGabinete - 6,
+        height: altoGabinete - 6,
+        rx: 10,
         stroke: "#475569",
         color: "#475569",
         fill: "none",
-        lineWidth: 1,
+        lineWidth: 1.0,
       });
 
-      // C. Bisagras Nollmann (Izquierda)
+      // C. Placa Techo Desmontable Pasa-Cables (Top Gland Flange Plate)
+      const plateW = Math.min(anchoGabinete - 80, 400);
+      const plateX = marginX + (anchoGabinete - plateW) / 2;
       primitives.push({
-        id: "gab-hinge-top",
+        id: "gab-top-plate",
         layerId: "0_Gabinete",
         type: "rect",
-        x: marginX + 4,
-        y: marginY + 40,
-        width: 10,
-        height: 35,
+        x: plateX,
+        y: marginY + 3,
+        width: plateW,
+        height: 14,
+        rx: 4,
+        stroke: "#475569",
+        color: "#475569",
         fill: "none",
-        stroke: "#64748B",
-        lineWidth: 1,
+        lineWidth: 1.0,
       });
-      primitives.push({
-        id: "gab-hinge-bottom",
-        layerId: "0_Gabinete",
-        type: "rect",
-        x: marginX + 4,
-        y: marginY + altoGabinete - 75,
-        width: 10,
-        height: 35,
-        fill: "none",
-        stroke: "#64748B",
-        lineWidth: 1,
+      // Tornillos M6 de Placa Techo (Círculos)
+      [plateX + 12, plateX + plateW - 12].forEach((sx, idx) => {
+        primitives.push({
+          id: `top-screw-${idx}`,
+          layerId: "0_Gabinete",
+          type: "circle",
+          cx: sx,
+          cy: marginY + 10,
+          r: 3.5,
+          color: "#64748B",
+          lineWidth: 0.8,
+        });
       });
 
-      // D. Cierre ¼ de Vuelta Nollmann (Derecha)
+      // D. Placa Tapa Inferior Desmontable Pasa-Cables (Bottom Gland Flange Plate)
       primitives.push({
-        id: "gab-lock-circle",
+        id: "gab-bottom-plate",
         layerId: "0_Gabinete",
-        type: "circle",
-        cx: marginX + anchoGabinete - 20,
-        cy: marginY + altoGabinete / 2,
-        r: 12,
+        type: "rect",
+        x: plateX,
+        y: marginY + altoGabinete - 17,
+        width: plateW,
+        height: 14,
+        rx: 4,
+        stroke: "#475569",
+        color: "#475569",
+        fill: "none",
+        lineWidth: 1.0,
+      });
+      [plateX + 12, plateX + plateW - 12].forEach((sx, idx) => {
+        primitives.push({
+          id: `bot-screw-${idx}`,
+          layerId: "0_Gabinete",
+          type: "circle",
+          cx: sx,
+          cy: marginY + altoGabinete - 10,
+          r: 3.5,
+          color: "#64748B",
+          lineWidth: 0.8,
+        });
+      });
+
+      // E. Perfiles de Doble Laberinto de Estanqueidad IP65 (Rubber Seal Channels)
+      primitives.push({
+        id: "gab-seal-outer",
+        layerId: "0_Gabinete",
+        type: "rect",
+        x: marginX + 14,
+        y: marginY + 20,
+        width: anchoGabinete - 28,
+        height: altoGabinete - 40,
+        rx: 8,
+        stroke: "#334155",
+        color: "#334155",
+        fill: "none",
+        lineWidth: 1.2,
+      });
+      primitives.push({
+        id: "gab-seal-inner",
+        layerId: "0_Gabinete",
+        type: "rect",
+        x: marginX + 20,
+        y: marginY + 26,
+        width: anchoGabinete - 40,
+        height: altoGabinete - 52,
+        rx: 6,
+        stroke: "#475569",
+        color: "#475569",
+        fill: "none",
+        lineWidth: 0.8,
+      });
+
+      // F. Puerta Frontal Principal (Front Door Panel)
+      primitives.push({
+        id: "gab-door-panel",
+        layerId: "0_Gabinete",
+        type: "rect",
+        x: marginX + 8,
+        y: marginY + 14,
+        width: anchoGabinete - 16,
+        height: altoGabinete - 28,
+        rx: 10,
+        stroke: "#64748B",
         color: "#64748B",
-        lineWidth: 1,
+        fill: "none",
+        lineWidth: 1.5,
       });
 
-      // E. Subpanel / Chasis Interior
+      // G. Bisagras Nollmann (Izquierda)
+      const numHinges = (altoGabinete >= 1050) ? 3 : 2;
+      const hingeYList = (numHinges === 3)
+        ? [marginY + 45, marginY + altoGabinete / 2 - 20, marginY + altoGabinete - 85]
+        : [marginY + 50, marginY + altoGabinete - 90];
+
+      hingeYList.forEach((hy, idx) => {
+        // Cuerpo de Bisagra
+        primitives.push({
+          id: `hinge-body-${idx}`,
+          layerId: "0_Gabinete",
+          type: "rect",
+          x: marginX - 2,
+          y: hy,
+          width: 14,
+          height: 40,
+          rx: 3,
+          stroke: "#475569",
+          color: "#475569",
+          fill: "none",
+          lineWidth: 1.2,
+        });
+        // Perno de bisagra (línea de quiebre central)
+        primitives.push({
+          id: `hinge-pin-${idx}`,
+          layerId: "0_Gabinete",
+          type: "line",
+          start: { x: marginX + 5, y: hy },
+          end: { x: marginX + 5, y: hy + 40 },
+          color: "#64748B",
+          lineWidth: 0.8,
+        });
+      });
+
+      // H. Cierres Nollmann ¼ de Vuelta (Derecha)
+      const numLocks = (altoGabinete < 600) ? 1 : ((altoGabinete >= 1050) ? 3 : 2);
+      const lockYList = (numLocks === 1)
+        ? [marginY + altoGabinete / 2]
+        : ((numLocks === 3)
+            ? [marginY + 80, marginY + altoGabinete / 2, marginY + altoGabinete - 80]
+            : [marginY + Math.round(altoGabinete * 0.28), marginY + Math.round(altoGabinete * 0.72)]);
+
+      lockYList.forEach((ly, idx) => {
+        // Anillo Exterior del Cierre
+        primitives.push({
+          id: `lock-ring-${idx}`,
+          layerId: "0_Gabinete",
+          type: "circle",
+          cx: marginX + anchoGabinete - 22,
+          cy: ly,
+          r: 13,
+          color: "#475569",
+          lineWidth: 1.2,
+        });
+        // Cilindro Interior
+        primitives.push({
+          id: `lock-cyl-${idx}`,
+          layerId: "0_Gabinete",
+          type: "circle",
+          cx: marginX + anchoGabinete - 22,
+          cy: ly,
+          r: 9,
+          color: "#64748B",
+          lineWidth: 1.0,
+        });
+        // Ranura Central ¼ de Vuelta
+        primitives.push({
+          id: `lock-slot-${idx}`,
+          layerId: "0_Gabinete",
+          type: "rect",
+          x: marginX + anchoGabinete - 24.5,
+          y: ly - 7,
+          width: 5,
+          height: 14,
+          rx: 1,
+          stroke: "#334155",
+          color: "#334155",
+          fill: "none",
+          lineWidth: 1,
+        });
+      });
+
+      // I. Subpanel Interior / Chasis
       primitives.push({
         id: "gab-inner-frame",
         layerId: "0_Gabinete",
@@ -1115,6 +1265,7 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
         y: trayY,
         width: anchoUtil,
         height: altoUtil,
+        rx: 4,
         stroke: "#94A3B8",
         color: "#94A3B8",
         fill: "none",
