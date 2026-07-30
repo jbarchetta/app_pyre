@@ -4,7 +4,25 @@ Este documento constituye la **fuente de verdad estructurada** para las dimensio
 
 ---
 
-## 🗄️ 1. Tabla de Gabinetes Nollmann NIS (Profundidad 225 mm)
+## 🗄️ 1. Auditoría Empírica de Planos CAD 1:1 (Línea NOLLBOX NIS)
+
+Se ha realizado la verificación directa trazando la geometría vectorial de los 4 archivos DXF oficiales provistos por PYRE:
+
+| Archivo DXF | Ancho Nominal | Alto Nominal | N° Filas | Ancho Ventana Calada ($W_{vent}$) | Alto Ventana ($H_{vent}$) | Paso Vertical ($\Delta Y$) | Polos Útiles / Fila | Capacidad Total |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| `NOLLBOX 450x600x225 + kit din.dxf` | 450 mm | 600 mm | **3 Filas** | **290.00 mm** | 45.00 mm | 150.00 mm | **16 Polos** | **48 Polos** |
+| `NOLLBOX 600x600x225 + kit din.dxf` | 600 mm | 600 mm | **3 Filas** | **440.00 mm** | 45.00 mm | 150.00 mm | **24 Polos** | **72 Polos** |
+| `NOLLBOX 600x750x225 + kit din.dxf` | 600 mm | 750 mm | **4 Filas** | **440.00 mm** | 45.00 mm | 150.00 mm | **24 Polos** | **96 Polos** |
+| `NOLLBOX 600X1050x225 + kit din.dxf` | 600 mm | 1050 mm | **6 Filas** | **440.00 mm** | 45.00 mm | 150.00 mm | **24 Polos** | **144 Polos** |
+
+### 🔍 Conclusiones Inviolables de la Geometría CAD:
+1. **Gabinetes Ancho 450 mm:** Poseen una ventana útil calada en carátula de **$290.00\text{ mm}$**, otorgando **16 polos de 18mm por fila** ($16 \times 18 = 288\text{ mm} \le 290\text{ mm}$).
+2. **Gabinetes Ancho 600 mm:** Poseen una ventana útil calada en carátula de **$440.00\text{ mm}$**, otorgando exactamente **24 polos de 18mm por fila** ($24 \times 18 = 432\text{ mm} \le 440\text{ mm}$).
+3. **Paso Estándar entre Rieles DIN:** Todos los modelos del kit DIN poseen una separación vertical entre centros de ventana de **$\Delta Y = 150.00\text{ mm}$** y una altura de calado de **$H = 45.00\text{ mm}$**.
+
+---
+
+## 🗄️ 2. Tabla de Gabinetes Nollmann NIS (Profundidad 225 mm)
 
 Las cotas y capacidades están verificadas contra las planillas oficiales de catálogo (`nollman_6.pdf`) y planos CAD 1:1.
 
@@ -46,7 +64,7 @@ Las cotas y capacidades están verificadas contra las planillas oficiales de cat
 
 ---
 
-## ⚡ 2. Tabla de Distribuidores de Energía Nöllmed (NRT y BD)
+## ⚡ 3. Tabla de Distribuidores de Energía Nöllmed (NRT y BD)
 
 | Código | Descripción Comercial | Corriente Nom. ($I_n$) | Conexiones Útiles | Montaje | Serie | Precio Neto (USD) |
 | :--- | :--- | :---: | :---: | :---: | :---: | :---: |
@@ -65,18 +83,3 @@ Las cotas y capacidades están verificadas contra las planillas oficiales de cat
 | **BD20430** | Distribuidor BD 4 barras 20x4 mm 30 conexiones 200A | 200 A | 30 | Subpanel / Chasis | BD | $234.30 |
 | **BD20445** | Distribuidor BD 4 barras 20x4 mm 45 conexiones 200A | 200 A | 45 | Subpanel / Chasis | BD | $325.30 |
 | **BD30418** | Distribuidor BD 4 barras 30x4 mm 18 conexiones 250A | 250 A | 18 | Subpanel / Chasis | BD | $218.90 |
-
----
-
-## 📏 3. Reglas Físicas de Calado de Ventana y Escalado
-
-1. **Paso Vertical 150 mm vs 200 mm:**
-   - **Paso 150 mm:** Utiliza la separación vertical estándar $\Delta Y = 150\text{ mm}$ entre rieles DIN. Maximiza la cantidad de filas en gabinetes de baja y media altura.
-   - **Paso 200 mm:** Utiliza la separación vertical holgada $\Delta Y = 200\text{ mm}$ entre rieles DIN. Reduce la cantidad total de filas por gabinete pero habilita el paso de mazos de cables más gruesos.
-
-2. **Polos Útiles por Ventana de Carátula:**
-   - $W = 300\text{ mm} \implies W_{ventana} = 180\text{ mm} \implies \mathbf{10\text{ polos/fila}}$
-   - $W = 450\text{ mm} \implies W_{ventana} = 290\text{ mm} \implies \mathbf{16\text{ polos/fila}}$
-   - $W = 600\text{ mm} \implies W_{ventana} = 432\text{ mm} \implies \mathbf{24\text{ polos/fila}}$
-   - $W = 750\text{ mm} \implies W_{ventana} = 576\text{ mm} \implies \mathbf{32\text{ polos/fila}}$
-   - $W = 1000\text{ mm} \implies W_{ventana} = 810\text{ mm} \implies \mathbf{45\text{ polos/fila}}$
