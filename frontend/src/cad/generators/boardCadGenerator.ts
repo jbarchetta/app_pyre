@@ -1174,91 +1174,40 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
       // cota del usuario 2026-07-30), no un valor inventado.
       const RADIO_MARCO_EXT = 3.2;
       const RADIO_MARCO_INT = 1.6;
-      primitives.push({
-        id: "gab-outer-frame",
-        layerId: "0_Gabinete",
-        type: "rect",
-        x: marginX,
-        y: marginY,
-        width: anchoGabinete,
-        height: altoGabinete,
-        rx: RADIO_MARCO_EXT,
-        stroke: "#64748B",
-        color: "#64748B",
-        fill: "none",
-        lineWidth: 2.0,
+      // Marcos concéntricos REALES del NOLLBOX (offsets por lado medidos del
+      // DXF): gabinete exterior → contorno de puerta → junta → marco interno →
+      // placa de montaje. Se eliminaron el reborde perimetral, los laberintos
+      // IP65 y la puerta duplicada que estaban inventados y saturaban la vista.
+      const marcos: { off: number; r: number; lw: number; color: string }[] = [
+        { off: 0, r: RADIO_MARCO_EXT, lw: 2.0, color: "#64748B" },   // gabinete exterior
+        { off: 1.6, r: RADIO_MARCO_EXT, lw: 1.0, color: "#64748B" }, // contorno de puerta
+        { off: 8.5, r: RADIO_MARCO_INT, lw: 0.8, color: "#475569" }, // marco interno
+        { off: 35.5, r: RADIO_MARCO_INT, lw: 1.0, color: "#64748B" }, // placa de montaje
+      ];
+      marcos.forEach((m, i) => {
+        primitives.push({
+          id: `gab-marco-${i}`,
+          layerId: "0_Gabinete",
+          type: "rect",
+          x: marginX + m.off,
+          y: marginY + m.off,
+          width: anchoGabinete - 2 * m.off,
+          height: altoGabinete - 2 * m.off,
+          rx: m.r,
+          stroke: m.color,
+          color: m.color,
+          fill: "none",
+          lineWidth: m.lw,
+        });
       });
 
-      // B. Bisel / Rebabado Perimetral de Carcasa
-      primitives.push({
-        id: "gab-outer-rim",
-        layerId: "0_Gabinete",
-        type: "rect",
-        x: marginX + 3,
-        y: marginY + 3,
-        width: anchoGabinete - 6,
-        height: altoGabinete - 6,
-        rx: 10,
-        stroke: "#475569",
-        color: "#475569",
-        fill: "none",
-        lineWidth: 1.0,
-      });
-
-      // C/D. Tapas superior e inferior biseladas (placas superpuestas reales
-      // del NOLLBOX). Empiezan a 2,5 mm de cada lado, sobresalen 3 mm y llevan
-      // las dos esquinas externas achaflanadas a 45° (2 mm). Reemplazan a las
-      // placas pasa-cables con tornillos M6 que estaban inventadas.
+      // Tapas superior e inferior biseladas (placas superpuestas reales):
+      // arrancan a 2,5 mm de cada lado, sobresalen 3 mm, esquinas externas
+      // achaflanadas a 45° (2 mm).
       const tapaXL = marginX + TAPA_INSET_LATERAL;
       const tapaXR = marginX + anchoGabinete - TAPA_INSET_LATERAL;
       pushTapaBiselada(primitives, "gab-tapa-sup", tapaXL, tapaXR, marginY, -1, "0_Gabinete");
       pushTapaBiselada(primitives, "gab-tapa-inf", tapaXL, tapaXR, marginY + altoGabinete, 1, "0_Gabinete");
-
-      // E. Perfiles de Doble Laberinto de Estanqueidad IP65 (Rubber Seal Channels)
-      primitives.push({
-        id: "gab-seal-outer",
-        layerId: "0_Gabinete",
-        type: "rect",
-        x: marginX + 14,
-        y: marginY + 20,
-        width: anchoGabinete - 28,
-        height: altoGabinete - 40,
-        rx: 8,
-        stroke: "#334155",
-        color: "#334155",
-        fill: "none",
-        lineWidth: 1.2,
-      });
-      primitives.push({
-        id: "gab-seal-inner",
-        layerId: "0_Gabinete",
-        type: "rect",
-        x: marginX + 20,
-        y: marginY + 26,
-        width: anchoGabinete - 40,
-        height: altoGabinete - 52,
-        rx: 6,
-        stroke: "#475569",
-        color: "#475569",
-        fill: "none",
-        lineWidth: 0.8,
-      });
-
-      // F. Puerta Frontal Principal (Front Door Panel)
-      primitives.push({
-        id: "gab-door-panel",
-        layerId: "0_Gabinete",
-        type: "rect",
-        x: marginX + 8,
-        y: marginY + 14,
-        width: anchoGabinete - 16,
-        height: altoGabinete - 28,
-        rx: RADIO_MARCO_INT,
-        stroke: "#64748B",
-        color: "#64748B",
-        fill: "none",
-        lineWidth: 1.5,
-      });
 
       // G. Bisagras Nollmann (Izquierda)
       const numHinges = (altoGabinete >= 1050) ? 3 : 2;
