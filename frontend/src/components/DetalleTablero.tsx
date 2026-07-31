@@ -146,6 +146,44 @@ export function DetalleTablero({
   const modalAccesorioManualRef = useRef(false);
   const [canaletaCategoria, setCanaletaCategoria] = useState<"todas" | "periferia" | "interiores">("todas");
 
+  const [configFisicaLocal, setConfigFisicaLocal] = useState<{
+    gabinete_manual_ancho_mm?: number | null;
+    gabinete_manual_alto_mm?: number | null;
+    paso_manual?: number | null;
+    cablecanal_sugerido?: string | null;
+  }>({});
+
+  useEffect(() => {
+    setConfigFisicaLocal({
+      gabinete_manual_ancho_mm: tablero.gabinete_manual_ancho_mm ?? null,
+      gabinete_manual_alto_mm: tablero.gabinete_manual_alto_mm ?? null,
+      paso_manual: tablero.paso_manual ?? null,
+      cablecanal_sugerido: tablero.cablecanal_sugerido ?? null,
+    });
+  }, [tablero.gabinete_manual_ancho_mm, tablero.gabinete_manual_alto_mm, tablero.paso_manual, tablero.cablecanal_sugerido]);
+
+  const gabineteAnchoEfectivo =
+    configFisicaLocal.gabinete_manual_ancho_mm !== undefined
+      ? (configFisicaLocal.gabinete_manual_ancho_mm || tablero.gabinete_sugerido_ancho_mm)
+      : (tablero.gabinete_manual_ancho_mm || tablero.gabinete_sugerido_ancho_mm);
+
+  const gabineteAltoEfectivo =
+    configFisicaLocal.gabinete_manual_alto_mm !== undefined
+      ? (configFisicaLocal.gabinete_manual_alto_mm || tablero.gabinete_sugerido_alto_mm)
+      : (tablero.gabinete_manual_alto_mm || tablero.gabinete_sugerido_alto_mm);
+
+  const pasoManualEfectivo =
+    configFisicaLocal.paso_manual !== undefined
+      ? configFisicaLocal.paso_manual
+      : tablero.paso_manual;
+
+  const pasoMmEfectivo = pasoManualEfectivo || tablero.paso_mm || 150;
+
+  const cablecanalEfectivo =
+    configFisicaLocal.cablecanal_sugerido !== undefined
+      ? configFisicaLocal.cablecanal_sugerido
+      : tablero.cablecanal_sugerido;
+
   useEffect(() => {
     modalAccesorioManualRef.current = modalAccesorioManual;
   }, [modalAccesorioManual]);
@@ -285,6 +323,7 @@ export function DetalleTablero({
   }
 
   async function handleCambiarConfigFisica(cambios: any) {
+    setConfigFisicaLocal((prev) => ({ ...prev, ...cambios }));
     try {
       const actualizado = await actualizarTablero(tablero.id, cambios);
       onTableroActualizado(actualizado);
@@ -1014,10 +1053,10 @@ export function DetalleTablero({
             metodoEntrada={tablero.principal_metodo_entrada}
             metodoSalida={tablero.principal_metodo_salida}
             bornerasTipo={tablero.borneras_tipo}
-            cablecanalSugerido={tablero.cablecanal_sugerido}
-            gabineteSugeridoAncho={tablero.gabinete_manual_ancho_mm || tablero.gabinete_sugerido_ancho_mm}
-            gabineteSugeridoAlto={tablero.gabinete_manual_alto_mm || tablero.gabinete_sugerido_alto_mm}
-            pasoMm={tablero.paso_mm}
+            cablecanalSugerido={cablecanalEfectivo}
+            gabineteSugeridoAncho={gabineteAnchoEfectivo}
+            gabineteSugeridoAlto={gabineteAltoEfectivo}
+            pasoMm={pasoMmEfectivo}
             tableroId={tablero.id}
             panelLateralColapsado={panelLateralColapsado}
             onTogglePanelLateral={() => setPanelLateralColapsado(false)}
@@ -1155,7 +1194,7 @@ export function DetalleTablero({
                     <label htmlFor="dim-gabinete" className="text-gray-500 font-medium">TAMAÑO GABINETE:</label>
                     <select
                       id="dim-gabinete"
-                      value={tablero.gabinete_manual_ancho_mm && tablero.gabinete_manual_alto_mm ? `${tablero.gabinete_manual_ancho_mm}x${tablero.gabinete_manual_alto_mm}` : "auto"}
+                      value={configFisicaLocal.gabinete_manual_ancho_mm && configFisicaLocal.gabinete_manual_alto_mm ? `${configFisicaLocal.gabinete_manual_ancho_mm}x${configFisicaLocal.gabinete_manual_alto_mm}` : "auto"}
                       onChange={(e) => {
                         const val = e.target.value;
                         if (val === "auto") {
@@ -1191,7 +1230,7 @@ export function DetalleTablero({
                     <label htmlFor="dim-paso" className="text-gray-500 font-medium">PASO INTER-FILAS:</label>
                     <select
                       id="dim-paso"
-                      value={tablero.paso_manual === null || tablero.paso_manual === undefined ? "auto" : tablero.paso_manual.toString()}
+                      value={configFisicaLocal.paso_manual === null || configFisicaLocal.paso_manual === undefined ? "auto" : configFisicaLocal.paso_manual.toString()}
                       onChange={(e) => {
                         const val = e.target.value;
                         handleCambiarConfigFisica({
@@ -1211,7 +1250,7 @@ export function DetalleTablero({
                     <label htmlFor="dim-cablecanal" className="text-gray-500 font-medium">CABLE CANAL:</label>
                     <select
                       id="dim-cablecanal"
-                      value={tablero.cablecanal_sugerido || "auto"}
+                      value={configFisicaLocal.cablecanal_sugerido || "auto"}
                       onChange={(e) => {
                         const val = e.target.value;
                         handleCambiarConfigFisica({

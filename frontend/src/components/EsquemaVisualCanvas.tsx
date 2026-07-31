@@ -727,6 +727,7 @@ export function EsquemaVisualCanvas({
       ) : (
         /* VISOR CAD DXF PARA TOPOGRÁFICO Y UNIFILAR CON MANDOS DE DISEÑO COMPLETOS */
         <CadViewerCanvas
+          key={`${gabineteSugeridoAncho}-${gabineteSugeridoAlto}-${pasoMm}-${cablecanalSugerido}`}
           tieneInterruptorPrincipal={tieneInterruptorPrincipal}
           interruptorPrincipal={interruptorPrincipal}
           secciones={secciones}
