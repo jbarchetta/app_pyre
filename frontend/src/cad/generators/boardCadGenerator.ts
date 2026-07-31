@@ -20,6 +20,7 @@ export interface BoardCadGeneratorParams {
   gabineteAnchoMm?: number | null;
   gabineteAltoMm?: number | null;
   pasoMm?: number | null;
+  cablecanalSugerido?: string | null;
 }
 
 export const NOLLMANN_NIS_GEOMETRY = {
@@ -1233,7 +1234,19 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
 
     // Dibujo Paramétrico de Canaletas Ranuradas (Cable Canal Nivel Z=0) y Rieles DIN
     if (!cabDef) {
-      const cw = 25; // Ancho estándar del Cable Canal (25mm)
+      let cw = 25;
+      let canalMeasureLabel = "25x40";
+      if (params.cablecanalSugerido) {
+        const parts = params.cablecanalSugerido.split("x");
+        if (parts.length === 2) {
+          const parsedW = parseInt(parts[0]);
+          if (!isNaN(parsedW) && parsedW > 0) {
+            cw = parsedW;
+            canalMeasureLabel = params.cablecanalSugerido;
+          }
+        }
+      }
+
       const xLeftBandeja = marginX + NOLLMANN_NIS_GEOMETRY.DELTA_BANDEJA_POSTERIOR;
       const xRightBandeja = marginX + anchoGabinete - NOLLMANN_NIS_GEOMETRY.DELTA_BANDEJA_POSTERIOR;
       const wBandeja = xRightBandeja - xLeftBandeja;
@@ -1252,46 +1265,46 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
       // 1. Canaletas Verticales Laterales (con hit-boxes de cuerpo completo y largo real)
       // Canaleta Izquierda
       primitives.push(
-        { id: "canal-vert-izq-hit", dataId: `canal-vert-izq:${hVert}`, layerId: "0_Gabinete", type: "rect", x: xLeftBandeja, y: yFirstChan, width: cw, height: (yBotChan + cw) - yFirstChan, fill: "none", stroke: "none" },
-        { id: "canal-vert-izq-outer", dataId: `canal-vert-izq:${hVert}`, layerId: "0_Gabinete", type: "line", start: { x: xLeftBandeja, y: yFirstChan }, end: { x: xLeftBandeja, y: yBotChan + cw }, color: "#64748B", lineWidth: 0.8 },
-        { id: "canal-vert-izq-inner", dataId: `canal-vert-izq:${hVert}`, layerId: "0_Gabinete", type: "line", start: { x: xLeftBandeja + cw, y: yFirstChan + cw }, end: { x: xLeftBandeja + cw, y: yBotChan }, color: "#64748B", lineWidth: 0.8 }
+        { id: "canal-vert-izq-hit", dataId: `canal-vert-izq:${hVert}:${canalMeasureLabel}`, layerId: "0_Gabinete", type: "rect", x: xLeftBandeja, y: yFirstChan, width: cw, height: (yBotChan + cw) - yFirstChan, fill: "none", stroke: "none" },
+        { id: "canal-vert-izq-outer", dataId: `canal-vert-izq:${hVert}:${canalMeasureLabel}`, layerId: "0_Gabinete", type: "line", start: { x: xLeftBandeja, y: yFirstChan }, end: { x: xLeftBandeja, y: yBotChan + cw }, color: "#64748B", lineWidth: 0.8 },
+        { id: "canal-vert-izq-inner", dataId: `canal-vert-izq:${hVert}:${canalMeasureLabel}`, layerId: "0_Gabinete", type: "line", start: { x: xLeftBandeja + cw, y: yFirstChan + cw }, end: { x: xLeftBandeja + cw, y: yBotChan }, color: "#64748B", lineWidth: 0.8 }
       );
 
       // Canaleta Derecha
       primitives.push(
-        { id: "canal-vert-der-hit", dataId: `canal-vert-der:${hVert}`, layerId: "0_Gabinete", type: "rect", x: xRightBandeja - cw, y: yFirstChan, width: cw, height: (yBotChan + cw) - yFirstChan, fill: "none", stroke: "none" },
-        { id: "canal-vert-der-outer", dataId: `canal-vert-der:${hVert}`, layerId: "0_Gabinete", type: "line", start: { x: xRightBandeja, y: yFirstChan }, end: { x: xRightBandeja, y: yBotChan + cw }, color: "#64748B", lineWidth: 0.8 },
-        { id: "canal-vert-der-inner", dataId: `canal-vert-der:${hVert}`, layerId: "0_Gabinete", type: "line", start: { x: xRightBandeja - cw, y: yFirstChan + cw }, end: { x: xRightBandeja - cw, y: yBotChan }, color: "#64748B", lineWidth: 0.8 }
+        { id: "canal-vert-der-hit", dataId: `canal-vert-der:${hVert}:${canalMeasureLabel}`, layerId: "0_Gabinete", type: "rect", x: xRightBandeja - cw, y: yFirstChan, width: cw, height: (yBotChan + cw) - yFirstChan, fill: "none", stroke: "none" },
+        { id: "canal-vert-der-outer", dataId: `canal-vert-der:${hVert}:${canalMeasureLabel}`, layerId: "0_Gabinete", type: "line", start: { x: xRightBandeja, y: yFirstChan }, end: { x: xRightBandeja, y: yBotChan + cw }, color: "#64748B", lineWidth: 0.8 },
+        { id: "canal-vert-der-inner", dataId: `canal-vert-der:${hVert}:${canalMeasureLabel}`, layerId: "0_Gabinete", type: "line", start: { x: xRightBandeja - cw, y: yFirstChan + cw }, end: { x: xRightBandeja - cw, y: yBotChan }, color: "#64748B", lineWidth: 0.8 }
       );
 
       // 2. Canaleta Horizontal Superior Debajo de Q1 (Con empalmes biselados a 45° en esquinas superiores)
       primitives.push(
-        { id: "canal-horiz-top-hit", dataId: `canal-horiz-0:${wHorizTotal}`, layerId: "0_Gabinete", type: "rect", x: xLeftBandeja, y: yFirstChan, width: wBandeja, height: cw, fill: "none", stroke: "none" },
-        { id: "canal-horiz-top-outer", dataId: `canal-horiz-0:${wHorizTotal}`, layerId: "0_Gabinete", type: "line", start: { x: xLeftBandeja, y: yFirstChan }, end: { x: xRightBandeja, y: yFirstChan }, color: "#64748B", lineWidth: 0.8 },
-        { id: "canal-horiz-top-inner", dataId: `canal-horiz-0:${wHorizTotal}`, layerId: "0_Gabinete", type: "line", start: { x: xLeftBandeja + cw, y: yFirstChan + cw }, end: { x: xRightBandeja - cw, y: yFirstChan + cw }, color: "#64748B", lineWidth: 0.8 },
+        { id: "canal-horiz-top-hit", dataId: `canal-horiz-0:${wHorizTotal}:${canalMeasureLabel}`, layerId: "0_Gabinete", type: "rect", x: xLeftBandeja, y: yFirstChan, width: wBandeja, height: cw, fill: "none", stroke: "none" },
+        { id: "canal-horiz-top-outer", dataId: `canal-horiz-0:${wHorizTotal}:${canalMeasureLabel}`, layerId: "0_Gabinete", type: "line", start: { x: xLeftBandeja, y: yFirstChan }, end: { x: xRightBandeja, y: yFirstChan }, color: "#64748B", lineWidth: 0.8 },
+        { id: "canal-horiz-top-inner", dataId: `canal-horiz-0:${wHorizTotal}:${canalMeasureLabel}`, layerId: "0_Gabinete", type: "line", start: { x: xLeftBandeja + cw, y: yFirstChan + cw }, end: { x: xRightBandeja - cw, y: yFirstChan + cw }, color: "#64748B", lineWidth: 0.8 },
         // Cortes biselados a 45° (ingletes) en esquinas superiores bajo Q1
-        { id: "canal-corner-top-left-45", dataId: `canal-corner-top-left-45:${lInglete}`, layerId: "0_Gabinete", type: "line", start: { x: xLeftBandeja, y: yFirstChan }, end: { x: xLeftBandeja + cw, y: yFirstChan + cw }, color: "#64748B", lineWidth: 0.8 },
-        { id: "canal-corner-top-right-45", dataId: `canal-corner-top-right-45:${lInglete}`, layerId: "0_Gabinete", type: "line", start: { x: xRightBandeja, y: yFirstChan }, end: { x: xRightBandeja - cw, y: yFirstChan + cw }, color: "#64748B", lineWidth: 0.8 }
+        { id: "canal-corner-top-left-45", dataId: `canal-corner-top-left-45:${lInglete}:${canalMeasureLabel}`, layerId: "0_Gabinete", type: "line", start: { x: xLeftBandeja, y: yFirstChan }, end: { x: xLeftBandeja + cw, y: yFirstChan + cw }, color: "#64748B", lineWidth: 0.8 },
+        { id: "canal-corner-top-right-45", dataId: `canal-corner-top-right-45:${lInglete}:${canalMeasureLabel}`, layerId: "0_Gabinete", type: "line", start: { x: xRightBandeja, y: yFirstChan }, end: { x: xRightBandeja - cw, y: yFirstChan + cw }, color: "#64748B", lineWidth: 0.8 }
       );
 
       // 3. Canaletas Horizontales Intermedias (Entre Fila 1 y Fila 2, etc.)
       for (let i = 1; i < numFilas - 1; i++) {
         const yChan = (rowCentersY[i] + rowCentersY[i + 1]) / 2 - cw / 2;
         primitives.push(
-          { id: `canal-horiz-${i}-hit`, dataId: `canal-horiz-${i}:${wHorizInter}`, layerId: "0_Gabinete", type: "rect", x: xLeftBandeja + cw, y: yChan, width: wBandeja - 2 * cw, height: cw, fill: "none", stroke: "none" },
-          { id: `canal-horiz-${i}-top`, dataId: `canal-horiz-${i}:${wHorizInter}`, layerId: "0_Gabinete", type: "line", start: { x: xLeftBandeja + cw, y: yChan }, end: { x: xRightBandeja - cw, y: yChan }, color: "#64748B", lineWidth: 0.8 },
-          { id: `canal-horiz-${i}-bot`, dataId: `canal-horiz-${i}:${wHorizInter}`, layerId: "0_Gabinete", type: "line", start: { x: xLeftBandeja + cw, y: yChan + cw }, end: { x: xRightBandeja - cw, y: yChan + cw }, color: "#64748B", lineWidth: 0.8 }
+          { id: `canal-horiz-${i}-hit`, dataId: `canal-horiz-${i}:${wHorizInter}:${canalMeasureLabel}`, layerId: "0_Gabinete", type: "rect", x: xLeftBandeja + cw, y: yChan, width: wBandeja - 2 * cw, height: cw, fill: "none", stroke: "none" },
+          { id: `canal-horiz-${i}-top`, dataId: `canal-horiz-${i}:${wHorizInter}:${canalMeasureLabel}`, layerId: "0_Gabinete", type: "line", start: { x: xLeftBandeja + cw, y: yChan }, end: { x: xRightBandeja - cw, y: yChan }, color: "#64748B", lineWidth: 0.8 },
+          { id: `canal-horiz-${i}-bot`, dataId: `canal-horiz-${i}:${wHorizInter}:${canalMeasureLabel}`, layerId: "0_Gabinete", type: "line", start: { x: xLeftBandeja + cw, y: yChan + cw }, end: { x: xRightBandeja - cw, y: yChan + cw }, color: "#64748B", lineWidth: 0.8 }
         );
       }
 
       // 4. Canaleta Horizontal Inferior (Por debajo de la última fila, con empalmes a 45° en esquinas inferiores)
       primitives.push(
-        { id: "canal-horiz-bot-hit", dataId: `canal-horiz-bot:${wHorizTotal}`, layerId: "0_Gabinete", type: "rect", x: xLeftBandeja, y: yBotChan, width: wBandeja, height: cw, fill: "none", stroke: "none" },
-        { id: "canal-horiz-bot-outer", dataId: `canal-horiz-bot:${wHorizTotal}`, layerId: "0_Gabinete", type: "line", start: { x: xLeftBandeja, y: yBotChan + cw }, end: { x: xRightBandeja, y: yBotChan + cw }, color: "#64748B", lineWidth: 0.8 },
-        { id: "canal-horiz-bot-inner", dataId: `canal-horiz-bot:${wHorizTotal}`, layerId: "0_Gabinete", type: "line", start: { x: xLeftBandeja + cw, y: yBotChan }, end: { x: xRightBandeja - cw, y: yBotChan }, color: "#64748B", lineWidth: 0.8 },
+        { id: "canal-horiz-bot-hit", dataId: `canal-horiz-bot:${wHorizTotal}:${canalMeasureLabel}`, layerId: "0_Gabinete", type: "rect", x: xLeftBandeja, y: yBotChan, width: wBandeja, height: cw, fill: "none", stroke: "none" },
+        { id: "canal-horiz-bot-outer", dataId: `canal-horiz-bot:${wHorizTotal}:${canalMeasureLabel}`, layerId: "0_Gabinete", type: "line", start: { x: xLeftBandeja, y: yBotChan + cw }, end: { x: xRightBandeja, y: yBotChan + cw }, color: "#64748B", lineWidth: 0.8 },
+        { id: "canal-horiz-bot-inner", dataId: `canal-horiz-bot:${wHorizTotal}:${canalMeasureLabel}`, layerId: "0_Gabinete", type: "line", start: { x: xLeftBandeja + cw, y: yBotChan }, end: { x: xRightBandeja - cw, y: yBotChan }, color: "#64748B", lineWidth: 0.8 },
         // Cortes biselados a 45° (ingletes) en esquinas inferiores
-        { id: "canal-corner-bot-left-45", dataId: `canal-corner-left-45:${lInglete}`, layerId: "0_Gabinete", type: "line", start: { x: xLeftBandeja, y: yBotChan + cw }, end: { x: xLeftBandeja + cw, y: yBotChan }, color: "#64748B", lineWidth: 0.8 },
-        { id: "canal-corner-bot-right-45", dataId: `canal-corner-right-45:${lInglete}`, layerId: "0_Gabinete", type: "line", start: { x: xRightBandeja, y: yBotChan + cw }, end: { x: xRightBandeja - cw, y: yBotChan }, color: "#64748B", lineWidth: 0.8 }
+        { id: "canal-corner-bot-left-45", dataId: `canal-corner-left-45:${lInglete}:${canalMeasureLabel}`, layerId: "0_Gabinete", type: "line", start: { x: xLeftBandeja, y: yBotChan + cw }, end: { x: xLeftBandeja + cw, y: yBotChan }, color: "#64748B", lineWidth: 0.8 },
+        { id: "canal-corner-bot-right-45", dataId: `canal-corner-right-45:${lInglete}:${canalMeasureLabel}`, layerId: "0_Gabinete", type: "line", start: { x: xRightBandeja, y: yBotChan + cw }, end: { x: xRightBandeja - cw, y: yBotChan }, color: "#64748B", lineWidth: 0.8 }
       );
 
       // 4. Rieles DIN 35

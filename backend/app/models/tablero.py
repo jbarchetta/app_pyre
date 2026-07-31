@@ -52,6 +52,8 @@ class Tablero(Base):
     cablecanal_sugerido: Mapped[str | None] = mapped_column(String(50), nullable=True)
     paso_mm: Mapped[int] = mapped_column(Integer, nullable=False, default=150)
     paso_manual: Mapped[int | None] = mapped_column(Integer, nullable=True, default=None)
+    gabinete_manual_ancho_mm: Mapped[int | None] = mapped_column(Integer, nullable=True, default=None)
+    gabinete_manual_alto_mm: Mapped[int | None] = mapped_column(Integer, nullable=True, default=None)
     creado_en: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
 
 

@@ -73,6 +73,7 @@ export function EsquemaVisualCanvas({
   gabineteSugeridoAncho,
   gabineteSugeridoAlto,
   pasoMm,
+  cablecanalSugerido,
   modoVisual: modoVisualProp = "bloques",
   panelLateralColapsado,
   onTogglePanelLateral,
@@ -286,16 +287,17 @@ export function EsquemaVisualCanvas({
     }
 
     if (canvasHoveredId.startsWith("canal-")) {
-      const [tagKey, largoVal] = canvasHoveredId.split(":");
+      const [tagKey, largoVal, measureLabel] = canvasHoveredId.split(":");
       const largoText = largoVal ? `${largoVal} mm` : "-";
+      const corrienteText = measureLabel ? `${measureLabel.replace('x', ' x ')} mm` : "25 x 40 mm";
 
       if (tagKey.includes("vert-izq")) {
         return {
           tag: "CANALETA VERT-IZQ",
           titulo: "Cable Canal Vertical Izquierdo",
-          codigo: "CANAL-RAN-25X40",
+          codigo: `CANAL-RAN-${measureLabel ? measureLabel.toUpperCase() : "25X40"}`,
           labelCorriente: "Medida:",
-          corriente: "25 x 40 mm",
+          corriente: corrienteText,
           labelPolos: "Largo:",
           polos: largoText,
           seccion: "Canalización Z=0",
@@ -307,9 +309,9 @@ export function EsquemaVisualCanvas({
         return {
           tag: "CANALETA VERT-DER",
           titulo: "Cable Canal Vertical Derecho",
-          codigo: "CANAL-RAN-25X40",
+          codigo: `CANAL-RAN-${measureLabel ? measureLabel.toUpperCase() : "25X40"}`,
           labelCorriente: "Medida:",
-          corriente: "25 x 40 mm",
+          corriente: corrienteText,
           labelPolos: "Largo:",
           polos: largoText,
           seccion: "Canalización Z=0",
@@ -321,9 +323,9 @@ export function EsquemaVisualCanvas({
         return {
           tag: "CANALETA HORIZ-BOT",
           titulo: "Cable Canal Horizontal Inferior",
-          codigo: "CANAL-RAN-25X40",
+          codigo: `CANAL-RAN-${measureLabel ? measureLabel.toUpperCase() : "25X40"}`,
           labelCorriente: "Medida:",
-          corriente: "25 x 40 mm",
+          corriente: corrienteText,
           labelPolos: "Largo:",
           polos: largoText,
           seccion: "Canalización Z=0",
@@ -732,6 +734,7 @@ export function EsquemaVisualCanvas({
           gabineteSugeridoAncho={gabineteSugeridoAncho}
           gabineteSugeridoAlto={gabineteSugeridoAlto}
           pasoMm={pasoMm}
+          cablecanalSugerido={cablecanalSugerido}
           modoVisual={modoVisualState}
           onModoVisualChange={setModoVisualState}
         />

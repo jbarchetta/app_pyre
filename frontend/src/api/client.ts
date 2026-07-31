@@ -185,6 +185,8 @@ export interface Tablero {
   cablecanal_sugerido?: string | null;
   paso_mm?: number;
   paso_manual?: number | null;
+  gabinete_manual_ancho_mm?: number | null;
+  gabinete_manual_alto_mm?: number | null;
 }
 
 export async function listarTableros(proyectoId: string): Promise<Tablero[]> {
@@ -230,6 +232,8 @@ export interface TableroUpdate {
   lleva_banquitos?: boolean;
   porcentaje_reserva?: number;
   paso_manual?: number | null;
+  gabinete_manual_ancho_mm?: number | null;
+  gabinete_manual_alto_mm?: number | null;
   cablecanal_sugerido?: string | null;
   gabinete_sugerido_ancho_mm?: number | null;
   gabinete_sugerido_alto_mm?: number | null;

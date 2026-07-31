@@ -301,13 +301,15 @@ def calcular_dimensiones_tablero(db: Session, tablero_id: uuid.UUID) -> dict:
     seccion_cables_con_reserva = max_seccion_cables_tramo * reserva_factor
     conexiones_con_reserva = int(total_salidas_tablero * reserva_factor)
 
-    # 2. Seleccionar Cablecanal Zoloda primero (tramo de mayor congestión)
-    medida_canal = seleccionar_cablecanal_zoloda(seccion_cables_con_reserva, factor_llenado)
-    tablero.cablecanal_sugerido = medida_canal
+    # 2. Seleccionar Cablecanal Zoloda (solo asignar si no fue configurado manualmente)
+    medida_canal_auto = seleccionar_cablecanal_zoloda(seccion_cables_con_reserva, factor_llenado)
+    if not tablero.cablecanal_sugerido or tablero.cablecanal_sugerido == "auto":
+        tablero.cablecanal_sugerido = medida_canal_auto
 
+    medida_efectiva_canal = tablero.cablecanal_sugerido or medida_canal_auto
     canal_w, canal_h = 40, 40
-    if medida_canal:
-        parts = medida_canal.split("x")
+    if medida_efectiva_canal:
+        parts = medida_efectiva_canal.split("x")
         if len(parts) == 2:
             try:
                 canal_w = int(parts[0])
@@ -315,7 +317,7 @@ def calcular_dimensiones_tablero(db: Session, tablero_id: uuid.UUID) -> dict:
             except ValueError:
                 pass
 
-    # 3. Determinar Paso Global (paso de térmicas de todo el gabinete)
+    # 3. Determinar Paso Global (paso de térmicas de todo el gabinete: 150mm o 200mm)
     paso_global = determinar_paso_tablero(tablero, todas_las_salidas, parametros, canal_h, corriente_principal)
     tablero.paso_mm = paso_global
     db.add(tablero)
@@ -337,35 +339,47 @@ def calcular_dimensiones_tablero(db: Session, tablero_id: uuid.UUID) -> dict:
 
     # 4. Calcular Dimensiones Físicas Requeridas (en milímetros)
     margin = 27
-
-    # Ancho mínimo requerido (Column model)
-    # Column1 (left canal) = canal_w
-    # Column2 (clearance) = 15
-    # Column3 (max rail elements) = max_polos_por_fila * 18
-    # Column4 (clearance) = 15
-    # Column5 (right canal) = canal_w
     rail_width = max_polos_por_fila * 18
     ancho_requerido_mm = (2 * margin) + (2 * canal_w) + 30 + rail_width
 
-    # Altura mínima requerida (basada en el paso modular y cantidad de filas)
     tiene_principal = tablero.interruptor_principal_id is not None
     sections_count = len(secciones)
     total_filas = (1 if tiene_principal else 0) + sections_count
     alto_requerido_mm = total_filas * paso_global + 100
 
-    # 5. Seleccionar gabinete Nollmann NIS con validación física estricta
-    gabinete = seleccionar_gabinete_nollmann(
-        db,
-        polos_con_reserva,
-        max_polos_por_fila,
-        total_filas,
-        paso_global,
-        ancho_requerido=ancho_requerido_mm,
-        alto_requerido=alto_requerido_mm
-    )
-    if gabinete:
-        tablero.gabinete_sugerido_id = gabinete.id
-        db.add(tablero)
+    # 5. Seleccionar gabinete Nollmann NIS (respetar selección manual si está activa)
+    if tablero.gabinete_manual_ancho_mm and tablero.gabinete_manual_alto_mm:
+        # Forzado manual de gabinete
+        gab_manual = (
+            db.query(CatalogoComponente)
+            .filter(
+                CatalogoComponente.categoria == "gabinete",
+                CatalogoComponente.fabricante.ilike("%nollmann%"),
+            )
+            .all()
+        )
+        gab_match = None
+        for g in gab_manual:
+            at = g.atributos or {}
+            if at.get("ancho_mm") == tablero.gabinete_manual_ancho_mm and at.get("alto_mm") == tablero.gabinete_manual_alto_mm:
+                gab_match = g
+                break
+        if gab_match:
+            tablero.gabinete_sugerido_id = gab_match.id
+            db.add(tablero)
+    else:
+        gabinete = seleccionar_gabinete_nollmann(
+            db,
+            polos_con_reserva,
+            max_polos_por_fila,
+            total_filas,
+            paso_global,
+            ancho_requerido=ancho_requerido_mm,
+            alto_requerido=alto_requerido_mm
+        )
+        if gabinete:
+            tablero.gabinete_sugerido_id = gabinete.id
+            db.add(tablero)
 
     # 6. Seleccionar distribuidor Nollmed
     corriente_distribuidor = max(corriente_principal, max_corriente_salida)

@@ -43,6 +43,7 @@ interface CadViewerCanvasProps {
   gabineteSugeridoAncho?: number | null;
   gabineteSugeridoAlto?: number | null;
   pasoMm?: number | null;
+  cablecanalSugerido?: string | null;
   modoVisual?: "topografico" | "bloques" | "unifilar";
   onModoVisualChange?: (modo: "topografico" | "bloques" | "unifilar") => void;
   tabActivo?: string;
@@ -73,6 +74,7 @@ export function CadViewerCanvas({
   gabineteSugeridoAncho,
   gabineteSugeridoAlto,
   pasoMm,
+  cablecanalSugerido,
   modoVisual: modoVisualProp = "topografico",
 }: CadViewerCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -130,8 +132,9 @@ export function CadViewerCanvas({
       gabineteAnchoMm: gabineteSugeridoAncho,
       gabineteAltoMm: gabineteSugeridoAlto,
       pasoMm: pasoMm,
+      cablecanalSugerido: cablecanalSugerido,
     });
-  }, [tieneInterruptorPrincipal, interruptorPrincipal, secciones, gabineteSugeridoAncho, gabineteSugeridoAlto, pasoMm, dxfCargado]);
+  }, [tieneInterruptorPrincipal, interruptorPrincipal, secciones, gabineteSugeridoAncho, gabineteSugeridoAlto, pasoMm, cablecanalSugerido, dxfCargado]);
 
   const cadDocUnif = useMemo(() => {
     return generateBoardCadDocument({
@@ -142,8 +145,9 @@ export function CadViewerCanvas({
       gabineteAnchoMm: gabineteSugeridoAncho,
       gabineteAltoMm: gabineteSugeridoAlto,
       pasoMm: pasoMm,
+      cablecanalSugerido: cablecanalSugerido,
     });
-  }, [tieneInterruptorPrincipal, interruptorPrincipal, secciones, gabineteSugeridoAncho, gabineteSugeridoAlto, pasoMm, dxfCargado]);
+  }, [tieneInterruptorPrincipal, interruptorPrincipal, secciones, gabineteSugeridoAncho, gabineteSugeridoAlto, pasoMm, cablecanalSugerido, dxfCargado]);
 
   const cadDoc = modoVisual === "unifilar" ? cadDocUnif : cadDocTopo;
 
@@ -199,16 +203,17 @@ export function CadViewerCanvas({
     }
 
     if (canvasHoveredId.startsWith("canal-")) {
-      const [tagKey, largoVal] = canvasHoveredId.split(":");
+      const [tagKey, largoVal, measureLabel] = canvasHoveredId.split(":");
       const largoText = largoVal ? `${largoVal} mm` : "-";
+      const corrienteText = measureLabel ? `${measureLabel.replace('x', ' x ')} mm` : "25 x 40 mm";
 
       if (tagKey.includes("vert-izq")) {
         return {
           tag: "CANALETA VERT-IZQ",
           titulo: "Cable Canal Vertical Izquierdo",
-          codigo: "CANAL-RAN-25X40",
+          codigo: `CANAL-RAN-${measureLabel ? measureLabel.toUpperCase() : "25X40"}`,
           labelCorriente: "Medida:",
-          corriente: "25 x 40 mm",
+          corriente: corrienteText,
           labelPolos: "Largo:",
           polos: largoText,
           seccion: "Canalización Z=0",
@@ -220,9 +225,9 @@ export function CadViewerCanvas({
         return {
           tag: "CANALETA VERT-DER",
           titulo: "Cable Canal Vertical Derecho",
-          codigo: "CANAL-RAN-25X40",
+          codigo: `CANAL-RAN-${measureLabel ? measureLabel.toUpperCase() : "25X40"}`,
           labelCorriente: "Medida:",
-          corriente: "25 x 40 mm",
+          corriente: corrienteText,
           labelPolos: "Largo:",
           polos: largoText,
           seccion: "Canalización Z=0",
@@ -234,9 +239,9 @@ export function CadViewerCanvas({
         return {
           tag: "CANALETA HORIZ-BOT",
           titulo: "Cable Canal Horizontal Inferior",
-          codigo: "CANAL-RAN-25X40",
+          codigo: `CANAL-RAN-${measureLabel ? measureLabel.toUpperCase() : "25X40"}`,
           labelCorriente: "Medida:",
-          corriente: "25 x 40 mm",
+          corriente: corrienteText,
           labelPolos: "Largo:",
           polos: largoText,
           seccion: "Canalización Z=0",

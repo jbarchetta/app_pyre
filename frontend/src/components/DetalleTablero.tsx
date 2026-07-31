@@ -1122,11 +1122,11 @@ export function DetalleTablero({
                 </h4>
                 <div className="flex items-center gap-1.5">
                   <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded border ${
-                    tablero.paso_manual === null || tablero.paso_manual === undefined
+                    !tablero.gabinete_manual_ancho_mm
                       ? "bg-emerald-50 text-emerald-700 border-emerald-300"
                       : "bg-amber-50 text-amber-700 border-amber-300"
                   }`}>
-                    {tablero.paso_manual === null || tablero.paso_manual === undefined ? "[AUTO]" : "[MANUAL]"}
+                    {!tablero.gabinete_manual_ancho_mm ? "[AUTO]" : "[MANUAL]"}
                   </span>
                   <span className="text-[10px] font-mono font-bold text-gray-600 bg-gray-100 border border-gray-200 px-1.5 py-0.5 rounded">
                     NOLLMANN NIS
@@ -1155,20 +1155,30 @@ export function DetalleTablero({
                   <label htmlFor="dim-gabinete" className="text-gray-500 font-medium">TAMAÑO GABINETE:</label>
                   <select
                     id="dim-gabinete"
-                    value={tablero.paso_manual === null || tablero.paso_manual === undefined ? "auto" : tablero.paso_manual.toString()}
+                    value={tablero.gabinete_manual_ancho_mm && tablero.gabinete_manual_alto_mm ? `${tablero.gabinete_manual_ancho_mm}x${tablero.gabinete_manual_alto_mm}` : "auto"}
                     onChange={(e) => {
                       const val = e.target.value;
-                      handleCambiarConfigFisica({
-                        paso_manual: val === "auto" ? null : parseInt(val)
-                      });
+                      if (val === "auto") {
+                        handleCambiarConfigFisica({
+                          gabinete_manual_ancho_mm: null,
+                          gabinete_manual_alto_mm: null,
+                        });
+                      } else {
+                        const [w, h] = val.split("x").map((n) => parseInt(n));
+                        handleCambiarConfigFisica({
+                          gabinete_manual_ancho_mm: w,
+                          gabinete_manual_alto_mm: h,
+                        });
+                      }
                     }}
                     className="border border-surface-stroke bg-white px-2 py-1 text-xs font-bold text-gray-900 rounded-md focus:outline-none focus:ring-1 focus:ring-abb-red cursor-pointer"
                   >
                     <option value="auto">Auto ({tablero.gabinete_sugerido_ancho_mm || 450}x{tablero.gabinete_sugerido_alto_mm || 600} mm)</option>
-                    <option value="450">NIS 450 (450 x 600 x 225 mm)</option>
-                    <option value="600">NIS 600 (600 x 600 x 225 mm)</option>
-                    <option value="750">NIS 750 (600 x 750 x 225 mm)</option>
-                    <option value="800">NIS 800 (800 x 1000 x 300 mm)</option>
+                    <option value="450x600">NIS 450 (450 x 600 x 225 mm)</option>
+                    <option value="600x600">NIS 600 (600 x 600 x 225 mm)</option>
+                    <option value="600x750">NIS 750 (600 x 750 x 225 mm)</option>
+                    <option value="600x1050">NIS 1050 (600 x 1050 x 225 mm)</option>
+                    <option value="800x1000">NIS 800 (800 x 1000 x 300 mm)</option>
                   </select>
                 </div>
               </div>

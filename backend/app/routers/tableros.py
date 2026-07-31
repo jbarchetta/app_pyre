@@ -73,6 +73,8 @@ class TableroResponse(BaseModel):
     cablecanal_sugerido: str | None = None
     paso_mm: int
     paso_manual: int | None = None
+    gabinete_manual_ancho_mm: int | None = None
+    gabinete_manual_alto_mm: int | None = None
 
     model_config = {"from_attributes": True}
 
@@ -221,6 +223,8 @@ class TableroUpdate(BaseModel):
     lleva_banquitos: bool | None = None
     porcentaje_reserva: int | None = None
     paso_manual: int | None = None
+    gabinete_manual_ancho_mm: int | None = None
+    gabinete_manual_alto_mm: int | None = None
     cablecanal_sugerido: str | None = None
 
 
@@ -261,6 +265,10 @@ def actualizar_tablero(
         tablero.porcentaje_reserva = cambios["porcentaje_reserva"]
     if "paso_manual" in cambios:
         tablero.paso_manual = cambios["paso_manual"]
+    if "gabinete_manual_ancho_mm" in cambios:
+        tablero.gabinete_manual_ancho_mm = cambios["gabinete_manual_ancho_mm"]
+    if "gabinete_manual_alto_mm" in cambios:
+        tablero.gabinete_manual_alto_mm = cambios["gabinete_manual_alto_mm"]
     if "cablecanal_sugerido" in cambios:
         tablero.cablecanal_sugerido = cambios["cablecanal_sugerido"]
 
