@@ -10,7 +10,6 @@ import {
   CheckCircleIcon,
   CubeIcon,
   ArrowsPointingInIcon,
-  AdjustmentsHorizontalIcon,
 } from "@heroicons/react/24/outline";
 import {
   actualizarSeccion,
@@ -1113,127 +1112,138 @@ export function DetalleTablero({
               </div>
             </div>
 
-            {/* Card: GABINETE SUGERIDO Y CABLE CANAL */}
-            <div className="bg-white border border-surface-stroke rounded-xl shadow-sm overflow-hidden shrink-0">
-              {/* SECCIÓN 1: GABINETE NIS */}
-              <div className="border-b border-surface-stroke bg-gray-50 px-4 py-2.5 flex items-center justify-between">
-                <h4 className="font-mono text-xs font-bold uppercase tracking-wider text-gray-700 flex items-center gap-1.5">
-                  <CubeIcon className="w-4 h-4 text-abb-red" /> GABINETE SUGERIDO
-                </h4>
-                <div className="flex items-center gap-1.5">
-                  <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded border ${
-                    !tablero.gabinete_manual_ancho_mm
-                      ? "bg-emerald-50 text-emerald-700 border-emerald-300"
-                      : "bg-amber-50 text-amber-700 border-amber-300"
-                  }`}>
-                    {!tablero.gabinete_manual_ancho_mm ? "[AUTO]" : "[MANUAL]"}
-                  </span>
-                  <span className="text-[10px] font-mono font-bold text-gray-600 bg-gray-100 border border-gray-200 px-1.5 py-0.5 rounded">
-                    NOLLMANN NIS
-                  </span>
-                </div>
-              </div>
-
-              <div className="p-3 space-y-2 text-xs font-mono border-b border-gray-100">
-                <div className="flex justify-between items-center py-1 border-b border-gray-100">
-                  <span className="text-gray-500 font-medium">CÓDIGO:</span>
-                  <span className="font-bold text-gray-900">
-                    {tablero.gabinete_sugerido_codigo || "Sin gabinete asignado"}
-                  </span>
+              {/* Card: GABINETE Y ESTRUCTURA REUNIFICADO */}
+              <div className="bg-white border border-surface-stroke rounded-xl shadow-sm overflow-hidden shrink-0">
+                <div className="border-b border-surface-stroke bg-gray-50 px-4 py-2.5 flex items-center justify-between">
+                  <h4 className="font-mono text-xs font-bold uppercase tracking-wider text-gray-700 flex items-center gap-1.5">
+                    <CubeIcon className="w-4 h-4 text-abb-red" /> GABINETE Y ESTRUCTURA
+                  </h4>
+                  <div className="flex items-center gap-1.5">
+                    <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded border ${
+                      !tablero.gabinete_manual_ancho_mm && !tablero.paso_manual && (!tablero.cablecanal_sugerido || tablero.cablecanal_sugerido === "auto")
+                        ? "bg-emerald-50 text-emerald-700 border-emerald-300"
+                        : "bg-amber-50 text-amber-700 border-amber-300"
+                    }`}>
+                      {!tablero.gabinete_manual_ancho_mm && !tablero.paso_manual && (!tablero.cablecanal_sugerido || tablero.cablecanal_sugerido === "auto") ? "[AUTO]" : "[MANUAL]"}
+                    </span>
+                    <span className="text-[10px] font-mono font-bold text-gray-600 bg-gray-100 border border-gray-200 px-1.5 py-0.5 rounded">
+                      NOLLMANN NIS
+                    </span>
+                  </div>
                 </div>
 
-                <div className="flex justify-between items-center py-1 border-b border-gray-100">
-                  <span className="text-gray-500 font-medium">MEDIDAS (W x H x D):</span>
-                  <span className="font-bold text-gray-900">
-                    {tablero.gabinete_sugerido_ancho_mm && tablero.gabinete_sugerido_alto_mm
-                      ? `${tablero.gabinete_sugerido_ancho_mm} x ${tablero.gabinete_sugerido_alto_mm} x 225 mm`
-                      : "—"}
-                  </span>
-                </div>
+                <div className="p-3 space-y-2 text-xs font-mono">
+                  <div className="flex justify-between items-center py-1 border-b border-gray-100">
+                    <span className="text-gray-500 font-medium">CÓDIGO GABINETE:</span>
+                    <span className="font-bold text-gray-900">
+                      {tablero.gabinete_sugerido_codigo || "Sin gabinete asignado"}
+                    </span>
+                  </div>
 
-                <div className="flex justify-between items-center py-1">
-                  <label htmlFor="dim-gabinete" className="text-gray-500 font-medium">TAMAÑO GABINETE:</label>
-                  <select
-                    id="dim-gabinete"
-                    value={tablero.gabinete_manual_ancho_mm && tablero.gabinete_manual_alto_mm ? `${tablero.gabinete_manual_ancho_mm}x${tablero.gabinete_manual_alto_mm}` : "auto"}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      if (val === "auto") {
+                  <div className="flex justify-between items-center py-1 border-b border-gray-100">
+                    <span className="text-gray-500 font-medium">MEDIDAS REALES:</span>
+                    <span className="font-bold text-gray-900">
+                      {tablero.gabinete_sugerido_ancho_mm && tablero.gabinete_sugerido_alto_mm
+                        ? `${tablero.gabinete_sugerido_ancho_mm} x ${tablero.gabinete_sugerido_alto_mm} x 225 mm`
+                        : "—"}
+                    </span>
+                  </div>
+
+                  {/* 1. TAMAÑO GABINETE */}
+                  <div className="flex justify-between items-center py-1 border-b border-gray-100">
+                    <label htmlFor="dim-gabinete" className="text-gray-500 font-medium">TAMAÑO GABINETE:</label>
+                    <select
+                      id="dim-gabinete"
+                      value={tablero.gabinete_manual_ancho_mm && tablero.gabinete_manual_alto_mm ? `${tablero.gabinete_manual_ancho_mm}x${tablero.gabinete_manual_alto_mm}` : "auto"}
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val === "auto") {
+                          handleCambiarConfigFisica({
+                            gabinete_manual_ancho_mm: null,
+                            gabinete_manual_alto_mm: null,
+                          });
+                        } else {
+                          const [w, h] = val.split("x").map((n) => parseInt(n));
+                          handleCambiarConfigFisica({
+                            gabinete_manual_ancho_mm: w,
+                            gabinete_manual_alto_mm: h,
+                          });
+                        }
+                      }}
+                      className="border border-surface-stroke bg-white px-2 py-0.5 text-xs font-bold text-gray-900 rounded-md focus:outline-none focus:ring-1 focus:ring-abb-red cursor-pointer"
+                    >
+                      <option value="auto">Auto ({tablero.gabinete_sugerido_ancho_mm || 450}x{tablero.gabinete_sugerido_alto_mm || 600} mm)</option>
+                      <option value="450x600">NIS 450 (450 x 600 mm)</option>
+                      <option value="600x600">NIS 600 (600 x 600 mm)</option>
+                      <option value="450x750">NIS 750 (450 x 750 mm)</option>
+                      <option value="600x750">NIS 750 (600 x 750 mm)</option>
+                      <option value="750x750">NIS 750 (750 x 750 mm)</option>
+                      <option value="600x1050">NIS 1050 (600 x 1050 mm)</option>
+                      <option value="750x1050">NIS 1050 (750 x 1050 mm)</option>
+                      <option value="800x1000">NIS 800 (800 x 1000 mm)</option>
+                      <option value="1000x1350">NIS 1350 (1000 x 1350 mm)</option>
+                    </select>
+                  </div>
+
+                  {/* 2. PASO INTER-FILAS (RECUPERADO) */}
+                  <div className="flex justify-between items-center py-1 border-b border-gray-100">
+                    <label htmlFor="dim-paso" className="text-gray-500 font-medium">PASO INTER-FILAS:</label>
+                    <select
+                      id="dim-paso"
+                      value={tablero.paso_manual === null || tablero.paso_manual === undefined ? "auto" : tablero.paso_manual.toString()}
+                      onChange={(e) => {
+                        const val = e.target.value;
                         handleCambiarConfigFisica({
-                          gabinete_manual_ancho_mm: null,
-                          gabinete_manual_alto_mm: null,
+                          paso_manual: val === "auto" ? null : parseInt(val),
                         });
-                      } else {
-                        const [w, h] = val.split("x").map((n) => parseInt(n));
+                      }}
+                      className="border border-surface-stroke bg-white px-2 py-0.5 text-xs font-bold text-gray-900 rounded-md focus:outline-none focus:ring-1 focus:ring-abb-red cursor-pointer"
+                    >
+                      <option value="auto">Auto ({tablero.paso_mm || 150} mm)</option>
+                      <option value="150">150 mm (Estándar ABB)</option>
+                      <option value="200">200 mm (Paso Ampliado)</option>
+                    </select>
+                  </div>
+
+                  {/* 3. SECCIÓN DE CABLE CANAL */}
+                  <div className="flex justify-between items-center py-1 border-b border-gray-100">
+                    <label htmlFor="dim-cablecanal" className="text-gray-500 font-medium">CABLE CANAL:</label>
+                    <select
+                      id="dim-cablecanal"
+                      value={tablero.cablecanal_sugerido || "auto"}
+                      onChange={(e) => {
+                        const val = e.target.value;
                         handleCambiarConfigFisica({
-                          gabinete_manual_ancho_mm: w,
-                          gabinete_manual_alto_mm: h,
+                          cablecanal_sugerido: val === "auto" ? null : val,
                         });
-                      }
-                    }}
-                    className="border border-surface-stroke bg-white px-2 py-1 text-xs font-bold text-gray-900 rounded-md focus:outline-none focus:ring-1 focus:ring-abb-red cursor-pointer"
-                  >
-                    <option value="auto">Auto ({tablero.gabinete_sugerido_ancho_mm || 450}x{tablero.gabinete_sugerido_alto_mm || 600} mm)</option>
-                    <option value="450x600">NIS 450 (450 x 600 x 225 mm)</option>
-                    <option value="600x600">NIS 600 (600 x 600 x 225 mm)</option>
-                    <option value="600x750">NIS 750 (600 x 750 x 225 mm)</option>
-                    <option value="600x1050">NIS 1050 (600 x 1050 x 225 mm)</option>
-                    <option value="800x1000">NIS 800 (800 x 1000 x 300 mm)</option>
-                  </select>
+                      }}
+                      className="border border-surface-stroke bg-white px-2 py-0.5 text-xs font-bold text-gray-900 rounded-md focus:outline-none focus:ring-1 focus:ring-sky-600 cursor-pointer"
+                    >
+                      <option value="auto">Auto (25x40 mm)</option>
+                      <option value="25x40">25 x 40 mm</option>
+                      <option value="40x40">40 x 40 mm</option>
+                      <option value="40x60">40 x 60 mm</option>
+                      <option value="60x60">60 x 60 mm</option>
+                      <option value="60x80">60 x 80 mm</option>
+                      <option value="80x80">80 x 80 mm</option>
+                    </select>
+                  </div>
+
+                  {/* 4. CATEGORÍA APLICA CANALETA */}
+                  <div className="flex justify-between items-center py-1">
+                    <span className="text-gray-500 font-medium">CATEGORÍA:</span>
+                    <select
+                      value={canaletaCategoria}
+                      onChange={(e) => setCanaletaCategoria(e.target.value as "todas" | "periferia" | "interiores")}
+                      className="border border-surface-stroke bg-white px-2 py-0.5 text-xs font-bold text-gray-900 rounded-md focus:outline-none focus:ring-1 focus:ring-sky-600 cursor-pointer"
+                    >
+                      <option value="todas">Todas (Periferia + Interiores)</option>
+                      <option value="periferia">Periferia (Marco Exterior)</option>
+                      <option value="interiores">Interiores (Inter-filas)</option>
+                    </select>
+                  </div>
                 </div>
               </div>
-
-              {/* SECCIÓN 2: CABLE CANAL ZOLODA */}
-              <div className="border-t border-b border-surface-stroke bg-gray-50 px-4 py-2 flex items-center justify-between">
-                <h4 className="font-mono text-xs font-bold uppercase tracking-wider text-gray-700 flex items-center gap-1.5">
-                  <AdjustmentsHorizontalIcon className="w-4 h-4 text-sky-600" /> CABLE CANAL (CANALETAS)
-                </h4>
-                <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded border ${
-                  !tablero.cablecanal_sugerido || tablero.cablecanal_sugerido === "auto"
-                    ? "bg-emerald-50 text-emerald-700 border-emerald-300"
-                    : "bg-amber-50 text-amber-700 border-amber-300"
-                }`}>
-                  {!tablero.cablecanal_sugerido || tablero.cablecanal_sugerido === "auto" ? "[AUTO]" : "[MANUAL]"}
-                </span>
-              </div>
-
-              <div className="p-3 space-y-2 text-xs font-mono">
-                <div className="flex justify-between items-center py-1 border-b border-gray-100">
-                  <span className="text-gray-500 font-medium">CATEGORÍA:</span>
-                  <select
-                    value={canaletaCategoria}
-                    onChange={(e) => setCanaletaCategoria(e.target.value as "todas" | "periferia" | "interiores")}
-                    className="border border-surface-stroke bg-white px-2 py-0.5 text-xs font-bold text-gray-900 rounded-md focus:outline-none focus:ring-1 focus:ring-sky-600 cursor-pointer"
-                  >
-                    <option value="todas">Todas (Periferia + Interiores)</option>
-                    <option value="periferia">Periferia (Marco Exterior)</option>
-                    <option value="interiores">Interiores (Inter-filas)</option>
-                  </select>
-                </div>
-
-                <div className="flex justify-between items-center py-1">
-                  <span className="text-gray-500 font-medium">MEDIDA SECCIÓN:</span>
-                  <select
-                    value={tablero.cablecanal_sugerido || "auto"}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      handleCambiarConfigFisica({
-                        cablecanal_sugerido: val === "auto" ? null : val
-                      });
-                    }}
-                    className="border border-surface-stroke bg-white px-2 py-1 text-xs font-bold text-gray-900 rounded-md focus:outline-none focus:ring-1 focus:ring-sky-600 cursor-pointer"
-                  >
-                    <option value="auto">Auto (25x40 mm - 65% Llenado)</option>
-                    <option value="25x40">25 x 40 mm</option>
-                    <option value="40x40">40 x 40 mm</option>
-                    <option value="40x60">40 x 60 mm</option>
-                    <option value="60x60">60 x 60 mm</option>
-                    <option value="60x80">60 x 80 mm</option>
-                    <option value="80x80">80 x 80 mm</option>
-                  </select>
-                </div>
-              </div>
-            </div>
 
           </div>
         )}

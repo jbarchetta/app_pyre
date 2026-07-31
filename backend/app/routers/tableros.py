@@ -105,6 +105,11 @@ def _tablero_response(db: Session, tablero: Tablero, componente: CatalogoCompone
             anchos_disponibles = [300, 450, 600, 750, 1000]
             siguiente_ancho = next((w for w in anchos_disponibles if w > ancho_actual), ancho_actual)
 
+    if tablero.gabinete_manual_ancho_mm:
+        gabinete_ancho = tablero.gabinete_manual_ancho_mm
+    if tablero.gabinete_manual_alto_mm:
+        gabinete_alto = tablero.gabinete_manual_alto_mm
+
     distribuidor_codigo = None
     if tablero.distribuidor_sugerido_id:
         dist = db.get(CatalogoComponente, tablero.distribuidor_sugerido_id)

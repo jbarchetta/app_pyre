@@ -353,8 +353,7 @@ def calcular_dimensiones_tablero(db: Session, tablero_id: uuid.UUID) -> dict:
         gab_manual = (
             db.query(CatalogoComponente)
             .filter(
-                CatalogoComponente.categoria == "gabinete",
-                CatalogoComponente.fabricante.ilike("%nollmann%"),
+                CatalogoComponente.categoria_raiz.ilike("%gabinete%"),
             )
             .all()
         )
