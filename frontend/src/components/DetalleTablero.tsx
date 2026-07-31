@@ -288,6 +288,7 @@ export function DetalleTablero({
     try {
       const actualizado = await actualizarTablero(tablero.id, cambios);
       onTableroActualizado(actualizado);
+      await cargar();
     } catch (err) {
       console.error("Error al actualizar config física:", err);
     }
@@ -1014,8 +1015,8 @@ export function DetalleTablero({
             metodoSalida={tablero.principal_metodo_salida}
             bornerasTipo={tablero.borneras_tipo}
             cablecanalSugerido={tablero.cablecanal_sugerido}
-            gabineteSugeridoAncho={tablero.gabinete_sugerido_ancho_mm}
-            gabineteSugeridoAlto={tablero.gabinete_sugerido_alto_mm}
+            gabineteSugeridoAncho={tablero.gabinete_manual_ancho_mm || tablero.gabinete_sugerido_ancho_mm}
+            gabineteSugeridoAlto={tablero.gabinete_manual_alto_mm || tablero.gabinete_sugerido_alto_mm}
             pasoMm={tablero.paso_mm}
             tableroId={tablero.id}
             panelLateralColapsado={panelLateralColapsado}

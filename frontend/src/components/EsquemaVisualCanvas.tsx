@@ -645,6 +645,10 @@ export function EsquemaVisualCanvas({
                 panY={panY}
                 capas={capasEfectivas}
                 hoveredSalidaId={hoveredSalidaId}
+                gabineteSugeridoAncho={gabineteSugeridoAncho}
+                gabineteSugeridoAlto={gabineteSugeridoAlto}
+                pasoMm={pasoMm}
+                cablecanalSugerido={cablecanalSugerido}
                 onSalidaHover={(id) => {
                   setCanvasHoveredId(id);
                   if (onSalidaHover) onSalidaHover(id);
@@ -699,6 +703,10 @@ export function EsquemaVisualCanvas({
                     panY={panY}
                     capas={capasEfectivas}
                     hoveredSalidaId={hoveredSalidaId}
+                    gabineteSugeridoAncho={gabineteSugeridoAncho}
+                    gabineteSugeridoAlto={gabineteSugeridoAlto}
+                    pasoMm={pasoMm}
+                    cablecanalSugerido={cablecanalSugerido}
                     onSalidaHover={(id) => {
                       setCanvasHoveredId(id);
                       if (onSalidaHover) onSalidaHover(id);

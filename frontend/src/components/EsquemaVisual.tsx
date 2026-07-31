@@ -54,6 +54,7 @@ interface EsquemaVisualProps {
   cablecanalSugerido?: string | null;
   gabineteSugeridoAncho?: number | null;
   gabineteSugeridoAlto?: number | null;
+  pasoMm?: number | null;
 }
 
 export function EsquemaVisual({
