@@ -274,70 +274,88 @@ export function EsquemaVisualCanvas({
         tag: "EMBARRADO",
         titulo: "Bloque Distribuidor / Embarrado General",
         codigo: "DIST-COBRE-160A",
+        labelCorriente: "Capacidad:",
         corriente: "160A / 250A",
-        polos: "3P+N / 4P",
+        labelPolos: "Conexiones:",
+        polos: "12 Bornes (3P+N)",
         seccion: "Fila 1 (Cabecera)",
-        cable: "Barras de Cobre",
+        labelCable: "Tipo:",
+        cable: "Repartidor Modular",
         alimentadoPor: "Q1 MAIN",
       };
     }
 
     if (canvasHoveredId.startsWith("canal-")) {
       const [tagKey, largoVal] = canvasHoveredId.split(":");
-      const largoText = largoVal ? `Largo: ${largoVal} mm` : "Ranurada";
+      const largoText = largoVal ? `${largoVal} mm` : "-";
 
       if (tagKey.includes("vert-izq")) {
         return {
           tag: "CANALETA VERT-IZQ",
-          titulo: "Cable Canal Vertical Izquierdo (25x40 mm)",
+          titulo: "Cable Canal Vertical Izquierdo",
           codigo: "CANAL-RAN-25X40",
+          labelCorriente: "Medida:",
           corriente: "25 x 40 mm",
+          labelPolos: "Largo:",
           polos: largoText,
           seccion: "Canalización Z=0",
-          cable: "Llenado Máx 65%",
+          labelCable: "Capacidad:",
+          cable: "65% Máx",
         };
       }
       if (tagKey.includes("vert-der")) {
         return {
           tag: "CANALETA VERT-DER",
-          titulo: "Cable Canal Vertical Derecho (25x40 mm)",
+          titulo: "Cable Canal Vertical Derecho",
           codigo: "CANAL-RAN-25X40",
+          labelCorriente: "Medida:",
           corriente: "25 x 40 mm",
+          labelPolos: "Largo:",
           polos: largoText,
           seccion: "Canalización Z=0",
-          cable: "Llenado Máx 65%",
+          labelCable: "Capacidad:",
+          cable: "65% Máx",
         };
       }
       if (tagKey.includes("horiz-bot")) {
         return {
           tag: "CANALETA HORIZ-BOT",
-          titulo: "Cable Canal Horizontal Inferior con Ingletes a 45°",
+          titulo: "Cable Canal Horizontal Inferior",
           codigo: "CANAL-RAN-25X40",
+          labelCorriente: "Medida:",
           corriente: "25 x 40 mm",
+          labelPolos: "Largo:",
           polos: largoText,
           seccion: "Canalización Z=0",
-          cable: "Llenado Máx 65%",
+          labelCable: "Empalme:",
+          cable: "Ingletes 45°",
         };
       }
       if (tagKey.includes("corner")) {
         return {
           tag: "INGLETE 45°",
-          titulo: "Empalme Biselado a 45° en Esquina de Canaleta",
+          titulo: "Corte a 45° en Esquina de Canaleta",
           codigo: "INGLETE-45",
+          labelCorriente: "Medida:",
           corriente: "Bisel 45°",
+          labelPolos: "Largo:",
           polos: largoText,
           seccion: "Canalización Z=0",
-          cable: "Empalme Esquina",
+          labelCable: "Empalme:",
+          cable: "BOM Real",
         };
       }
       return {
         tag: "CANALETA HORIZ",
-        titulo: "Cable Canal Horizontal Intermedio (25x40 mm)",
+        titulo: "Cable Canal Horizontal Intermedio",
         codigo: "CANAL-RAN-25X40",
+        labelCorriente: "Medida:",
         corriente: "25 x 40 mm",
+        labelPolos: "Largo:",
         polos: largoText,
         seccion: "Canalización Z=0",
-        cable: "Llenado Máx 65%",
+        labelCable: "Capacidad:",
+        cable: "65% Máx",
       };
     }
     for (let secIdx = 0; secIdx < secciones.length; secIdx++) {
@@ -484,16 +502,16 @@ export function EsquemaVisualCanvas({
 
         <div className="flex items-center space-x-3 text-xs font-mono shrink-0">
           <div className="flex items-center space-x-1">
-            <span className="text-[10px] text-slate-400 font-sans uppercase">Calibre:</span>
+            <span className="text-[10px] text-slate-400 font-sans uppercase">{hoveredSalidaInfo.labelCorriente || "Calibre:"}</span>
             <strong className="text-emerald-700 font-bold">{hoveredSalidaInfo.corriente}</strong>
           </div>
           <div className="flex items-center space-x-1 border-l border-slate-200 pl-3">
-            <span className="text-[10px] text-slate-400 font-sans uppercase">Polos:</span>
+            <span className="text-[10px] text-slate-400 font-sans uppercase">{hoveredSalidaInfo.labelPolos || "Polos:"}</span>
             <strong className="text-sky-700 font-bold">{hoveredSalidaInfo.polos}</strong>
           </div>
           {hoveredSalidaInfo.cable !== "-" && (
             <div className="flex items-center space-x-1 border-l border-slate-200 pl-3">
-              <span className="text-[10px] text-slate-400 font-sans uppercase">Cable:</span>
+              <span className="text-[10px] text-slate-400 font-sans uppercase">{hoveredSalidaInfo.labelCable || "Cable:"}</span>
               <strong className="text-purple-700 font-bold">{hoveredSalidaInfo.cable}</strong>
             </div>
           )}

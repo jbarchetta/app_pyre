@@ -230,6 +230,7 @@ export interface TableroUpdate {
   lleva_banquitos?: boolean;
   porcentaje_reserva?: number;
   paso_manual?: number | null;
+  cablecanal_sugerido?: string | null;
   gabinete_sugerido_ancho_mm?: number | null;
   gabinete_sugerido_alto_mm?: number | null;
 }

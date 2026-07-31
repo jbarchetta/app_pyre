@@ -221,6 +221,7 @@ class TableroUpdate(BaseModel):
     lleva_banquitos: bool | None = None
     porcentaje_reserva: int | None = None
     paso_manual: int | None = None
+    cablecanal_sugerido: str | None = None
 
 
 @router.patch("/tableros/{tablero_id}", response_model=TableroResponse)
@@ -260,6 +261,8 @@ def actualizar_tablero(
         tablero.porcentaje_reserva = cambios["porcentaje_reserva"]
     if "paso_manual" in cambios:
         tablero.paso_manual = cambios["paso_manual"]
+    if "cablecanal_sugerido" in cambios:
+        tablero.cablecanal_sugerido = cambios["cablecanal_sugerido"]
 
     db.commit()
 
