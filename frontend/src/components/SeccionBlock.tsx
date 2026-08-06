@@ -22,7 +22,6 @@ import {
   TrashIcon,
   DocumentDuplicateIcon,
   PlusCircleIcon,
-  XMarkIcon,
   ExclamationTriangleIcon,
   PencilSquareIcon,
   Cog6ToothIcon,
@@ -31,8 +30,8 @@ import {
 } from "@heroicons/react/24/outline";
 import { ComponentePicker } from "./ComponentePicker";
 import { ConfirmDialog } from "./ConfirmDialog";
-import { useCerrarAlClickFuera } from "../hooks/useCerrarAlClickFuera";
 import { Badge } from "./common";
+import { Modal } from "./common/Modal";
 
 import { ModalLimiteFilaOpciones } from "./ModalLimiteFilaOpciones";
 import { calcularCapacidadPolosFila, obtenerPolosSalida } from "../cad/generators/boardCadGenerator";
@@ -63,6 +62,11 @@ interface SeccionBlockProps {
   salidas: Salida[];
   todasLasSeccionesConSalidas?: { seccion: Seccion; salidas: Salida[] }[];
   gabineteAnchoMm?: number | null;
+  gabineteActualAncho?: number | null;
+  gabineteActualAlto?: number | null;
+  gabineteSugerido?: { codigo?: string; ancho: number; alto: number } | null;
+  gabineteAlternativo?: { codigo?: string; ancho: number; alto: number } | null;
+  onCambiarConfigFisica?: (cambios: any) => Promise<void>;
   onAbrirConfiguracionTablero?: () => void;
   onSaltoAutomaticoGabineteNIS?: (accionPendiente?: any) => Promise<void>;
   elementosCandidatos?: ElementoAlimentadorCandidato[];
@@ -329,6 +333,11 @@ export function SeccionBlock({
   salidas,
   todasLasSeccionesConSalidas = [],
   gabineteAnchoMm,
+  gabineteActualAncho,
+  gabineteActualAlto,
+  gabineteSugerido,
+  gabineteAlternativo,
+  onCambiarConfigFisica,
   onAbrirConfiguracionTablero,
   onSaltoAutomaticoGabineteNIS,
   elementosCandidatos = [],
@@ -557,6 +566,28 @@ export function SeccionBlock({
     }
   }
 
+  async function ejecutarAccionPendiente(accion: any) {
+    if (!accion) return;
+    setError(null);
+    try {
+      if (accion.tipo === "crear") {
+        const salida = await crearSalida(seccion.id, accion.datos);
+        onSalidaCreada(salida);
+        setCargaValor("");
+        setEtiqueta("");
+      } else if (accion.tipo === "editar") {
+        const actualizada = await actualizarSalida(accion.salidaId, accion.cambios);
+        onSalidaActualizada(actualizada);
+        cerrarEdicion();
+      } else if (accion.tipo === "duplicar") {
+        const duplicada = await duplicarSalida(accion.salidaId);
+        onSalidaCreada(duplicada);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Error al procesar la acción tras ampliar el gabinete");
+    }
+  }
+
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
     setError(null);
@@ -699,8 +730,6 @@ export function SeccionBlock({
   function solicitarCierreEdicion() {
     cerrarEdicion();
   }
-
-  const { onMouseDown: onMouseDownModal, onClick: onClickModal } = useCerrarAlClickFuera(solicitarCierreEdicion);
 
   useEffect(() => {
     if (!salidaEnEdicion || pickerAbierto) return;
@@ -1137,36 +1166,49 @@ export function SeccionBlock({
 
       {/* Modal Editar Salida */}
       {salidaEnEdicion && !pickerAbierto && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
-          onMouseDown={onMouseDownModal}
-          onClick={onClickModal}
+        <Modal
+          titulo="Editar salida"
+          subtitulo="Modificación de circuito y parámetros eléctricos"
+          icon={<PencilSquareIcon className="w-5 h-5 text-abb-red" />}
+          onClose={solicitarCierreEdicion}
+          error={error}
+          size="md"
+          footer={
+            <>
+              <button
+                type="submit"
+                form="form-editar-salida"
+                disabled={editCargaInvalidaEntero || !editCargaValor.trim()}
+                className="bg-abb-red hover:bg-red-700 text-white font-bold px-4 py-2 text-xs uppercase tracking-wider rounded-lg shadow-md hover:shadow-lg transition disabled:opacity-50 cursor-pointer"
+              >
+                Guardar cambios
+              </button>
+              <button
+                type="button"
+                onClick={solicitarCierreEdicion}
+                className="border border-slate-300 bg-white hover:bg-slate-100 text-slate-700 font-semibold px-4 py-2 text-xs rounded-lg transition cursor-pointer"
+              >
+                Cancelar
+              </button>
+            </>
+          }
         >
-          <form
-            onSubmit={handleGuardarEdicion}
-            onClick={(e) => e.stopPropagation()}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="editar-salida-titulo"
-            className="flex w-full max-w-sm flex-col gap-3 border border-surface-stroke bg-white p-6 rounded-lg shadow-xl"
-          >
-            <h2 id="editar-salida-titulo" className="text-lg font-bold text-gray-900 border-b pb-2">
-              Editar salida
-            </h2>
-
+          <form id="form-editar-salida" onSubmit={handleGuardarEdicion} className="space-y-4">
             <div className="space-y-1">
-              <label htmlFor="edit-tag" className="text-xs font-semibold text-gray-700">Tag / Identificador de Circuito</label>
+              <label htmlFor="edit-tag" className="text-xs font-bold uppercase tracking-wider text-slate-700">
+                Tag / Identificador de Circuito
+              </label>
               <input
                 id="edit-tag"
                 placeholder="Ej. PG01"
                 value={editEtiqueta}
                 onChange={(e) => setEditEtiqueta(e.target.value)}
-                className="w-full text-sm border border-gray-300 rounded px-3 py-1.5 focus:border-abb-red focus:outline-none"
+                className="w-full text-sm border border-slate-300 rounded-lg px-3.5 py-2 focus:ring-1 focus:ring-abb-red focus:border-abb-red focus:outline-none shadow-sm"
               />
             </div>
 
             <div className="space-y-1">
-              <label htmlFor="edit-carga-valor" className="text-xs font-semibold text-gray-700">
+              <label htmlFor="edit-carga-valor" className="text-xs font-bold uppercase tracking-wider text-slate-700">
                 Calibre / Carga Nominal (A) *
               </label>
               <select
@@ -1176,7 +1218,7 @@ export function SeccionBlock({
                   setEditCargaValor(e.target.value);
                   handleEditSpecChange();
                 }}
-                className="w-full text-sm font-mono font-bold border border-gray-300 rounded px-3 py-2 bg-white focus:border-abb-red focus:outline-none"
+                className="w-full text-sm font-mono font-bold border border-slate-300 rounded-lg px-3.5 py-2 bg-white focus:ring-1 focus:ring-abb-red focus:border-abb-red focus:outline-none shadow-sm"
               >
                 {["6", "10", "16", "20", "25", "30", "32", "40", "50", "63", "80", "100", "125"].map((cal) => (
                   <option key={cal} value={cal}>
@@ -1187,12 +1229,12 @@ export function SeccionBlock({
             </div>
 
             {editCargaInvalidaEntero && (
-              <p className="text-red-600 text-xs bg-red-50 p-1.5 rounded">Los amperios deben ser un valor entero</p>
+              <p className="text-red-600 text-xs bg-red-50 p-2 rounded-lg border border-red-200">Los amperios deben ser un valor entero</p>
             )}
 
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
-                <label htmlFor="edit-formato" className="text-xs font-semibold text-gray-700">Formato</label>
+                <label htmlFor="edit-formato" className="text-xs font-bold uppercase tracking-wider text-slate-700">Formato</label>
                 <select
                   id="edit-formato"
                   value={editFormato}
@@ -1200,7 +1242,7 @@ export function SeccionBlock({
                     setEditFormato(e.target.value as FormatoPolos);
                     handleEditSpecChange();
                   }}
-                  className="w-full text-sm border border-gray-300 rounded px-3 py-1.5 bg-white focus:border-abb-red focus:outline-none"
+                  className="w-full text-sm border border-slate-300 rounded-lg px-3.5 py-2 bg-white focus:ring-1 focus:ring-abb-red focus:border-abb-red focus:outline-none shadow-sm"
                 >
                   {editTipoProteccion !== "seccional_diferencial" && <option value="unipolar">Unipolar (1P)</option>}
                   <option value="bipolar">Bipolar (2P)</option>
@@ -1210,7 +1252,7 @@ export function SeccionBlock({
               </div>
 
               <div className="space-y-1">
-                <label htmlFor="edit-proteccion" className="text-xs font-semibold text-gray-700">Protección</label>
+                <label htmlFor="edit-proteccion" className="text-xs font-bold uppercase tracking-wider text-slate-700">Protección</label>
                 <select
                   id="edit-proteccion"
                   value={editTipoProteccion}
@@ -1222,7 +1264,7 @@ export function SeccionBlock({
                     }
                     handleEditSpecChange();
                   }}
-                  className="w-full text-sm border border-gray-300 rounded px-3 py-1.5 bg-white focus:border-abb-red focus:outline-none"
+                  className="w-full text-sm border border-slate-300 rounded-lg px-3.5 py-2 bg-white focus:ring-1 focus:ring-abb-red focus:border-abb-red focus:outline-none shadow-sm"
                 >
                   <option value="seccional_termomagnetico">Termomagnético</option>
                   <option value="seccional_diferencial">Diferencial</option>
@@ -1233,7 +1275,7 @@ export function SeccionBlock({
             {editTipoProteccion === "seccional_diferencial" && (
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label htmlFor="edit-sensibilidad" className="text-xs font-semibold text-gray-700">Sensibilidad</label>
+                  <label htmlFor="edit-sensibilidad" className="text-xs font-bold uppercase tracking-wider text-slate-700">Sensibilidad</label>
                   <select
                     id="edit-sensibilidad"
                     value={editSensibilidadMa}
@@ -1241,7 +1283,7 @@ export function SeccionBlock({
                       setEditSensibilidadMa(Number(e.target.value));
                       handleEditSpecChange();
                     }}
-                    className="w-full text-sm border border-gray-300 rounded px-3 py-1.5 bg-white focus:border-abb-red focus:outline-none"
+                    className="w-full text-sm border border-slate-300 rounded-lg px-3.5 py-2 bg-white focus:ring-1 focus:ring-abb-red focus:border-abb-red focus:outline-none shadow-sm"
                   >
                     <option value={30}>30 mA</option>
                     <option value={10}>10 mA</option>
@@ -1252,7 +1294,7 @@ export function SeccionBlock({
                 </div>
 
                 <div className="space-y-1">
-                  <label htmlFor="edit-accesorios" className="text-xs font-semibold text-gray-700">Accesorios</label>
+                  <label htmlFor="edit-accesorios" className="text-xs font-bold uppercase tracking-wider text-slate-700">Accesorios</label>
                   <select
                     id="edit-accesorios"
                     value={editAdmiteAccesorios ? "true" : "false"}
@@ -1260,7 +1302,7 @@ export function SeccionBlock({
                       setEditAdmiteAccesorios(e.target.value === "true");
                       handleEditSpecChange();
                     }}
-                    className="w-full text-sm border border-gray-300 rounded px-3 py-1.5 bg-white focus:border-abb-red focus:outline-none"
+                    className="w-full text-sm border border-slate-300 rounded-lg px-3.5 py-2 bg-white focus:ring-1 focus:ring-abb-red focus:border-abb-red focus:outline-none shadow-sm"
                   >
                     <option value="false">Sin accesorios</option>
                     <option value="true">Con accesorios</option>
@@ -1270,31 +1312,31 @@ export function SeccionBlock({
             )}
 
             {simulacionMotivo && (
-              <div className="bg-amber-50 border border-amber-200 text-amber-800 p-2.5 rounded text-xs flex gap-2 items-start" role="alert">
+              <div className="bg-amber-50 border border-amber-200 text-amber-800 p-3 rounded-lg text-xs flex gap-2.5 items-start" role="alert">
                 <ExclamationTriangleIcon className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
                 <div>
-                  <span className="font-semibold block mb-0.5">Parámetros incompatibles:</span>
+                  <span className="font-bold block mb-0.5">Parámetros incompatibles:</span>
                   <span className="text-[11px] leading-relaxed block text-amber-700">{simulacionMotivo}</span>
                 </div>
               </div>
             )}
 
-            <div className="border-t border-b py-2 text-xs text-gray-600 flex items-center justify-between">
-              <span>Componente actual:</span>
+            <div className="border border-slate-200 rounded-lg p-3 bg-slate-50/60 text-xs text-slate-600 flex items-center justify-between">
+              <span className="font-semibold text-slate-700">Componente propuesto:</span>
               <div className="text-right min-w-0">
                 {simulacionCargando ? (
-                  <span className="text-[10px] text-gray-400 italic animate-pulse">
-                    Verificando...
+                  <span className="text-[10px] text-slate-400 italic animate-pulse">
+                    Verificando catálogo...
                   </span>
                 ) : (
                   <>
-                    <span className={editComponenteId ? "font-mono font-semibold block text-sm text-gray-900" : "font-mono font-normal block text-xs text-amber-600 italic"}>
+                    <span className={editComponenteId ? "font-mono font-bold block text-sm text-slate-900" : "font-mono font-normal block text-xs text-amber-600 italic"}>
                       {editComponenteId
                         ? (editComponenteCodigo ?? editComponenteId)
                         : "Se recalculará automáticamente"}
                     </span>
                     {editComponenteId && editComponenteDescripcion && (
-                      <span className="text-gray-500 text-[10px] truncate max-w-[240px] block" title={editComponenteDescripcion}>
+                      <span className="text-slate-500 text-[10px] truncate max-w-[240px] block" title={editComponenteDescripcion}>
                         {editComponenteDescripcion}
                       </span>
                     )}
@@ -1306,31 +1348,12 @@ export function SeccionBlock({
             <button
               type="button"
               onClick={() => setPickerAbierto(true)}
-              className="w-full border border-gray-300 text-gray-800 hover:border-abb-red hover:text-abb-red px-3 py-2 text-xs font-semibold rounded uppercase tracking-wider transition"
+              className="w-full border border-slate-300 bg-slate-50 hover:bg-white text-slate-800 hover:border-abb-red hover:text-abb-red px-3.5 py-2 text-xs font-bold rounded-lg uppercase tracking-wider transition shadow-sm cursor-pointer"
             >
               Cambiar componente en catálogo
             </button>
-
-            {error && <p role="alert" className="text-xs text-red-600 font-semibold">{error}</p>}
-
-            <div className="flex gap-2 justify-end pt-2 border-t mt-1">
-              <button
-                type="button"
-                onClick={solicitarCierreEdicion}
-                className="border border-gray-300 text-gray-700 hover:bg-gray-100 px-4 py-1.5 text-xs font-medium rounded transition"
-              >
-                Cancelar
-              </button>
-              <button
-                type="submit"
-                disabled={editCargaInvalidaEntero || !editCargaValor.trim()}
-                className="bg-abb-red hover:bg-red-700 text-white font-medium px-4 py-1.5 text-xs uppercase tracking-wider rounded shadow disabled:opacity-50 transition"
-              >
-                Guardar
-              </button>
-            </div>
           </form>
-        </div>
+        </Modal>
       )}
 
       {salidaEnEdicion && pickerAbierto && (
@@ -1348,120 +1371,112 @@ export function SeccionBlock({
 
       {/* Modal de Linkeo de Alimentación 🔗 */}
       {salidaEnLink && (
-        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4 backdrop-blur-sm">
-          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 border border-gray-200 space-y-4">
-            <div className="flex items-center justify-between border-b border-gray-100 pb-3">
-              <h2 className="text-base font-bold text-gray-900 flex items-center gap-2">
-                <LinkIcon className="w-5 h-5 text-abb-red" />
-                Linkear Fuente de Alimentación
-              </h2>
+        <Modal
+          titulo="Linkear fuente de alimentación"
+          subtitulo="Selección de origen eléctrico para el circuito"
+          icon={<LinkIcon className="w-5 h-5 text-abb-red" />}
+          onClose={() => setSalidaEnLink(null)}
+          size="md"
+          footer={
+            <>
+              <button
+                type="submit"
+                form="form-linkear-fuente"
+                disabled={guardandoLink}
+                className="bg-abb-red hover:bg-red-700 text-white font-bold px-4 py-2 text-xs uppercase tracking-wider rounded-lg shadow-md hover:shadow-lg transition disabled:opacity-50 cursor-pointer"
+              >
+                {guardandoLink ? "Guardando..." : "Guardar enlace"}
+              </button>
               <button
                 type="button"
                 onClick={() => setSalidaEnLink(null)}
-                className="text-gray-400 hover:text-gray-600 p-1 rounded"
+                className="border border-slate-300 bg-white hover:bg-slate-100 text-slate-700 font-semibold px-4 py-2 text-xs rounded-lg transition cursor-pointer"
               >
-                <XMarkIcon className="w-5 h-5" />
+                Cancelar
               </button>
-            </div>
+            </>
+          }
+        >
+          <form id="form-linkear-fuente" onSubmit={handleGuardarLink} className="space-y-4">
+            <p className="text-xs font-medium text-slate-600">
+              Seleccioná el elemento desde el cual recibe energía este circuito:
+            </p>
 
-            <form onSubmit={handleGuardarLink} className="space-y-4">
-              <p className="text-xs text-gray-600">
-                Seleccioná el elemento desde el cual recibe energía el circuito:
-              </p>
+            <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+              {/* Opción 1: Alimentación estándar desde barral / Q1 */}
+              <label
+                className={`flex items-center justify-between p-3 rounded-xl border cursor-pointer transition ${
+                  padreSeleccionadoId === null
+                    ? "border-abb-red bg-red-50/60 text-slate-900 font-semibold shadow-xs"
+                    : "border-slate-200 hover:bg-slate-50 text-slate-700"
+                }`}
+              >
+                <div className="flex items-center gap-2.5 text-xs">
+                  <input
+                    type="radio"
+                    name="alimentador"
+                    checked={padreSeleccionadoId === null}
+                    onChange={() => setPadreSeleccionadoId(null)}
+                    className="accent-abb-red h-4 w-4"
+                  />
+                  <span>⚡ Alimentación estándar (Embarrado / Q1)</span>
+                </div>
+                <span className="text-[11px] text-slate-400 font-mono">Por defecto</span>
+              </label>
 
-              <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
-                {/* Opción 1: Alimentación estándar desde barral / Q1 */}
+              {/* Lista de candidatos elegibles del tablero */}
+              {candidatosElegibles.map((candidato) => (
                 <label
-                  className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer transition ${
-                    padreSeleccionadoId === null
-                      ? "border-abb-red bg-red-50/60 text-gray-900 font-semibold"
-                      : "border-gray-200 hover:bg-gray-50 text-gray-700"
+                  key={candidato.id}
+                  className={`flex items-center justify-between p-3 rounded-xl border cursor-pointer transition ${
+                    padreSeleccionadoId === candidato.id
+                      ? "border-abb-red bg-red-50/60 text-slate-900 font-semibold shadow-xs"
+                      : "border-slate-200 hover:bg-slate-50 text-slate-700"
                   }`}
                 >
-                  <div className="flex items-center gap-2 text-xs">
+                  <div className="flex items-center gap-2.5 text-xs">
                     <input
                       type="radio"
                       name="alimentador"
-                      checked={padreSeleccionadoId === null}
-                      onChange={() => setPadreSeleccionadoId(null)}
-                      className="accent-abb-red"
+                      checked={padreSeleccionadoId === candidato.id}
+                      onChange={() => setPadreSeleccionadoId(candidato.id)}
+                      className="accent-abb-red h-4 w-4"
                     />
-                    <span>⚡ Alimentación estándar (Embarrado / Q1)</span>
+                    <span className="font-mono font-bold text-abb-red">{candidato.codigo}</span>
+                    <span>{candidato.etiqueta ? `(${candidato.etiqueta})` : (PROTECCION_LABEL[candidato.tipo_proteccion] ?? candidato.tipo_proteccion)}</span>
                   </div>
-                  <span className="text-[11px] text-gray-500 font-mono">Por defecto</span>
+                  <span className="text-[11px] text-slate-500 font-mono">{candidato.carga}</span>
                 </label>
+              ))}
+            </div>
 
-                {/* Lista de candidatos elegibles del tablero */}
-                {candidatosElegibles.map((candidato) => (
-                  <label
-                    key={candidato.id}
-                    className={`flex items-center justify-between p-3 rounded-lg border cursor-pointer transition ${
-                      padreSeleccionadoId === candidato.id
-                        ? "border-abb-red bg-red-50/60 text-gray-900 font-semibold"
-                        : "border-gray-200 hover:bg-gray-50 text-gray-700"
-                    }`}
-                  >
-                    <div className="flex items-center gap-2 text-xs">
-                      <input
-                        type="radio"
-                        name="alimentador"
-                        checked={padreSeleccionadoId === candidato.id}
-                        onChange={() => setPadreSeleccionadoId(candidato.id)}
-                        className="accent-abb-red"
-                      />
-                      <span className="font-mono font-bold text-abb-red">{candidato.codigo}</span>
-                      <span>{candidato.etiqueta ? `(${candidato.etiqueta})` : (PROTECCION_LABEL[candidato.tipo_proteccion] ?? candidato.tipo_proteccion)}</span>
+            {(() => {
+              if (!padreSeleccionadoId || !salidaEnLink) return null;
+              const parent = candidatosElegibles.find((c) => c.id === padreSeleccionadoId);
+              if (!parent) return null;
+              const tieneMismatch = existeIncompatibilidadLink(
+                salidaEnLink.formato,
+                salidaEnLink.tipo_proteccion,
+                parent.formato,
+                parent.tipo_proteccion
+              );
+              if (tieneMismatch) {
+                return (
+                  <div className="bg-amber-50 border border-amber-200 text-amber-800 p-3 rounded-lg text-xs flex gap-2.5 items-start mt-3" role="alert">
+                    <ExclamationTriangleIcon className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                    <div>
+                      <span className="font-bold block mb-0.5">Advertencia de Enlace:</span>
+                      <span className="text-[11px] leading-relaxed block text-amber-700">
+                        Estás vinculando un {salidaEnLink.tipo_proteccion === "seccional_diferencial" ? "Diferencial" : "Termomagnético"} {FORMATO_LABEL[salidaEnLink.formato]} con un {parent.tipo_proteccion === "seccional_diferencial" ? "Diferencial" : "Termomagnético"} {FORMATO_LABEL[parent.formato]}.
+                      </span>
                     </div>
-                    <span className="text-[11px] text-gray-500 font-mono">{candidato.carga}</span>
-                  </label>
-                ))}
-              </div>
-
-              {(() => {
-                if (!padreSeleccionadoId || !salidaEnLink) return null;
-                const parent = candidatosElegibles.find((c) => c.id === padreSeleccionadoId);
-                if (!parent) return null;
-                const tieneMismatch = existeIncompatibilidadLink(
-                  salidaEnLink.formato,
-                  salidaEnLink.tipo_proteccion,
-                  parent.formato,
-                  parent.tipo_proteccion
+                  </div>
                 );
-                if (tieneMismatch) {
-                  return (
-                    <div className="bg-amber-50 border border-amber-200 text-amber-800 p-2.5 rounded text-xs flex gap-2 items-start my-3" role="alert">
-                      <ExclamationTriangleIcon className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
-                      <div>
-                        <span className="font-semibold block mb-0.5">Advertencia de Enlace:</span>
-                        <span className="text-[11px] leading-relaxed block text-amber-700">
-                          Estás vinculando un {salidaEnLink.tipo_proteccion === "seccional_diferencial" ? "Diferencial" : "Termomagnético"} {FORMATO_LABEL[salidaEnLink.formato]} con un {parent.tipo_proteccion === "seccional_diferencial" ? "Diferencial" : "Termomagnético"} {FORMATO_LABEL[parent.formato]}.
-                        </span>
-                      </div>
-                    </div>
-                  );
-                }
-                return null;
-              })()}
-
-              <div className="flex justify-end gap-2 pt-3 border-t border-gray-100">
-                <button
-                  type="button"
-                  onClick={() => setSalidaEnLink(null)}
-                  className="px-4 py-2 text-xs font-semibold text-gray-600 hover:bg-gray-100 rounded"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  disabled={guardandoLink}
-                  className="px-4 py-2 text-xs font-semibold bg-abb-red hover:bg-red-700 text-white rounded transition disabled:opacity-50"
-                >
-                  {guardandoLink ? "Guardando..." : "Guardar Enlace"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+              }
+              return null;
+            })()}
+          </form>
+        </Modal>
       )}
 
       {salidaABorrar && (
@@ -1482,15 +1497,45 @@ export function SeccionBlock({
           polosSolicitados={modalLimiteState.polosSolicitados}
           polosDisponiblesOrigen={modalLimiteState.polosDisponiblesOrigen}
           filaDisponible={modalLimiteState.filaDisponible}
-          onMoverAFila={(targetFilaId) => ejecutarAccionModalMover(targetFilaId)}
-          onConfigurarNuevoTablero={async () => {
+          gabineteActualAncho={gabineteActualAncho || gabineteAnchoMm || 450}
+          gabineteActualAlto={gabineteActualAlto || 600}
+          gabineteSugerido={gabineteSugerido}
+          gabineteAlternativo={gabineteAlternativo}
+          onSeleccionarGabinete={async (ancho, alto) => {
             const accion = modalLimiteState.accion;
+            const filaDisp = modalLimiteState.filaDisponible;
+            const polosNuevos = modalLimiteState.polosSolicitados;
             setModalLimiteState(null);
-            if (onSaltoAutomaticoGabineteNIS) {
-              await onSaltoAutomaticoGabineteNIS(accion);
-            } else {
-              onAbrirConfiguracionTablero?.();
+            setError(null);
+
+            if (onCambiarConfigFisica) {
+              await onCambiarConfigFisica({
+                gabinete_manual_ancho_mm: ancho,
+                gabinete_manual_alto_mm: alto,
+              });
             }
+
+            const capacidadNuevaFila = calcularCapacidadPolosFila(ancho);
+            const polosOrigenActuales = salidas
+              .filter((s) => accion.tipo !== "editar" || s.id !== accion.salidaId)
+              .reduce((sum, s) => sum + obtenerPolosSalida(s), 0);
+
+            if (polosOrigenActuales + polosNuevos > capacidadNuevaFila) {
+              if (filaDisp) {
+                await ejecutarAccionModalMover(filaDisp.id);
+              } else if (onSaltoAutomaticoGabineteNIS) {
+                await onSaltoAutomaticoGabineteNIS(accion);
+              } else {
+                await ejecutarAccionPendiente(accion);
+              }
+            } else {
+              await ejecutarAccionPendiente(accion);
+            }
+          }}
+          onMoverAFila={(targetFilaId) => ejecutarAccionModalMover(targetFilaId)}
+          onConfigurarNuevoTablero={() => {
+            setModalLimiteState(null);
+            onAbrirConfiguracionTablero?.();
           }}
           onCancelar={() => setModalLimiteState(null)}
         />

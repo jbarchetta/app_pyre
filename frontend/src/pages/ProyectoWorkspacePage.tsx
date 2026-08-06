@@ -5,6 +5,7 @@ import {
   PencilIcon,
   TrashIcon,
   PlusIcon,
+  CpuChipIcon,
 } from "@heroicons/react/24/outline";
 import {
   actualizarTablero,
@@ -23,7 +24,7 @@ import { ComponentePicker } from "../components/ComponentePicker";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { DetalleTablero } from "../components/DetalleTablero";
 import { Button } from "../components/common/Button";
-import { useCerrarAlClickFuera } from "../hooks/useCerrarAlClickFuera";
+import { Modal } from "../components/common/Modal";
 import {
   cargarEstadosVistaUsuario,
   guardarEstadosVistaUsuario,
@@ -123,8 +124,6 @@ export function ProyectoWorkspacePage() {
   function solicitarCierreModales() {
     cerrarModales();
   }
-
-  const { onMouseDown: onMouseDownModal, onClick: onClickModal } = useCerrarAlClickFuera(solicitarCierreModales);
 
   async function handleSubmit(event: FormEvent) {
     event.preventDefault();
@@ -339,39 +338,78 @@ export function ProyectoWorkspacePage() {
       )}
 
       {modalNuevoTablero && !pickerAbierto && (
-        <div className="fixed inset-0 z-20 flex items-center justify-center bg-black/40" onMouseDown={onMouseDownModal} onClick={onClickModal}>
-          <form
-            onSubmit={handleSubmit}
-            onClick={(e) => e.stopPropagation()}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="nuevo-tablero-titulo"
-            className="flex w-96 flex-col gap-2 border border-surface-stroke bg-white p-8"
-          >
-            <h2 id="nuevo-tablero-titulo" className="text-lg font-bold">Nuevo tablero</h2>
-            <label htmlFor="nombre-tablero">Nombre</label>
-            <input id="nombre-tablero" autoFocus value={nombre} onChange={(e) => setNombre(e.target.value)} />
-            <label htmlFor="nivel-falla">Nivel de falla (kA)</label>
-            <input id="nivel-falla" value={nivelFallaKa} onChange={(e) => setNivelFallaKa(e.target.value)} />
-            <p>Interruptor principal{interruptorPrincipal ? `: ${interruptorPrincipal.codigo}` : " (opcional)"}</p>
-            <button
-              type="button"
-              onClick={() => setPickerAbierto(true)}
-              className="self-start border border-surface-stroke px-4 py-2 text-sm uppercase tracking-widest hover:border-abb-red hover:text-abb-red"
-            >
-              Elegir interruptor principal
-            </button>
-            {error && <p role="alert" className="text-error">{error}</p>}
-            <div className="mt-4 flex gap-2">
-              <button type="submit" className="bg-abb-red px-6 py-3 text-sm uppercase tracking-widest text-white">
+        <Modal
+          titulo="Nuevo tablero"
+          subtitulo="Configuración de parámetros y cabecera eléctrica"
+          icon={<CpuChipIcon className="w-5 h-5 text-abb-red" />}
+          onClose={cerrarModales}
+          error={error}
+          size="md"
+          footer={
+            <>
+              <button
+                type="submit"
+                form="form-nuevo-tablero"
+                className="bg-abb-red hover:bg-red-700 text-white font-bold px-4 py-2 text-xs uppercase tracking-wider rounded-lg shadow-md hover:shadow-lg transition cursor-pointer"
+              >
                 Crear tablero
               </button>
-              <button type="button" onClick={cerrarModales} className="border border-surface-stroke px-6 py-3 text-sm uppercase tracking-widest">
+              <button
+                type="button"
+                onClick={cerrarModales}
+                className="border border-slate-300 bg-white hover:bg-slate-100 text-slate-700 font-semibold px-4 py-2 text-xs rounded-lg transition cursor-pointer"
+              >
                 Cancelar
+              </button>
+            </>
+          }
+        >
+          <form id="form-nuevo-tablero" onSubmit={handleSubmit} className="space-y-4">
+            <div className="space-y-1">
+              <label htmlFor="nombre-tablero" className="text-xs font-bold uppercase tracking-wider text-slate-700">
+                Nombre del tablero *
+              </label>
+              <input
+                id="nombre-tablero"
+                autoFocus
+                placeholder="Ej. Tablero General de Baja Tensión"
+                value={nombre}
+                onChange={(e) => setNombre(e.target.value)}
+                required
+                className="w-full text-sm border border-slate-300 rounded-lg px-3.5 py-2 focus:ring-1 focus:ring-abb-red focus:border-abb-red focus:outline-none shadow-sm"
+              />
+            </div>
+
+            <div className="space-y-1">
+              <label htmlFor="nivel-falla" className="text-xs font-bold uppercase tracking-wider text-slate-700">
+                Nivel de falla / Cortocircuito (kA) *
+              </label>
+              <input
+                id="nivel-falla"
+                value={nivelFallaKa}
+                onChange={(e) => setNivelFallaKa(e.target.value)}
+                required
+                className="w-full text-sm font-mono font-bold border border-slate-300 rounded-lg px-3.5 py-2 focus:ring-1 focus:ring-abb-red focus:border-abb-red focus:outline-none shadow-sm"
+              />
+            </div>
+
+            <div className="border border-slate-200 bg-slate-50/80 rounded-xl p-3.5 flex items-center justify-between text-xs">
+              <div>
+                <span className="font-bold text-slate-700 block">Interruptor Principal (Q1):</span>
+                <span className={interruptorPrincipal ? "font-mono font-bold text-abb-red block mt-0.5 text-sm" : "text-slate-500 italic block mt-0.5"}>
+                  {interruptorPrincipal ? `${interruptorPrincipal.codigo} (${interruptorPrincipal.descripcion || ""})` : "Sin interruptor asignado (Opcional)"}
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPickerAbierto(true)}
+                className="border border-slate-300 bg-white hover:border-abb-red hover:text-abb-red px-3 py-1.5 text-xs font-bold rounded-lg uppercase tracking-wider transition shadow-xs shrink-0 cursor-pointer"
+              >
+                Elegir
               </button>
             </div>
           </form>
-        </div>
+        </Modal>
       )}
 
       {modalNuevoTablero && pickerAbierto && (
@@ -388,34 +426,48 @@ export function ProyectoWorkspacePage() {
       )}
 
       {tableroEnEdicion && (
-        <div className="fixed inset-0 z-20 flex items-center justify-center bg-black/40" onMouseDown={onMouseDownModal} onClick={onClickModal}>
-          <form
-            onSubmit={handleRenombrarTablero}
-            onClick={(e) => e.stopPropagation()}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="editar-tablero-titulo"
-            className="flex w-96 flex-col gap-2 border border-surface-stroke bg-white p-8"
-          >
-            <h2 id="editar-tablero-titulo" className="text-lg font-bold">Renombrar tablero</h2>
-            <label htmlFor="nombre-tablero-edit">Nombre</label>
-            <input
-              id="nombre-tablero-edit"
-              autoFocus
-              value={nombreTableroEdit}
-              onChange={(e) => setNombreTableroEdit(e.target.value)}
-            />
-            {error && <p role="alert" className="text-error">{error}</p>}
-            <div className="mt-4 flex gap-2">
-              <button type="submit" className="bg-abb-red px-6 py-3 text-sm uppercase tracking-widest text-white">
-                Guardar
+        <Modal
+          titulo="Renombrar tablero"
+          subtitulo="Modificación del identificador de tablero"
+          icon={<PencilIcon className="w-5 h-5 text-abb-red" />}
+          onClose={solicitarCierreModales}
+          error={error}
+          size="sm"
+          footer={
+            <>
+              <button
+                type="submit"
+                form="form-renombrar-tablero"
+                className="bg-abb-red hover:bg-red-700 text-white font-bold px-4 py-2 text-xs uppercase tracking-wider rounded-lg shadow-md hover:shadow-lg transition cursor-pointer"
+              >
+                Guardar cambios
               </button>
-              <button type="button" onClick={solicitarCierreModales} className="border border-surface-stroke px-6 py-3 text-sm uppercase tracking-widest">
+              <button
+                type="button"
+                onClick={solicitarCierreModales}
+                className="border border-slate-300 bg-white hover:bg-slate-100 text-slate-700 font-semibold px-4 py-2 text-xs rounded-lg transition cursor-pointer"
+              >
                 Cancelar
               </button>
+            </>
+          }
+        >
+          <form id="form-renombrar-tablero" onSubmit={handleRenombrarTablero} className="space-y-4">
+            <div className="space-y-1">
+              <label htmlFor="nombre-tablero-edit" className="text-xs font-bold uppercase tracking-wider text-slate-700">
+                Nombre del tablero
+              </label>
+              <input
+                id="nombre-tablero-edit"
+                autoFocus
+                value={nombreTableroEdit}
+                onChange={(e) => setNombreTableroEdit(e.target.value)}
+                required
+                className="w-full text-sm border border-slate-300 rounded-lg px-3.5 py-2 focus:ring-1 focus:ring-abb-red focus:border-abb-red focus:outline-none shadow-sm"
+              />
             </div>
           </form>
-        </div>
+        </Modal>
       )}
 
 

@@ -26,7 +26,12 @@ from app.models import (
     ReglaCablecanal,
 )
 from app.routers.paginacion import LIMITE_POR_DEFECTO, acotar_paginacion
-from app.motor.motor_reglas import calcular_dimensiones_tablero
+from app.motor.motor_reglas import (
+    calcular_dimensiones_tablero,
+    validar_compatibilidad_gabinete_nollmann,
+    obtener_opciones_gabinetes_nollmann,
+    POLOS_POR_FORMATO,
+)
 
 router = APIRouter(tags=["tableros"])
 
@@ -63,6 +68,10 @@ class TableroResponse(BaseModel):
     gabinete_sugerido_codigo: str | None = None
     gabinete_sugerido_ancho_mm: int | None = None
     gabinete_sugerido_alto_mm: int | None = None
+    gabinete_alternativo_id: str | None = None
+    gabinete_alternativo_codigo: str | None = None
+    gabinete_alternativo_ancho_mm: int | None = None
+    gabinete_alternativo_alto_mm: int | None = None
     porcentaje_ocupacion: float | None = None
     excede_largo_riel: bool | None = None
     max_polos_por_fila: int | None = None
@@ -71,6 +80,8 @@ class TableroResponse(BaseModel):
     distribuidor_sugerido_id: str | None = None
     distribuidor_sugerido_codigo: str | None = None
     cablecanal_sugerido: str | None = None
+    cablecanal_periferia: str | None = None
+    cablecanal_interiores: str | None = None
     paso_mm: int
     paso_manual: int | None = None
     gabinete_manual_ancho_mm: int | None = None
@@ -93,6 +104,11 @@ def _tablero_response(db: Session, tablero: Tablero, componente: CatalogoCompone
     capacidad_polos_linea = None
     siguiente_ancho = None
 
+    gabinete_alternativo_id = None
+    gabinete_alternativo_codigo = None
+    gabinete_alternativo_ancho = None
+    gabinete_alternativo_alto = None
+
     if tablero.gabinete_sugerido_id:
         gab = db.get(CatalogoComponente, tablero.gabinete_sugerido_id)
         if gab and gab.atributos:
@@ -109,6 +125,55 @@ def _tablero_response(db: Session, tablero: Tablero, componente: CatalogoCompone
         gabinete_ancho = tablero.gabinete_manual_ancho_mm
     if tablero.gabinete_manual_alto_mm:
         gabinete_alto = tablero.gabinete_manual_alto_mm
+
+    if tablero.gabinete_manual_ancho_mm and tablero.gabinete_manual_alto_mm:
+        gab_man = db.query(CatalogoComponente).filter(
+            CatalogoComponente.categoria_raiz.ilike("%gabinete%"),
+        ).all()
+        for g in gab_man:
+            at = g.atributos or {}
+            if at.get("ancho_mm") == tablero.gabinete_manual_ancho_mm and at.get("alto_mm") == tablero.gabinete_manual_alto_mm:
+                gabinete_codigo = g.codigo
+                capacidad_polos_linea = at.get("polos_linea_200", 0) if tablero.paso_mm == 200 else at.get("polos_linea_150", 0)
+                break
+
+    try:
+        secciones_count = db.query(Seccion).filter(Seccion.tablero_id == tablero.id).count()
+        tiene_principal = tablero.interruptor_principal_id is not None
+        total_filas = (1 if tiene_principal else 0) + max(secciones_count, 1)
+
+        salidas = db.query(Salida).join(Seccion).filter(Seccion.tablero_id == tablero.id).all()
+        polos_totales = sum(POLOS_POR_FORMATO.get(s.formato, 1) for s in salidas)
+        max_polos = 1
+        if tiene_principal:
+            princ = db.get(CatalogoComponente, tablero.interruptor_principal_id)
+            if princ and princ.atributos:
+                max_polos = princ.atributos.get("polos", 4)
+                polos_totales += max_polos
+
+        for sec in db.query(Seccion).filter(Seccion.tablero_id == tablero.id).all():
+            sec_salidas = [s for s in salidas if s.seccion_id == sec.id]
+            p_sec = sum(POLOS_POR_FORMATO.get(s.formato, 1) for s in sec_salidas)
+            if p_sec > max_polos:
+                max_polos = p_sec
+
+        reserva_factor = 1 + (tablero.porcentaje_reserva / 100)
+        polos_con_reserva = int(polos_totales * reserva_factor)
+
+        _, gab_alt = obtener_opciones_gabinetes_nollmann(
+            db,
+            polos_con_reserva,
+            max_polos,
+            total_filas,
+            tablero.paso_mm or 150
+        )
+        if gab_alt and gab_alt.atributos:
+            gabinete_alternativo_id = str(gab_alt.id)
+            gabinete_alternativo_codigo = gab_alt.codigo
+            gabinete_alternativo_ancho = gab_alt.atributos.get("ancho_mm")
+            gabinete_alternativo_alto = gab_alt.atributos.get("alto_mm")
+    except Exception:
+        pass
 
     distribuidor_codigo = None
     if tablero.distribuidor_sugerido_id:
@@ -143,6 +208,10 @@ def _tablero_response(db: Session, tablero: Tablero, componente: CatalogoCompone
         gabinete_sugerido_codigo=gabinete_codigo,
         gabinete_sugerido_ancho_mm=gabinete_ancho,
         gabinete_sugerido_alto_mm=gabinete_alto,
+        gabinete_alternativo_id=gabinete_alternativo_id,
+        gabinete_alternativo_codigo=gabinete_alternativo_codigo,
+        gabinete_alternativo_ancho_mm=gabinete_alternativo_ancho,
+        gabinete_alternativo_alto_mm=gabinete_alternativo_alto,
         porcentaje_ocupacion=porcentaje_ocupacion,
         excede_largo_riel=excede_largo_riel,
         max_polos_por_fila=max_polos_por_fila,
@@ -151,8 +220,12 @@ def _tablero_response(db: Session, tablero: Tablero, componente: CatalogoCompone
         distribuidor_sugerido_id=str(tablero.distribuidor_sugerido_id) if tablero.distribuidor_sugerido_id else None,
         distribuidor_sugerido_codigo=distribuidor_codigo,
         cablecanal_sugerido=tablero.cablecanal_sugerido,
+        cablecanal_periferia=tablero.cablecanal_periferia,
+        cablecanal_interiores=tablero.cablecanal_interiores,
         paso_mm=tablero.paso_mm,
         paso_manual=tablero.paso_manual,
+        gabinete_manual_ancho_mm=tablero.gabinete_manual_ancho_mm,
+        gabinete_manual_alto_mm=tablero.gabinete_manual_alto_mm,
     )
 
 
@@ -231,6 +304,8 @@ class TableroUpdate(BaseModel):
     gabinete_manual_ancho_mm: int | None = None
     gabinete_manual_alto_mm: int | None = None
     cablecanal_sugerido: str | None = None
+    cablecanal_periferia: str | None = None
+    cablecanal_interiores: str | None = None
 
 
 @router.patch("/tableros/{tablero_id}", response_model=TableroResponse)
@@ -274,8 +349,30 @@ def actualizar_tablero(
         tablero.gabinete_manual_ancho_mm = cambios["gabinete_manual_ancho_mm"]
     if "gabinete_manual_alto_mm" in cambios:
         tablero.gabinete_manual_alto_mm = cambios["gabinete_manual_alto_mm"]
+
+    # Validación de compatibilidad estricta de gabinete Nollmann NIS (solo cuando se modifica el gabinete o el paso)
+    se_cambio_gabinete_o_paso = any(k in cambios for k in ["gabinete_manual_ancho_mm", "gabinete_manual_alto_mm", "paso_manual"])
+    if se_cambio_gabinete_o_paso and tablero.gabinete_manual_ancho_mm is not None and tablero.gabinete_manual_alto_mm is not None:
+        es_valido, motivo_error = validar_compatibilidad_gabinete_nollmann(
+            db,
+            tablero.id,
+            tablero.gabinete_manual_ancho_mm,
+            tablero.gabinete_manual_alto_mm,
+            paso_override=tablero.paso_manual,
+        )
+        if not es_valido:
+            db.rollback()
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=motivo_error,
+            )
+
     if "cablecanal_sugerido" in cambios:
         tablero.cablecanal_sugerido = cambios["cablecanal_sugerido"]
+    if "cablecanal_periferia" in cambios:
+        tablero.cablecanal_periferia = cambios["cablecanal_periferia"]
+    if "cablecanal_interiores" in cambios:
+        tablero.cablecanal_interiores = cambios["cablecanal_interiores"]
 
     db.commit()
 
@@ -347,6 +444,22 @@ def crear_seccion(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=f"Límite de chasis superado: El tablero acumulará {total_filas} filas. El gabinete Nollmann NIS de mayor capacidad admite un máximo de 12 filas (Paso 150) / 9 filas (Paso 200)."
         )
+
+    # Si está en MODO MANUAL, verificar que el gabinete seleccionado soporte la nueva sección
+    if tablero.gabinete_manual_ancho_mm is not None and tablero.gabinete_manual_alto_mm is not None:
+        es_valido, motivo_error = validar_compatibilidad_gabinete_nollmann(
+            db,
+            tablero_id,
+            tablero.gabinete_manual_ancho_mm,
+            tablero.gabinete_manual_alto_mm,
+            paso_override=tablero.paso_manual,
+            incremento_filas=1,
+        )
+        if not es_valido:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"No se puede agregar la nueva sección: {motivo_error} Amplíe el gabinete manual o restaure la selección automática.",
+            )
 
     seccion = Seccion(tablero_id=tablero_id, nombre=payload.nombre, orden=payload.orden)
     db.add(seccion)

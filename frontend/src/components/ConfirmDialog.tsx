@@ -1,5 +1,5 @@
-import { useEffect, useRef } from "react";
-import { useCerrarAlClickFuera } from "../hooks/useCerrarAlClickFuera";
+import { Modal } from "./common/Modal";
+import { ExclamationTriangleIcon } from "@heroicons/react/24/outline";
 
 interface ConfirmDialogProps {
   titulo: string;
@@ -18,58 +18,37 @@ export function ConfirmDialog({
   onCancel,
   confirmando = false,
   error = null,
-  textoConfirmar = "Borrar",
+  textoConfirmar = "Confirmar",
 }: ConfirmDialogProps) {
-  const dialogRef = useRef<HTMLDivElement>(null);
-  const { onMouseDown, onClick } = useCerrarAlClickFuera(onCancel);
-
-  useEffect(() => {
-    dialogRef.current?.focus();
-    function handleKeyDown(e: KeyboardEvent) {
-      if (e.key === "Escape") onCancel();
-    }
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [onCancel]);
-
   return (
-    <div className="fixed inset-0 z-30 flex items-center justify-center bg-black/40" onMouseDown={onMouseDown} onClick={onClick}>
-      <div
-        ref={dialogRef}
-        tabIndex={-1}
-        onClick={(e) => e.stopPropagation()}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="confirm-dialog-titulo"
-        className="flex w-96 flex-col gap-2 border border-surface-stroke bg-white p-8"
-      >
-        <h2 id="confirm-dialog-titulo" className="text-lg font-bold">
-          {titulo}
-        </h2>
-        <p>{mensaje}</p>
-        {error && (
-          <p role="alert" className="text-error">
-            {error}
-          </p>
-        )}
-        <div className="mt-4 flex gap-2">
+    <Modal
+      titulo={titulo}
+      subtitulo="Confirmación requerida"
+      icon={<ExclamationTriangleIcon className="w-5 h-5 text-abb-red" />}
+      onClose={onCancel}
+      error={error}
+      size="sm"
+      footer={
+        <>
           <button
             type="button"
             onClick={onConfirm}
             disabled={confirmando}
-            className="bg-abb-red px-6 py-3 text-sm uppercase tracking-widest text-white disabled:opacity-50"
+            className="bg-abb-red hover:bg-red-700 text-white font-bold px-4 py-2 text-xs uppercase tracking-wider rounded-lg shadow-md hover:shadow-lg transition disabled:opacity-50 cursor-pointer"
           >
-            {textoConfirmar}
+            {confirmando ? "Procesando..." : textoConfirmar}
           </button>
           <button
             type="button"
             onClick={onCancel}
-            className="border border-surface-stroke px-6 py-3 text-sm uppercase tracking-widest"
+            className="border border-slate-300 bg-white hover:bg-slate-100 text-slate-700 font-semibold px-4 py-2 text-xs rounded-lg transition cursor-pointer"
           >
             Cancelar
           </button>
-        </div>
-      </div>
-    </div>
+        </>
+      }
+    >
+      <p className="text-sm leading-relaxed text-slate-600">{mensaje}</p>
+    </Modal>
   );
 }

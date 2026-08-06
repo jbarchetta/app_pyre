@@ -23,8 +23,7 @@ import {
 } from "../api/client";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { EstadoProyectoBadge } from "../components/EstadoProyectoBadge";
-import { Badge, Button, Card, Field, Input, Select } from "../components/common";
-import { useCerrarAlClickFuera } from "../hooks/useCerrarAlClickFuera";
+import { Badge, Button, Card, Field, Input, Select, Modal } from "../components/common";
 
 type Modal = { tipo: "crear" } | { tipo: "editar"; proyecto: Proyecto } | null;
 type ModoVista = "tarjetas" | "tabla";
@@ -78,8 +77,6 @@ export function ProyectosPage() {
     setError(null);
     triggerRef.current?.focus();
   }, []);
-
-  const { onMouseDown: onMouseDownModal, onClick: onClickModal } = useCerrarAlClickFuera(cerrarModal);
 
   useEffect(() => {
     if (!modal) return;
@@ -434,23 +431,25 @@ export function ProyectosPage() {
       {/* El <form> es a la vez el diálogo: mantenerlo así deja el botón de
           submit dentro del formulario. */}
       {modal && (
-        <div
-          className="fixed inset-0 z-30 flex items-center justify-center bg-ink/40 p-4 backdrop-blur-[1px]"
-          onMouseDown={onMouseDownModal}
-          onClick={onClickModal}
+        <Modal
+          titulo={modal.tipo === "editar" ? "Editar proyecto" : "Nuevo proyecto"}
+          subtitulo="Gestión de obras e ingeniería de tableros"
+          icon={<FolderOpenIcon className="w-5 h-5 text-abb-red" />}
+          onClose={cerrarModal}
+          error={error}
+          size="md"
+          footer={
+            <>
+              <Button type="submit" form="form-proyecto" variant="primary" size="md" isLoading={guardando}>
+                {modal.tipo === "editar" ? "Guardar cambios" : "Crear proyecto"}
+              </Button>
+              <Button type="button" variant="secondary" size="md" onClick={cerrarModal}>
+                Cancelar
+              </Button>
+            </>
+          }
         >
-          <form
-            onSubmit={handleSubmit}
-            onClick={(e) => e.stopPropagation()}
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="proyecto-modal-titulo"
-            className="flex w-full max-w-md flex-col gap-4 rounded-modal border border-line bg-surface p-6 shadow-modal"
-          >
-            <h2 id="proyecto-modal-titulo" className="border-b border-line pb-3 text-base font-bold text-ink">
-              {modal.tipo === "editar" ? "Editar proyecto" : "Nuevo proyecto"}
-            </h2>
-
+          <form id="form-proyecto" onSubmit={handleSubmit} className="space-y-4">
             <Field label="Cliente" required>
               {(p) => (
                 <Input {...p} ref={clienteInputRef} value={cliente} onChange={(e) => setCliente(e.target.value)} />
@@ -492,23 +491,8 @@ export function ProyectosPage() {
                 )}
               </Field>
             )}
-
-            {error && (
-              <p role="alert" className="rounded-control bg-danger-tint p-2.5 text-sm text-danger">
-                {error}
-              </p>
-            )}
-
-            <div className="mt-2 flex justify-end gap-2 border-t border-line pt-4">
-              <Button type="button" variant="secondary" size="md" onClick={cerrarModal}>
-                Cancelar
-              </Button>
-              <Button type="submit" variant="primary" size="md" isLoading={guardando}>
-                {modal.tipo === "editar" ? "Guardar cambios" : "Crear proyecto"}
-              </Button>
-            </div>
           </form>
-        </div>
+        </Modal>
       )}
 
       {aBorrar && (

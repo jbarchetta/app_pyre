@@ -44,13 +44,15 @@ interface CadViewerCanvasProps {
   gabineteSugeridoAlto?: number | null;
   pasoMm?: number | null;
   cablecanalSugerido?: string | null;
+  cablecanalPeriferia?: string | null;
+  cablecanalInteriores?: string | null;
   modoVisual?: "topografico" | "bloques" | "unifilar";
   onModoVisualChange?: (modo: "topografico" | "bloques" | "unifilar") => void;
   tabActivo?: string;
 }
 
-const ZOOM_MIN = 0.5;
-const ZOOM_MAX = 2.5;
+const ZOOM_MIN = 0.1;
+const ZOOM_MAX = 3.0;
 
 function limitar(valor: number): number {
   return Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, Number(valor.toFixed(2))));
@@ -75,6 +77,8 @@ export function CadViewerCanvas({
   gabineteSugeridoAlto,
   pasoMm,
   cablecanalSugerido,
+  cablecanalPeriferia,
+  cablecanalInteriores,
   modoVisual: modoVisualProp = "topografico",
 }: CadViewerCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -133,8 +137,10 @@ export function CadViewerCanvas({
       gabineteAltoMm: gabineteSugeridoAlto,
       pasoMm: pasoMm,
       cablecanalSugerido: cablecanalSugerido,
+      cablecanalPeriferia: cablecanalPeriferia,
+      cablecanalInteriores: cablecanalInteriores,
     });
-  }, [tieneInterruptorPrincipal, interruptorPrincipal, secciones, gabineteSugeridoAncho, gabineteSugeridoAlto, pasoMm, cablecanalSugerido, dxfCargado]);
+  }, [tieneInterruptorPrincipal, interruptorPrincipal, secciones, gabineteSugeridoAncho, gabineteSugeridoAlto, pasoMm, cablecanalSugerido, cablecanalPeriferia, cablecanalInteriores, dxfCargado]);
 
   const cadDocUnif = useMemo(() => {
     return generateBoardCadDocument({
@@ -146,8 +152,10 @@ export function CadViewerCanvas({
       gabineteAltoMm: gabineteSugeridoAlto,
       pasoMm: pasoMm,
       cablecanalSugerido: cablecanalSugerido,
+      cablecanalPeriferia: cablecanalPeriferia,
+      cablecanalInteriores: cablecanalInteriores,
     });
-  }, [tieneInterruptorPrincipal, interruptorPrincipal, secciones, gabineteSugeridoAncho, gabineteSugeridoAlto, pasoMm, cablecanalSugerido, dxfCargado]);
+  }, [tieneInterruptorPrincipal, interruptorPrincipal, secciones, gabineteSugeridoAncho, gabineteSugeridoAlto, pasoMm, cablecanalSugerido, cablecanalPeriferia, cablecanalInteriores, dxfCargado]);
 
   const cadDoc = modoVisual === "unifilar" ? cadDocUnif : cadDocTopo;
 

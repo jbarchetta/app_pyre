@@ -274,6 +274,25 @@ def _validar_limite_polos_seccion(
             detail=f"Límite de chasis superado: La sección acumulará {total_polos} polos DIN. El límite máximo permitido por chasis Nollmann NIS es de 45 polos por fila."
         )
 
+    # Si el tablero está en MODO MANUAL, verificar que la fila no exceda los polos admitidos por el gabinete manual
+    seccion = db.get(Seccion, seccion_id)
+    if seccion:
+        tablero = db.get(Tablero, seccion.tablero_id)
+        if tablero and tablero.gabinete_manual_ancho_mm is not None and tablero.gabinete_manual_alto_mm is not None:
+            gabs = db.query(CatalogoComponente).filter(
+                CatalogoComponente.categoria_raiz.ilike("%gabinete%"),
+            ).all()
+            gab_match = next((g for g in gabs if (g.atributos or {}).get("ancho_mm") == tablero.gabinete_manual_ancho_mm and (g.atributos or {}).get("alto_mm") == tablero.gabinete_manual_alto_mm), None)
+            if gab_match:
+                attrs = gab_match.atributos or {}
+                paso = tablero.paso_manual or tablero.paso_mm or 150
+                capacidad_linea = attrs.get("polos_linea_200", 0) if paso == 200 else attrs.get("polos_linea_150", 0)
+                if capacidad_linea > 0 and total_polos > capacidad_linea:
+                    raise HTTPException(
+                        status_code=status.HTTP_400_BAD_REQUEST,
+                        detail=f"Capacidad de fila superada: La sección acumulará {total_polos} polos DIN, pero el gabinete manual seleccionado ({tablero.gabinete_manual_ancho_mm}x{tablero.gabinete_manual_alto_mm} mm) admite un máximo de {capacidad_linea} polos por fila. Amplíe el gabinete manual o restaure la selección automática."
+                    )
+
 
 @router.post("/secciones/{seccion_id}/salidas", response_model=SalidaResponse, status_code=status.HTTP_201_CREATED)
 def crear_salida(

@@ -175,6 +175,10 @@ export interface Tablero {
   gabinete_sugerido_codigo?: string | null;
   gabinete_sugerido_ancho_mm?: number | null;
   gabinete_sugerido_alto_mm?: number | null;
+  gabinete_alternativo_id?: string | null;
+  gabinete_alternativo_codigo?: string | null;
+  gabinete_alternativo_ancho_mm?: number | null;
+  gabinete_alternativo_alto_mm?: number | null;
   porcentaje_ocupacion?: number | null;
   excede_largo_riel?: boolean | null;
   max_polos_por_fila?: number | null;
@@ -183,6 +187,8 @@ export interface Tablero {
   distribuidor_sugerido_id?: string | null;
   distribuidor_sugerido_codigo?: string | null;
   cablecanal_sugerido?: string | null;
+  cablecanal_periferia?: string | null;
+  cablecanal_interiores?: string | null;
   paso_mm?: number;
   paso_manual?: number | null;
   gabinete_manual_ancho_mm?: number | null;
@@ -235,6 +241,8 @@ export interface TableroUpdate {
   gabinete_manual_ancho_mm?: number | null;
   gabinete_manual_alto_mm?: number | null;
   cablecanal_sugerido?: string | null;
+  cablecanal_periferia?: string | null;
+  cablecanal_interiores?: string | null;
   gabinete_sugerido_ancho_mm?: number | null;
   gabinete_sugerido_alto_mm?: number | null;
 }

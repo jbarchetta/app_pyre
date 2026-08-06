@@ -10,6 +10,9 @@ import {
   CheckCircleIcon,
   CubeIcon,
   ArrowsPointingInIcon,
+  SparklesIcon,
+  ArrowPathIcon,
+  Cog6ToothIcon,
 } from "@heroicons/react/24/outline";
 import {
   actualizarSeccion,
@@ -145,12 +148,16 @@ export function DetalleTablero({
   const [modalAccesorioManual, setModalAccesorioManual] = useState(false);
   const modalAccesorioManualRef = useRef(false);
   const [canaletaCategoria, setCanaletaCategoria] = useState<"todas" | "periferia" | "interiores">("todas");
+  const [flashAnimacion, setFlashAnimacion] = useState(false);
+  const [errorIncompatibleMsg, setErrorIncompatibleMsg] = useState<string | null>(null);
 
   const [configFisicaLocal, setConfigFisicaLocal] = useState<{
     gabinete_manual_ancho_mm?: number | null;
     gabinete_manual_alto_mm?: number | null;
     paso_manual?: number | null;
     cablecanal_sugerido?: string | null;
+    cablecanal_periferia?: string | null;
+    cablecanal_interiores?: string | null;
   }>({});
 
   useEffect(() => {
@@ -159,8 +166,17 @@ export function DetalleTablero({
       gabinete_manual_alto_mm: tablero.gabinete_manual_alto_mm ?? null,
       paso_manual: tablero.paso_manual ?? null,
       cablecanal_sugerido: tablero.cablecanal_sugerido ?? null,
+      cablecanal_periferia: tablero.cablecanal_periferia ?? null,
+      cablecanal_interiores: tablero.cablecanal_interiores ?? null,
     });
-  }, [tablero.gabinete_manual_ancho_mm, tablero.gabinete_manual_alto_mm, tablero.paso_manual, tablero.cablecanal_sugerido]);
+  }, [
+    tablero.gabinete_manual_ancho_mm,
+    tablero.gabinete_manual_alto_mm,
+    tablero.paso_manual,
+    tablero.cablecanal_sugerido,
+    tablero.cablecanal_periferia,
+    tablero.cablecanal_interiores,
+  ]);
 
   const gabineteAnchoEfectivo =
     configFisicaLocal.gabinete_manual_ancho_mm !== undefined
@@ -183,6 +199,23 @@ export function DetalleTablero({
     configFisicaLocal.cablecanal_sugerido !== undefined
       ? configFisicaLocal.cablecanal_sugerido
       : tablero.cablecanal_sugerido;
+
+  const cablecanalPeriferiaEfectivo =
+    configFisicaLocal.cablecanal_periferia !== undefined
+      ? configFisicaLocal.cablecanal_periferia
+      : tablero.cablecanal_periferia;
+
+  const cablecanalInterioresEfectivo =
+    configFisicaLocal.cablecanal_interiores !== undefined
+      ? configFisicaLocal.cablecanal_interiores
+      : tablero.cablecanal_interiores;
+
+  const esManualFisico = Boolean(
+    (configFisicaLocal.gabinete_manual_ancho_mm && configFisicaLocal.gabinete_manual_alto_mm) ||
+    configFisicaLocal.paso_manual !== null ||
+    configFisicaLocal.cablecanal_periferia ||
+    configFisicaLocal.cablecanal_interiores
+  );
 
   useEffect(() => {
     modalAccesorioManualRef.current = modalAccesorioManual;
@@ -322,14 +355,60 @@ export function DetalleTablero({
     }
   }
 
+  const dispararFlash = useCallback(() => {
+    setFlashAnimacion(true);
+    const timer = setTimeout(() => setFlashAnimacion(false), 600);
+    return () => clearTimeout(timer);
+  }, []);
+
   async function handleCambiarConfigFisica(cambios: any) {
     setConfigFisicaLocal((prev) => ({ ...prev, ...cambios }));
+    dispararFlash();
     try {
       const actualizado = await actualizarTablero(tablero.id, cambios);
       onTableroActualizado(actualizado);
       await cargar();
     } catch (err) {
       console.error("Error al actualizar config física:", err);
+      // Revertir estado local si falló por incompatibilidad
+      setConfigFisicaLocal({
+        gabinete_manual_ancho_mm: tablero.gabinete_manual_ancho_mm ?? null,
+        gabinete_manual_alto_mm: tablero.gabinete_manual_alto_mm ?? null,
+        paso_manual: tablero.paso_manual ?? null,
+        cablecanal_sugerido: tablero.cablecanal_sugerido ?? null,
+        cablecanal_periferia: tablero.cablecanal_periferia ?? null,
+        cablecanal_interiores: tablero.cablecanal_interiores ?? null,
+      });
+      const msg = err instanceof Error ? err.message : "El gabinete seleccionado es demasiado pequeño para alojar las filas/polos del tablero.";
+      setErrorIncompatibleMsg(msg);
+    }
+  }
+
+  async function handleRestaurarAuto() {
+    const resetValues = {
+      gabinete_manual_ancho_mm: null,
+      gabinete_manual_alto_mm: null,
+      paso_manual: null,
+      cablecanal_sugerido: null,
+      cablecanal_periferia: null,
+      cablecanal_interiores: null,
+    };
+    setConfigFisicaLocal(resetValues);
+    dispararFlash();
+    try {
+      const actualizado = await actualizarTablero(tablero.id, resetValues);
+      onTableroActualizado(actualizado);
+      setConfigFisicaLocal({
+        gabinete_manual_ancho_mm: actualizado.gabinete_manual_ancho_mm ?? null,
+        gabinete_manual_alto_mm: actualizado.gabinete_manual_alto_mm ?? null,
+        paso_manual: actualizado.paso_manual ?? null,
+        cablecanal_sugerido: actualizado.cablecanal_sugerido ?? null,
+        cablecanal_periferia: actualizado.cablecanal_periferia ?? null,
+        cablecanal_interiores: actualizado.cablecanal_interiores ?? null,
+      });
+      await cargar();
+    } catch (err) {
+      console.error("Error al restaurar auto:", err);
     }
   }
 
@@ -996,7 +1075,23 @@ export function DetalleTablero({
                 salidas={seccionSeleccionada.salidas}
                 todasLasSeccionesConSalidas={secciones ?? []}
                 gabineteAnchoMm={tablero.gabinete_sugerido_ancho_mm}
-                onAbrirConfiguracionTablero={() => setTabSeleccionadoRaw(TAB_PRINCIPAL)}
+                gabineteActualAncho={gabineteAnchoEfectivo}
+                gabineteActualAlto={gabineteAltoEfectivo}
+                gabineteSugerido={
+                  tablero.gabinete_sugerido_ancho_mm && tablero.gabinete_sugerido_alto_mm
+                    ? { codigo: tablero.gabinete_sugerido_codigo || undefined, ancho: tablero.gabinete_sugerido_ancho_mm, alto: tablero.gabinete_sugerido_alto_mm }
+                    : null
+                }
+                gabineteAlternativo={
+                  tablero.gabinete_alternativo_ancho_mm && tablero.gabinete_alternativo_alto_mm
+                    ? { codigo: tablero.gabinete_alternativo_codigo || undefined, ancho: tablero.gabinete_alternativo_ancho_mm, alto: tablero.gabinete_alternativo_alto_mm }
+                    : null
+                }
+                onCambiarConfigFisica={handleCambiarConfigFisica}
+                onAbrirConfiguracionTablero={() => {
+                  setPanelLateralColapsado(false);
+                  dispararFlash();
+                }}
                 onSaltoAutomaticoGabineteNIS={(accion) => handleSaltoAutomaticoGabineteNIS(seccionSeleccionada.seccion.id, accion)}
                 elementosCandidatos={(secciones ?? []).flatMap((s, sIdx) => {
                   const sNum = s.seccion.orden != null ? s.seccion.orden + 1 : sIdx + 1;
@@ -1023,7 +1118,7 @@ export function DetalleTablero({
       {/* ZONA DE VISOR CAD Y PANEL LATERAL DERECHO */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch">
         {/* Columna Izquierda: Visor del Unifilar / Bloques LIVE_SCHEMATIC_VIEWER */}
-        <div className={`${panelLateralColapsado ? "lg:col-span-12" : "lg:col-span-8"} w-full flex flex-col justify-start h-full`}>
+        <div className={`${panelLateralColapsado ? "lg:col-span-12" : "lg:col-span-8"} w-full flex flex-col justify-start h-full transition-all duration-300 rounded-xl ${flashAnimacion ? "ring-2 ring-emerald-500 shadow-lg shadow-emerald-500/20" : ""}`}>
           <EsquemaVisualCanvas
             tieneInterruptorPrincipal={!!tablero.interruptor_principal_id}
             interruptorPrincipal={{
@@ -1054,6 +1149,8 @@ export function DetalleTablero({
             metodoSalida={tablero.principal_metodo_salida}
             bornerasTipo={tablero.borneras_tipo}
             cablecanalSugerido={cablecanalEfectivo}
+            cablecanalPeriferia={cablecanalPeriferiaEfectivo}
+            cablecanalInteriores={cablecanalInterioresEfectivo}
             gabineteSugeridoAncho={gabineteAnchoEfectivo}
             gabineteSugeridoAlto={gabineteAltoEfectivo}
             pasoMm={pasoMmEfectivo}
@@ -1153,22 +1250,50 @@ export function DetalleTablero({
             </div>
 
               {/* Card: GABINETE Y ESTRUCTURA REUNIFICADO */}
-              <div className="bg-white border border-surface-stroke rounded-xl shadow-sm overflow-hidden shrink-0">
+              <div className={`bg-white border border-surface-stroke rounded-xl shadow-sm overflow-hidden shrink-0 transition-all duration-300 ${flashAnimacion ? "ring-2 ring-emerald-500 shadow-lg shadow-emerald-500/20" : ""}`}>
                 <div className="border-b border-surface-stroke bg-gray-50 px-4 py-2.5 flex items-center justify-between">
                   <h4 className="font-mono text-xs font-bold uppercase tracking-wider text-gray-700 flex items-center gap-1.5">
                     <CubeIcon className="w-4 h-4 text-abb-red" /> GABINETE Y ESTRUCTURA
                   </h4>
                   <div className="flex items-center gap-1.5">
-                    <span className={`text-[10px] font-mono font-bold px-2 py-0.5 rounded border ${
-                      !tablero.gabinete_manual_ancho_mm && !tablero.paso_manual && (!tablero.cablecanal_sugerido || tablero.cablecanal_sugerido === "auto")
-                        ? "bg-emerald-50 text-emerald-700 border-emerald-300"
-                        : "bg-amber-50 text-amber-700 border-amber-300"
-                    }`}>
-                      {!tablero.gabinete_manual_ancho_mm && !tablero.paso_manual && (!tablero.cablecanal_sugerido || tablero.cablecanal_sugerido === "auto") ? "[AUTO]" : "[MANUAL]"}
-                    </span>
-                    <span className="text-[10px] font-mono font-bold text-gray-600 bg-gray-100 border border-gray-200 px-1.5 py-0.5 rounded">
-                      NOLLMANN NIS
-                    </span>
+                    {esManualFisico ? (
+                      <>
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 border border-amber-300">
+                          <PencilSquareIcon className="w-3 h-3 text-amber-600" />
+                          MANUAL
+                        </span>
+                        <button
+                          type="button"
+                          onClick={handleRestaurarAuto}
+                          className="inline-flex items-center gap-1 px-2 py-0.5 text-[11px] font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 rounded transition cursor-pointer"
+                          title="Restaurar cálculo automático Nollmann / Zoloda"
+                        >
+                          <ArrowPathIcon className="w-3.5 h-3.5" />
+                          Restaurar Auto
+                        </button>
+                      </>
+                    ) : configFisicaLocal.gabinete_manual_ancho_mm ? (
+                      <>
+                        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-sky-100 text-sky-800 border border-sky-300">
+                          <SparklesIcon className="w-3 h-3 text-sky-600" />
+                          AUTO ({configFisicaLocal.gabinete_manual_ancho_mm}mm)
+                        </span>
+                        <button
+                          type="button"
+                          onClick={handleRestaurarAuto}
+                          className="inline-flex items-center gap-1 px-2 py-0.5 text-[11px] font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-300 rounded transition cursor-pointer"
+                          title="Restaurar cálculo automático Nollmann"
+                        >
+                          <ArrowPathIcon className="w-3.5 h-3.5" />
+                          Restaurar Auto
+                        </button>
+                      </>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                        <SparklesIcon className="w-3 h-3 text-emerald-600" />
+                        AUTO
+                      </span>
+                    )}
                   </div>
                 </div>
 
@@ -1176,15 +1301,15 @@ export function DetalleTablero({
                   <div className="flex justify-between items-center py-1 border-b border-gray-100">
                     <span className="text-gray-500 font-medium">CÓDIGO GABINETE:</span>
                     <span className="font-bold text-gray-900">
-                      {tablero.gabinete_sugerido_codigo || "Sin gabinete asignado"}
+                      {tablero.gabinete_sugerido_codigo || "NIS 450.600.XX"}
                     </span>
                   </div>
 
                   <div className="flex justify-between items-center py-1 border-b border-gray-100">
                     <span className="text-gray-500 font-medium">MEDIDAS REALES:</span>
                     <span className="font-bold text-gray-900">
-                      {tablero.gabinete_sugerido_ancho_mm && tablero.gabinete_sugerido_alto_mm
-                        ? `${tablero.gabinete_sugerido_ancho_mm} x ${tablero.gabinete_sugerido_alto_mm} x 225 mm`
+                      {gabineteAnchoEfectivo && gabineteAltoEfectivo
+                        ? `${gabineteAnchoEfectivo} x ${gabineteAltoEfectivo} x 225 mm`
                         : "—"}
                     </span>
                   </div>
@@ -1212,20 +1337,23 @@ export function DetalleTablero({
                       }}
                       className="border border-surface-stroke bg-white px-2 py-0.5 text-xs font-bold text-gray-900 rounded-md focus:outline-none focus:ring-1 focus:ring-abb-red cursor-pointer"
                     >
-                      <option value="auto">Auto ({tablero.gabinete_sugerido_ancho_mm || 450}x{tablero.gabinete_sugerido_alto_mm || 600} mm)</option>
-                      <option value="450x600">NIS 450 (450 x 600 mm)</option>
-                      <option value="600x600">NIS 600 (600 x 600 mm)</option>
-                      <option value="450x750">NIS 750 (450 x 750 mm)</option>
-                      <option value="600x750">NIS 750 (600 x 750 mm)</option>
-                      <option value="750x750">NIS 750 (750 x 750 mm)</option>
-                      <option value="600x1050">NIS 1050 (600 x 1050 mm)</option>
-                      <option value="750x1050">NIS 1050 (750 x 1050 mm)</option>
-                      <option value="800x1000">NIS 800 (800 x 1000 mm)</option>
-                      <option value="1000x1350">NIS 1350 (1000 x 1350 mm)</option>
+                      <option value="auto">Auto ({tablero.gabinete_sugerido_codigo || "NIS 450.600.XX"})</option>
+                      <option value="450x600">NIS 450.600.XX (450 x 600 mm)</option>
+                      <option value="600x600">NIS 600.600.XX (600 x 600 mm)</option>
+                      <option value="450x750">NIS 450.750.XX (450 x 750 mm)</option>
+                      <option value="600x750">NIS 600.750.XX (600 x 750 mm)</option>
+                      <option value="750x750">NIS 750.750.XX (750 x 750 mm)</option>
+                      <option value="600x1050">NIS 600.1050.XX (600 x 1050 mm)</option>
+                      <option value="750x1050">NIS 750.1050.XX (750 x 1050 mm)</option>
+                      <option value="600x1200">NIS 600.1200.XX (600 x 1200 mm)</option>
+                      <option value="750x1200">NIS 750.1200.XX (750 x 1200 mm)</option>
+                      <option value="1000x1350">NIS 1000.1350.XX (1000 x 1350 mm)</option>
                     </select>
                   </div>
 
-                  {/* 2. PASO INTER-FILAS (RECUPERADO) */}
+
+
+                  {/* 2. PASO INTER-FILAS */}
                   <div className="flex justify-between items-center py-1 border-b border-gray-100">
                     <label htmlFor="dim-paso" className="text-gray-500 font-medium">PASO INTER-FILAS:</label>
                     <select
@@ -1245,41 +1373,57 @@ export function DetalleTablero({
                     </select>
                   </div>
 
-                  {/* 3. SECCIÓN DE CABLE CANAL */}
+                  {/* 3. CATEGORÍA APLICA CANALETA */}
                   <div className="flex justify-between items-center py-1 border-b border-gray-100">
+                    <label htmlFor="dim-categoria" className="text-gray-500 font-medium">CATEGORÍA APLICA:</label>
+                    <select
+                      id="dim-categoria"
+                      value={canaletaCategoria}
+                      onChange={(e) => setCanaletaCategoria(e.target.value as "todas" | "periferia" | "interiores")}
+                      className="border border-surface-stroke bg-white px-2 py-0.5 text-xs font-bold text-gray-900 rounded-md focus:outline-none focus:ring-1 focus:ring-sky-600 cursor-pointer"
+                    >
+                      <option value="todas">Todas (Periferia + Interiores)</option>
+                      <option value="periferia">Periferia (Costados + Fondo)</option>
+                      <option value="interiores">Interiores (Entre Filas)</option>
+                    </select>
+                  </div>
+
+                  {/* 4. SECCIÓN CABLE CANAL */}
+                  <div className="flex justify-between items-center py-1">
                     <label htmlFor="dim-cablecanal" className="text-gray-500 font-medium">CABLE CANAL:</label>
                     <select
                       id="dim-cablecanal"
-                      value={configFisicaLocal.cablecanal_sugerido || "auto"}
+                      value={
+                        canaletaCategoria === "periferia"
+                          ? (configFisicaLocal.cablecanal_periferia || configFisicaLocal.cablecanal_sugerido || "auto")
+                          : canaletaCategoria === "interiores"
+                          ? (configFisicaLocal.cablecanal_interiores || configFisicaLocal.cablecanal_sugerido || "auto")
+                          : (configFisicaLocal.cablecanal_sugerido || "auto")
+                      }
                       onChange={(e) => {
                         const val = e.target.value;
-                        handleCambiarConfigFisica({
-                          cablecanal_sugerido: val === "auto" ? null : val,
-                        });
+                        const targetVal = val === "auto" ? null : val;
+                        if (canaletaCategoria === "periferia") {
+                          handleCambiarConfigFisica({ cablecanal_periferia: targetVal });
+                        } else if (canaletaCategoria === "interiores") {
+                          handleCambiarConfigFisica({ cablecanal_interiores: targetVal });
+                        } else {
+                          handleCambiarConfigFisica({
+                            cablecanal_sugerido: targetVal,
+                            cablecanal_periferia: targetVal,
+                            cablecanal_interiores: targetVal,
+                          });
+                        }
                       }}
                       className="border border-surface-stroke bg-white px-2 py-0.5 text-xs font-bold text-gray-900 rounded-md focus:outline-none focus:ring-1 focus:ring-sky-600 cursor-pointer"
                     >
-                      <option value="auto">Auto (25x40 mm)</option>
+                      <option value="auto">Auto ({tablero.cablecanal_sugerido || "25x40"} mm)</option>
                       <option value="25x40">25 x 40 mm</option>
                       <option value="40x40">40 x 40 mm</option>
                       <option value="40x60">40 x 60 mm</option>
                       <option value="60x60">60 x 60 mm</option>
                       <option value="60x80">60 x 80 mm</option>
                       <option value="80x80">80 x 80 mm</option>
-                    </select>
-                  </div>
-
-                  {/* 4. CATEGORÍA APLICA CANALETA */}
-                  <div className="flex justify-between items-center py-1">
-                    <span className="text-gray-500 font-medium">CATEGORÍA:</span>
-                    <select
-                      value={canaletaCategoria}
-                      onChange={(e) => setCanaletaCategoria(e.target.value as "todas" | "periferia" | "interiores")}
-                      className="border border-surface-stroke bg-white px-2 py-0.5 text-xs font-bold text-gray-900 rounded-md focus:outline-none focus:ring-1 focus:ring-sky-600 cursor-pointer"
-                    >
-                      <option value="todas">Todas (Periferia + Interiores)</option>
-                      <option value="periferia">Periferia (Marco Exterior)</option>
-                      <option value="interiores">Interiores (Inter-filas)</option>
                     </select>
                   </div>
                 </div>
@@ -1291,6 +1435,8 @@ export function DetalleTablero({
       {modalNuevaFila && (
         <Modal
           titulo="Nueva fila"
+          subtitulo="Creación de sección DIN para distribución de circuitos"
+          icon={<PlusIcon className="w-5 h-5 text-abb-red" />}
           onClose={solicitarCierreModales}
           error={error}
           footer={
@@ -1323,6 +1469,8 @@ export function DetalleTablero({
       {filaEnEdicion && (
         <Modal
           titulo="Renombrar fila"
+          subtitulo="Modificación del identificador de sección DIN"
+          icon={<PencilIcon className="w-5 h-5 text-abb-red" />}
           onClose={solicitarCierreModales}
           error={error}
           footer={
@@ -1370,6 +1518,8 @@ export function DetalleTablero({
       {modalIcc && (
         <Modal
           titulo="Intensidad de Cortocircuito (Icc)"
+          subtitulo="Configuración del nivel de falla del sistema en kA"
+          icon={<Cog6ToothIcon className="w-5 h-5 text-abb-red" />}
           onClose={solicitarCierreModales}
           error={error}
           footer={
@@ -1413,6 +1563,8 @@ export function DetalleTablero({
       {modalRenombrarTablero && (
         <Modal
           titulo="Renombrar Tablero"
+          subtitulo="Actualización de denominación técnica del tablero"
+          icon={<PencilIcon className="w-5 h-5 text-abb-red" />}
           onClose={solicitarCierreModales}
           error={error}
           footer={
@@ -1467,6 +1619,135 @@ export function DetalleTablero({
           onCancel={cerrarModales}
         />
       )}
+
+      {/* Modal de Advertencia por Límite / Incompatibilidad Estricta de Gabinete Nollmann NIS */}
+      {errorIncompatibleMsg && (() => {
+        const currW = gabineteAnchoEfectivo || 450;
+        const currH = gabineteAltoEfectivo || 600;
+
+        let optEstandarAncho = tablero.gabinete_sugerido_ancho_mm || currW;
+        let optEstandarAlto = tablero.gabinete_sugerido_alto_mm || (currH + 150);
+
+        if (optEstandarAncho === currW && optEstandarAlto === currH) {
+          const listH = [600, 750, 1050, 1200, 1350, 1500, 1650, 1800, 2000];
+          optEstandarAlto = listH.find((h) => h > currH) || (currH + 150);
+        }
+
+        let optAltAncho = tablero.gabinete_alternativo_ancho_mm || (currW === 450 ? 600 : 750);
+        let optAltAlto = tablero.gabinete_alternativo_alto_mm || currH;
+
+        if (optAltAncho === optEstandarAncho && optAltAlto === optEstandarAlto) {
+          optAltAncho = currW === 450 ? 600 : 750;
+        }
+
+        return (
+          <Modal
+            titulo="Límite de Capacidad - Selección de Gabinete"
+            subtitulo="Capacidad física superada en la envolvente actual"
+            icon={<ExclamationTriangleIcon className="w-5 h-5 text-amber-500" />}
+            onClose={() => setErrorIncompatibleMsg(null)}
+            footer={
+              <Button type="button" variant="secondary" onClick={() => setErrorIncompatibleMsg(null)}>
+                Cerrar
+              </Button>
+            }
+          >
+            <div className="flex items-start gap-3 p-2 border-b border-gray-100 pb-3">
+              <div className="p-2 bg-amber-100 text-amber-600 rounded-full shrink-0">
+                <ExclamationTriangleIcon className="w-6 h-6" />
+              </div>
+              <div className="space-y-1 text-xs font-sans">
+                <p className="font-bold text-gray-900 text-sm">
+                  Capacidad del Gabinete Actual Superada
+                </p>
+                <p className="text-gray-700 leading-relaxed">
+                  {errorIncompatibleMsg}
+                </p>
+              </div>
+            </div>
+
+            <div className="pt-3 space-y-3">
+              <p className="text-xs font-bold text-gray-800">
+                Seleccione una opción para ampliar el gabinete y resolver el límite:
+              </p>
+
+              <div className="space-y-2">
+                {/* Opción 1: Gabinete Sugerido Estándar */}
+                <div className="p-2.5 bg-emerald-50 border border-emerald-200 rounded-lg flex items-center justify-between gap-2">
+                  <div>
+                    <div className="text-xs font-bold text-emerald-900">
+                      Opción Recomendada (Por Menor Costo):
+                    </div>
+                    <div className="text-xs font-mono font-semibold text-emerald-700">
+                      NIS {optEstandarAncho}.{optEstandarAlto}.XX ({optEstandarAncho} x {optEstandarAlto} mm)
+                    </div>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="primary"
+                    onClick={() => {
+                      setErrorIncompatibleMsg(null);
+                      handleCambiarConfigFisica({
+                        gabinete_manual_ancho_mm: optEstandarAncho,
+                        gabinete_manual_alto_mm: optEstandarAlto,
+                      });
+                    }}
+                  >
+                    Aplicar {optEstandarAncho}x{optEstandarAlto}
+                  </Button>
+                </div>
+
+                {/* Opción 2: Formato Alternativo (Más Ancho) */}
+                <div className="p-2.5 bg-sky-50 border border-sky-200 rounded-lg flex items-center justify-between gap-2">
+                  <div>
+                    <div className="text-xs font-bold text-sky-900">
+                      Opción Formato Alternativo (Más Ancho):
+                    </div>
+                    <div className="text-xs font-mono font-semibold text-sky-700">
+                      NIS {optAltAncho}.{optAltAlto}.XX ({optAltAncho} x {optAltAlto} mm)
+                    </div>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={() => {
+                      setErrorIncompatibleMsg(null);
+                      handleCambiarConfigFisica({
+                        gabinete_manual_ancho_mm: optAltAncho,
+                        gabinete_manual_alto_mm: optAltAlto,
+                      });
+                    }}
+                  >
+                    Aplicar {optAltAncho}x{optAltAlto}
+                  </Button>
+                </div>
+
+                {/* Opción 3: Restaurar Modo Auto */}
+                <div className="p-2.5 bg-gray-50 border border-gray-200 rounded-lg flex items-center justify-between gap-2">
+                  <div>
+                    <div className="text-xs font-bold text-gray-800">
+                      Restaurar Selección Automática
+                    </div>
+                    <div className="text-[11px] text-gray-500">
+                      Permite que el sistema adapte el gabinete automáticamente
+                    </div>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={() => {
+                      setErrorIncompatibleMsg(null);
+                      handleRestaurarAuto();
+                    }}
+                  >
+                    Restaurar Auto
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </Modal>
+        );
+      })()}
     </div>
   );
 }

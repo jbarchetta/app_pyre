@@ -134,11 +134,32 @@ def seleccionar_gabinete_nollmann(
     total_filas: int = 1,
     paso: int = 150,
     ancho_requerido: int = 0,
-    alto_requerido: int = 0
+    alto_requerido: int = 0,
+    ancho_preferido: int = 0,
 ) -> Optional[CatalogoComponente]:
     """
     Busca en el catálogo el gabinete NIS de Nollmann (profundidad 225) más económico
-    basado primordialmente en la Capacidad Total de Polos (con reserva) y Cantidad de Filas.
+    basado primordialmente en la Capacidad Total de Polos (con reserva), Cantidad de Filas
+    y Capacidad de Polos por Fila (10, 16, 24, 32, 44 polos por fila).
+    """
+    principal, _ = obtener_opciones_gabinetes_nollmann(
+        db, total_polos, max_polos_por_fila, total_filas, paso, ancho_requerido, alto_requerido, ancho_preferido
+    )
+    return principal
+
+
+def obtener_opciones_gabinetes_nollmann(
+    db: Session,
+    total_polos: int,
+    max_polos_por_fila: int = 1,
+    total_filas: int = 1,
+    paso: int = 150,
+    ancho_requerido: int = 0,
+    alto_requerido: int = 0,
+    ancho_preferido: int = 0,
+) -> Tuple[Optional[CatalogoComponente], Optional[CatalogoComponente]]:
+    """
+    Retorna el gabinete principal (menor costo) y una opción alternativa de distinto ancho/formato.
     """
     candidatos = db.query(CatalogoComponente).filter(
         CatalogoComponente.proveedor == "Nollmann",
@@ -151,25 +172,108 @@ def seleccionar_gabinete_nollmann(
         if paso == 200:
             capacidad_total = attrs.get("total_polos_200", 0)
             capacidad_filas = attrs.get("lineas_200", 0)
+            capacidad_polos_linea = attrs.get("polos_linea_200", 0)
         else:
             capacidad_total = attrs.get("total_polos_150", 0)
             capacidad_filas = attrs.get("lineas_150", 0)
+            capacidad_polos_linea = attrs.get("polos_linea_150", 0)
 
         g_alto = attrs.get("alto_mm", 0)
         g_ancho = attrs.get("ancho_mm", 0)
 
         if (capacidad_total >= total_polos and 
             capacidad_filas >= total_filas and 
-            g_ancho >= ancho_requerido and
-            g_alto >= alto_requerido):
+            capacidad_polos_linea >= max_polos_por_fila and
+            g_alto >= alto_requerido and
+            (ancho_preferido == 0 or g_ancho >= ancho_preferido)):
             elegibles.append(c)
 
     if not elegibles:
-        return None
+        return None, None
 
-    # Ordenar por precio neto
     elegibles.sort(key=lambda x: (x.precio_neto or Decimal("999999"), x.codigo))
-    return elegibles[0]
+    principal = elegibles[0]
+
+    p_ancho = (principal.atributos or {}).get("ancho_mm", 0)
+    alternativos = [
+        c for c in elegibles 
+        if (c.atributos or {}).get("ancho_mm", 0) != p_ancho
+    ]
+
+    alternativo = alternativos[0] if alternativos else None
+    return principal, alternativo
+
+
+def validar_compatibilidad_gabinete_nollmann(
+    db: Session,
+    tablero_id: uuid.UUID,
+    ancho_solicitado_mm: int,
+    alto_solicitado_mm: int,
+    paso_override: Optional[int] = None,
+    incremento_filas: int = 0,
+) -> Tuple[bool, str]:
+    """
+    Valida rigurosamente si las dimensiones del gabinete Nollmann NIS solicitadas
+    pueden albergar físicamente la cantidad de filas y polos del tablero actual.
+    """
+    tablero = db.query(Tablero).filter(Tablero.id == tablero_id).first()
+    if not tablero:
+        return True, ""
+
+    secciones = db.query(Seccion).filter(Seccion.tablero_id == tablero_id).order_by(Seccion.orden).all()
+    todas_las_salidas = db.query(Salida).join(Seccion).filter(Seccion.tablero_id == tablero_id).all()
+
+    tiene_principal = tablero.interruptor_principal_id is not None
+    total_filas_requeridas = (1 if tiene_principal else 0) + max(len(secciones) + incremento_filas, 1)
+
+    max_polos_por_fila = 0
+    if tablero.interruptor_principal_id:
+        principal = db.query(CatalogoComponente).filter(CatalogoComponente.id == tablero.interruptor_principal_id).first()
+        if principal and principal.atributos:
+            max_polos_por_fila = principal.atributos.get("polos", 4)
+        else:
+            max_polos_por_fila = 4
+
+    for sec in secciones:
+        salidas_sec = [s for s in todas_las_salidas if s.seccion_id == sec.id]
+        polos_sec = sum(POLOS_POR_FORMATO.get(s.formato, 1) for s in salidas_sec)
+        if polos_sec > max_polos_por_fila:
+            max_polos_por_fila = polos_sec
+
+    candidatos = db.query(CatalogoComponente).filter(
+        CatalogoComponente.categoria_raiz.ilike("%gabinete%"),
+    ).all()
+
+    gab_match = None
+    for g in candidatos:
+        at = g.atributos or {}
+        if at.get("ancho_mm") == ancho_solicitado_mm and at.get("alto_mm") == alto_solicitado_mm:
+            gab_match = g
+            break
+
+    if not gab_match:
+        return False, f"No existe un gabinete Nollmann NIS de {ancho_solicitado_mm}x{alto_solicitado_mm} mm en catálogo."
+
+    attrs = gab_match.atributos or {}
+    paso = paso_override if paso_override is not None else (tablero.paso_manual or tablero.paso_mm or 150)
+    capacidad_filas = attrs.get("lineas_200", 0) if paso == 200 else attrs.get("lineas_150", 0)
+    capacidad_polos_linea = attrs.get("polos_linea_200", 0) if paso == 200 else attrs.get("polos_linea_150", 0)
+
+    if total_filas_requeridas > capacidad_filas:
+        return False, (
+            f"El gabinete Nollmann NIS {ancho_solicitado_mm}x{alto_solicitado_mm} mm ({gab_match.codigo}) "
+            f"es incompatible: admite un máximo de {capacidad_filas} fila(s) para Paso {paso}mm, "
+            f"pero el tablero actual requiere {total_filas_requeridas} filas de componentes."
+        )
+
+    if max_polos_por_fila > capacidad_polos_linea:
+        return False, (
+            f"El gabinete Nollmann NIS {ancho_solicitado_mm}x{alto_solicitado_mm} mm ({gab_match.codigo}) "
+            f"es incompatible: admite {capacidad_polos_linea} polos por fila, "
+            f"pero la fila más cargada del tablero requiere {max_polos_por_fila} polos DIN."
+        )
+
+    return True, ""
 
 
 def seleccionar_distribuidor_nollmed(db: Session, corriente_cabecera: Decimal, conexiones_requeridas: int) -> Optional[CatalogoComponente]:
@@ -348,8 +452,9 @@ def calcular_dimensiones_tablero(db: Session, tablero_id: uuid.UUID) -> dict:
     alto_requerido_mm = total_filas * paso_global + 100
 
     # 5. Seleccionar gabinete Nollmann NIS (respetar selección manual si está activa)
+    gabinete: Optional[CatalogoComponente] = None
     if tablero.gabinete_manual_ancho_mm and tablero.gabinete_manual_alto_mm:
-        # Forzado manual de gabinete
+        # Forzado manual estricto (ancho y alto fijados explícitamente desde la tarjeta)
         gab_manual = (
             db.query(CatalogoComponente)
             .filter(
@@ -364,9 +469,12 @@ def calcular_dimensiones_tablero(db: Session, tablero_id: uuid.UUID) -> dict:
                 gab_match = g
                 break
         if gab_match:
+            gabinete = gab_match
             tablero.gabinete_sugerido_id = gab_match.id
             db.add(tablero)
     else:
+        # Selección Automática o Formato Preferido por Ancho
+        ancho_pref = tablero.gabinete_manual_ancho_mm or 0
         gabinete = seleccionar_gabinete_nollmann(
             db,
             polos_con_reserva,
@@ -374,11 +482,15 @@ def calcular_dimensiones_tablero(db: Session, tablero_id: uuid.UUID) -> dict:
             total_filas,
             paso_global,
             ancho_requerido=ancho_requerido_mm,
-            alto_requerido=alto_requerido_mm
+            alto_requerido=alto_requerido_mm,
+            ancho_preferido=ancho_pref,
         )
         if gabinete:
             tablero.gabinete_sugerido_id = gabinete.id
             db.add(tablero)
+
+    if not gabinete and tablero.gabinete_sugerido_id:
+        gabinete = db.get(CatalogoComponente, tablero.gabinete_sugerido_id)
 
     # 6. Seleccionar distribuidor Nollmed
     corriente_distribuidor = max(corriente_principal, max_corriente_salida)
@@ -405,6 +517,8 @@ def calcular_dimensiones_tablero(db: Session, tablero_id: uuid.UUID) -> dict:
     ancho_actual = gabinete.atributos.get("ancho_mm", 600) if gabinete and gabinete.atributos else 600
     anchos_disponibles = [300, 450, 600, 750, 1000]
     siguiente_ancho = next((w for w in anchos_disponibles if w > ancho_actual), ancho_actual)
+
+    db.commit()
 
     return {
         "tablero_id": tablero.id,
@@ -440,6 +554,6 @@ def calcular_dimensiones_tablero(db: Session, tablero_id: uuid.UUID) -> dict:
             "descripcion": distribuidor.descripcion if distribuidor else "Sin match",
             "precio_neto": float(distribuidor.precio_neto) if distribuidor and distribuidor.precio_neto else 0.0,
         } if distribuidor else None,
-        "cablecanal_sugerido": medida_canal,
+        "cablecanal_sugerido": medida_efectiva_canal,
         "secciones": resultado_secciones
     }

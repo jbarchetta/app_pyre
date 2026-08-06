@@ -40,6 +40,8 @@ interface EsquemaVisualCanvasProps {
   metodoSalida?: string | null;
   bornerasTipo?: string | null;
   cablecanalSugerido?: string | null;
+  cablecanalPeriferia?: string | null;
+  cablecanalInteriores?: string | null;
   gabineteSugeridoAncho?: number | null;
   gabineteSugeridoAlto?: number | null;
   pasoMm?: number | null;
@@ -49,9 +51,9 @@ interface EsquemaVisualCanvasProps {
   onTogglePanelLateral?: () => void;
 }
 
-const ZOOM_MIN = 0.5;
-const ZOOM_MAX = 2.5;
-const ZOOM_PASO = 0.25;
+const ZOOM_MIN = 0.1;
+const ZOOM_MAX = 3.0;
+const ZOOM_PASO = 0.1;
 
 function limitar(valor: number): number {
   return Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, Number(valor.toFixed(2))));
@@ -74,6 +76,8 @@ export function EsquemaVisualCanvas({
   gabineteSugeridoAlto,
   pasoMm,
   cablecanalSugerido,
+  cablecanalPeriferia,
+  cablecanalInteriores,
   modoVisual: modoVisualProp = "bloques",
   panelLateralColapsado,
   onTogglePanelLateral,
@@ -727,7 +731,7 @@ export function EsquemaVisualCanvas({
       ) : (
         /* VISOR CAD DXF PARA TOPOGRÁFICO Y UNIFILAR CON MANDOS DE DISEÑO COMPLETOS */
         <CadViewerCanvas
-          key={`${gabineteSugeridoAncho}-${gabineteSugeridoAlto}-${pasoMm}-${cablecanalSugerido}`}
+          key={`${gabineteSugeridoAncho}-${gabineteSugeridoAlto}-${pasoMm}-${cablecanalSugerido}-${cablecanalPeriferia}-${cablecanalInteriores}`}
           tieneInterruptorPrincipal={tieneInterruptorPrincipal}
           interruptorPrincipal={interruptorPrincipal}
           secciones={secciones}
@@ -744,6 +748,8 @@ export function EsquemaVisualCanvas({
           gabineteSugeridoAlto={gabineteSugeridoAlto}
           pasoMm={pasoMm}
           cablecanalSugerido={cablecanalSugerido}
+          cablecanalPeriferia={cablecanalPeriferia}
+          cablecanalInteriores={cablecanalInteriores}
           modoVisual={modoVisualState}
           onModoVisualChange={setModoVisualState}
         />

@@ -21,6 +21,8 @@ export interface BoardCadGeneratorParams {
   gabineteAltoMm?: number | null;
   pasoMm?: number | null;
   cablecanalSugerido?: string | null;
+  cablecanalPeriferia?: string | null;
+  cablecanalInteriores?: string | null;
 }
 
 export const NOLLMANN_NIS_GEOMETRY = {
@@ -35,6 +37,36 @@ export const NOLLMANN_NIS_GEOMETRY = {
   DIN_FIRST_ROW_Y_FROM_TOP: 149.80, // Y del 1er riel DIN desde el borde superior nominal (Y=0), logrando 104.80mm desde borde de bandeja
   DIN_ROW_STEP_Y: 150.00,      // Paso constante entre rieles DIN (150mm)
 };
+
+export function obtenerFilasSegunAltoGabinete(altoMm: number, pasoMm: number): number {
+  if (altoMm <= 300) return 1;
+  if (altoMm <= 450) return 2;
+  if (altoMm <= 600) return pasoMm === 200 ? 2 : 3;
+  if (altoMm <= 750) return pasoMm === 200 ? 3 : 4;
+  if (altoMm <= 900) return pasoMm === 200 ? 4 : 5;
+  if (altoMm <= 1050) return pasoMm === 200 ? 5 : 6;
+  if (altoMm <= 1200) return pasoMm === 200 ? 6 : 7;
+  if (altoMm <= 1350) return pasoMm === 200 ? 6 : 8;
+  if (altoMm <= 1500) return pasoMm === 200 ? 7 : 9;
+  if (altoMm <= 1650) return pasoMm === 200 ? 8 : 10;
+  if (altoMm <= 1800) return pasoMm === 200 ? 9 : 11;
+  return pasoMm === 200 ? 9 : 12;
+}
+
+export function obtenerAltoGabineteSegunFilas(numFilas: number, pasoMm: number): number {
+  if (numFilas <= 1) return 300;
+  if (numFilas <= 2) return 450;
+  if (numFilas <= 3) return pasoMm === 200 ? 750 : 600;
+  if (numFilas <= 4) return pasoMm === 200 ? 900 : 750;
+  if (numFilas <= 5) return pasoMm === 200 ? 1050 : 900;
+  if (numFilas <= 6) return pasoMm === 200 ? 1200 : 1050;
+  if (numFilas <= 7) return pasoMm === 200 ? 1500 : 1200;
+  if (numFilas <= 8) return pasoMm === 200 ? 1650 : 1350;
+  if (numFilas <= 9) return pasoMm === 200 ? 1800 : 1500;
+  if (numFilas <= 10) return 1650;
+  if (numFilas <= 11) return 1800;
+  return 2000;
+}
 
 // =========================================================================
 // REGLAS ESTRUCTURALES DE MAQUETADO UNIFILAR (CAPAS Y PUNTOS FIJOS EN EJE Y)
@@ -172,6 +204,26 @@ export function calcularCapacidadPolosFila(anchoGabineteMm?: number | null): num
   if (width <= 600) return 24;
   if (width <= 750) return 32;
   return 45;
+}
+
+export function obtenerGeometriaCanaleta(
+  canalStr?: string | null,
+  numFilas = 3
+): { altoMm: number; profundidadMm: number; label: string } {
+  const defaultAlto = numFilas >= 4 ? 60 : 40;
+  const defaultProf = 60;
+  if (!canalStr) {
+    return { altoMm: defaultAlto, profundidadMm: defaultProf, label: `${defaultAlto}x${defaultProf}` };
+  }
+  const parts = canalStr.split("x");
+  if (parts.length === 2) {
+    const a = parseInt(parts[0], 10);
+    const b = parseInt(parts[1], 10);
+    const altoMm = !isNaN(a) && a > 0 ? a : defaultAlto;
+    const profundidadMm = !isNaN(b) && b > 0 ? b : defaultProf;
+    return { altoMm, profundidadMm, label: `${altoMm}x${profundidadMm}` };
+  }
+  return { altoMm: defaultAlto, profundidadMm: defaultProf, label: `${defaultAlto}x${defaultProf}` };
 }
 
 export function obtenerPolosSalida(salida: Salida): number {
@@ -355,6 +407,18 @@ function pushDinRail(
   layerId: string,
   color = "#64748B",
 ) {
+  // Máscara opaca de fondo Z=110mm para que las canaletas Z=0 por detrás no oculten ni traslapen la vista del riel DIN
+  primitives.push({
+    id: `${idPrefix}-mask`,
+    layerId,
+    type: "rect",
+    x,
+    y,
+    width: largo,
+    height: RIEL_ALTO,
+    fill: "bg",
+    stroke: "none",
+  });
   // Contorno del perfil.
   primitives.push({
     id: `${idPrefix}-body`,
@@ -1138,9 +1202,12 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
     const marginX = 60;
     const marginY = 60;
     const pasoMm = params.pasoMm === 200 ? 200 : 150;
+    const filasProyecto = secciones.length + (tieneInterruptorPrincipal ? 1 : 0);
 
     const anchoGabinete = params.gabineteAnchoMm || 600;
-    const altoGabinete = params.gabineteAltoMm || 600;
+    const altoSolicitado = params.gabineteAltoMm || 600;
+    const altoMinimoRequerido = obtenerAltoGabineteSegunFilas(filasProyecto, pasoMm);
+    const altoGabinete = Math.max(altoSolicitado, altoMinimoRequerido);
 
     // Motor Paramétrico como camino PRINCIPAL para todos los tamaños. La
     // biblioteca de bloques pegados (nollboxSymbols.ts) queda como escape
@@ -1219,14 +1286,15 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
     }
 
     // Centros Y de cada fila (vienen del DXF o calculados paramétricamente desde el fondo de bandeja)
-    const numTotalFilas = secciones.length + (tieneInterruptorPrincipal ? 1 : 0);
+    const filasGabinete = altoGabinete ? obtenerFilasSegunAltoGabinete(altoGabinete, pasoMm) : 0;
+    const numTotalFilas = Math.max(filasProyecto, filasGabinete);
     const rowCentersY: number[] = [];
 
     for (let i = 0; i < numTotalFilas; i++) {
       if (cabDef && cabDef.rowCentersFromTopMm && cabDef.rowCentersFromTopMm[i] !== undefined) {
         rowCentersY.push(marginY + cabDef.rowCentersFromTopMm[i]);
       } else {
-        // Posicionamiento 1:1 desde el borde superior nominal (152.50mm desde top)
+        // Posicionamiento 1:1 desde el borde superior nominal (149.80mm desde top)
         const yFirstRow = marginY + NOLLMANN_NIS_GEOMETRY.DIN_FIRST_ROW_Y_FROM_TOP;
         rowCentersY.push(yFirstRow + i * pasoMm);
       }
@@ -1234,18 +1302,13 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
 
     // Dibujo Paramétrico de Canaletas Ranuradas (Cable Canal Nivel Z=0) y Rieles DIN
     if (!cabDef) {
-      let cw = 25;
-      let canalMeasureLabel = "25x40";
-      if (params.cablecanalSugerido) {
-        const parts = params.cablecanalSugerido.split("x");
-        if (parts.length === 2) {
-          const parsedW = parseInt(parts[0]);
-          if (!isNaN(parsedW) && parsedW > 0) {
-            cw = parsedW;
-            canalMeasureLabel = params.cablecanalSugerido;
-          }
-        }
-      }
+      const geomPerif = obtenerGeometriaCanaleta(params.cablecanalPeriferia || params.cablecanalSugerido, numTotalFilas);
+      const geomInter = obtenerGeometriaCanaleta(params.cablecanalInteriores || params.cablecanalSugerido, numTotalFilas);
+
+      const cwPerif = geomPerif.altoMm;
+      const cwInter = geomInter.altoMm;
+      const canalPerifLabel = geomPerif.label;
+      const canalInterLabel = geomInter.label;
 
       const xLeftBandeja = marginX + NOLLMANN_NIS_GEOMETRY.DELTA_BANDEJA_POSTERIOR;
       const xRightBandeja = marginX + anchoGabinete - NOLLMANN_NIS_GEOMETRY.DELTA_BANDEJA_POSTERIOR;
@@ -1253,68 +1316,71 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
 
       // La primera canaleta horizontal se ubica entre Fila 0 (Q1) y Fila 1
       const numFilas = rowCentersY.length;
-      const yFirstChan = numFilas > 1 ? (rowCentersY[0] + rowCentersY[1]) / 2 - cw / 2 : rowCentersY[0] + pasoMm / 2 - cw / 2;
+      const yFirstChan = numFilas > 1 ? (rowCentersY[0] + rowCentersY[1]) / 2 - cwInter / 2 : rowCentersY[0] + pasoMm / 2 - cwInter / 2;
       const lastRowIdx = numFilas - 1;
-      const yBotChan = rowCentersY[lastRowIdx] + pasoMm / 2 - cw / 2;
+      const ySubpanelBottom = marginY + altoGabinete - NOLLMANN_NIS_GEOMETRY.DELTA_BANDEJA_POSTERIOR;
+      const yBotChanNominal = rowCentersY[lastRowIdx] + pasoMm / 2 - cwPerif / 2;
+      const yBotChanMax = ySubpanelBottom - cwPerif - 10;
+      const yBotChan = Math.min(yBotChanNominal, yBotChanMax);
 
-      const hVert = Math.round((yBotChan + cw) - yFirstChan);
-      const wHorizInter = Math.round(wBandeja - 2 * cw);
+      const hVert = Math.round((yBotChan + cwPerif) - yFirstChan);
+      const wHorizInter = Math.round(wBandeja - 2 * cwPerif);
       const wHorizTotal = Math.round(wBandeja);
-      const lInglete = Math.round(Math.hypot(cw, cw));
+      const lInglete = Math.round(Math.hypot(cwPerif, cwPerif));
 
       // 1. Canaletas Verticales Laterales (con máscaras de fondo opaco Z=0)
       // Canaleta Izquierda
       primitives.push(
-        { id: "canal-vert-izq-mask", dataId: `canal-vert-izq:${hVert}:${canalMeasureLabel}`, layerId: "3_Cablecanal", type: "rect", x: xLeftBandeja, y: yFirstChan, width: cw, height: (yBotChan + cw) - yFirstChan, fill: "bg", stroke: "none" },
-        { id: "canal-vert-izq-hit", dataId: `canal-vert-izq:${hVert}:${canalMeasureLabel}`, layerId: "3_Cablecanal", type: "rect", x: xLeftBandeja, y: yFirstChan, width: cw, height: (yBotChan + cw) - yFirstChan, fill: "none", stroke: "none" },
-        { id: "canal-vert-izq-outer", dataId: `canal-vert-izq:${hVert}:${canalMeasureLabel}`, layerId: "3_Cablecanal", type: "line", start: { x: xLeftBandeja, y: yFirstChan }, end: { x: xLeftBandeja, y: yBotChan + cw }, color: "#64748B", lineWidth: 0.8 },
-        { id: "canal-vert-izq-inner", dataId: `canal-vert-izq:${hVert}:${canalMeasureLabel}`, layerId: "3_Cablecanal", type: "line", start: { x: xLeftBandeja + cw, y: yFirstChan + cw }, end: { x: xLeftBandeja + cw, y: yBotChan }, color: "#64748B", lineWidth: 0.8 }
+        { id: "canal-vert-izq-mask", dataId: `canal-vert-izq:${hVert}:${canalPerifLabel}`, layerId: "3_Cablecanal", type: "rect", x: xLeftBandeja, y: yFirstChan, width: cwPerif, height: (yBotChan + cwPerif) - yFirstChan, fill: "bg", stroke: "none" },
+        { id: "canal-vert-izq-hit", dataId: `canal-vert-izq:${hVert}:${canalPerifLabel}`, layerId: "3_Cablecanal", type: "rect", x: xLeftBandeja, y: yFirstChan, width: cwPerif, height: (yBotChan + cwPerif) - yFirstChan, fill: "none", stroke: "none" },
+        { id: "canal-vert-izq-outer", dataId: `canal-vert-izq:${hVert}:${canalPerifLabel}`, layerId: "3_Cablecanal", type: "line", start: { x: xLeftBandeja, y: yFirstChan }, end: { x: xLeftBandeja, y: yBotChan + cwPerif }, color: "#64748B", lineWidth: 0.8 },
+        { id: "canal-vert-izq-inner", dataId: `canal-vert-izq:${hVert}:${canalPerifLabel}`, layerId: "3_Cablecanal", type: "line", start: { x: xLeftBandeja + cwPerif, y: yFirstChan + cwPerif }, end: { x: xLeftBandeja + cwPerif, y: yBotChan }, color: "#64748B", lineWidth: 0.8 }
       );
 
       // Canaleta Derecha
       primitives.push(
-        { id: "canal-vert-der-mask", dataId: `canal-vert-der:${hVert}:${canalMeasureLabel}`, layerId: "3_Cablecanal", type: "rect", x: xRightBandeja - cw, y: yFirstChan, width: cw, height: (yBotChan + cw) - yFirstChan, fill: "bg", stroke: "none" },
-        { id: "canal-vert-der-hit", dataId: `canal-vert-der:${hVert}:${canalMeasureLabel}`, layerId: "3_Cablecanal", type: "rect", x: xRightBandeja - cw, y: yFirstChan, width: cw, height: (yBotChan + cw) - yFirstChan, fill: "none", stroke: "none" },
-        { id: "canal-vert-der-outer", dataId: `canal-vert-der:${hVert}:${canalMeasureLabel}`, layerId: "3_Cablecanal", type: "line", start: { x: xRightBandeja, y: yFirstChan }, end: { x: xRightBandeja, y: yBotChan + cw }, color: "#64748B", lineWidth: 0.8 },
-        { id: "canal-vert-der-inner", dataId: `canal-vert-der:${hVert}:${canalMeasureLabel}`, layerId: "3_Cablecanal", type: "line", start: { x: xRightBandeja - cw, y: yFirstChan + cw }, end: { x: xRightBandeja - cw, y: yBotChan }, color: "#64748B", lineWidth: 0.8 }
+        { id: "canal-vert-der-mask", dataId: `canal-vert-der:${hVert}:${canalPerifLabel}`, layerId: "3_Cablecanal", type: "rect", x: xRightBandeja - cwPerif, y: yFirstChan, width: cwPerif, height: (yBotChan + cwPerif) - yFirstChan, fill: "bg", stroke: "none" },
+        { id: "canal-vert-der-hit", dataId: `canal-vert-der:${hVert}:${canalPerifLabel}`, layerId: "3_Cablecanal", type: "rect", x: xRightBandeja - cwPerif, y: yFirstChan, width: cwPerif, height: (yBotChan + cwPerif) - yFirstChan, fill: "none", stroke: "none" },
+        { id: "canal-vert-der-outer", dataId: `canal-vert-der:${hVert}:${canalPerifLabel}`, layerId: "3_Cablecanal", type: "line", start: { x: xRightBandeja, y: yFirstChan }, end: { x: xRightBandeja, y: yBotChan + cwPerif }, color: "#64748B", lineWidth: 0.8 },
+        { id: "canal-vert-der-inner", dataId: `canal-vert-der:${hVert}:${canalPerifLabel}`, layerId: "3_Cablecanal", type: "line", start: { x: xRightBandeja - cwPerif, y: yFirstChan + cwPerif }, end: { x: xRightBandeja - cwPerif, y: yBotChan }, color: "#64748B", lineWidth: 0.8 }
       );
 
       // 2. Canaleta Horizontal Superior Debajo de Q1 (Con empalmes biselados a 45° en esquinas superiores)
       primitives.push(
-        { id: "canal-horiz-top-mask", dataId: `canal-horiz-0:${wHorizTotal}:${canalMeasureLabel}`, layerId: "3_Cablecanal", type: "rect", x: xLeftBandeja, y: yFirstChan, width: wBandeja, height: cw, fill: "bg", stroke: "none" },
-        { id: "canal-horiz-top-hit", dataId: `canal-horiz-0:${wHorizTotal}:${canalMeasureLabel}`, layerId: "3_Cablecanal", type: "rect", x: xLeftBandeja, y: yFirstChan, width: wBandeja, height: cw, fill: "none", stroke: "none" },
-        { id: "canal-horiz-top-outer", dataId: `canal-horiz-0:${wHorizTotal}:${canalMeasureLabel}`, layerId: "3_Cablecanal", type: "line", start: { x: xLeftBandeja, y: yFirstChan }, end: { x: xRightBandeja, y: yFirstChan }, color: "#64748B", lineWidth: 0.8 },
-        { id: "canal-horiz-top-inner", dataId: `canal-horiz-0:${wHorizTotal}:${canalMeasureLabel}`, layerId: "3_Cablecanal", type: "line", start: { x: xLeftBandeja + cw, y: yFirstChan + cw }, end: { x: xRightBandeja - cw, y: yFirstChan + cw }, color: "#64748B", lineWidth: 0.8 },
+        { id: "canal-horiz-top-mask", dataId: `canal-horiz-0:${wHorizTotal}:${canalPerifLabel}`, layerId: "3_Cablecanal", type: "rect", x: xLeftBandeja, y: yFirstChan, width: wBandeja, height: cwPerif, fill: "bg", stroke: "none" },
+        { id: "canal-horiz-top-hit", dataId: `canal-horiz-0:${wHorizTotal}:${canalPerifLabel}`, layerId: "3_Cablecanal", type: "rect", x: xLeftBandeja, y: yFirstChan, width: wBandeja, height: cwPerif, fill: "none", stroke: "none" },
+        { id: "canal-horiz-top-outer", dataId: `canal-horiz-0:${wHorizTotal}:${canalPerifLabel}`, layerId: "3_Cablecanal", type: "line", start: { x: xLeftBandeja, y: yFirstChan }, end: { x: xRightBandeja, y: yFirstChan }, color: "#64748B", lineWidth: 0.8 },
+        { id: "canal-horiz-top-inner", dataId: `canal-horiz-0:${wHorizTotal}:${canalPerifLabel}`, layerId: "3_Cablecanal", type: "line", start: { x: xLeftBandeja + cwPerif, y: yFirstChan + cwPerif }, end: { x: xRightBandeja - cwPerif, y: yFirstChan + cwPerif }, color: "#64748B", lineWidth: 0.8 },
         // Cortes biselados a 45° (ingletes) en esquinas superiores bajo Q1
-        { id: "canal-corner-top-left-45", dataId: `canal-corner-top-left-45:${lInglete}:${canalMeasureLabel}`, layerId: "3_Cablecanal", type: "line", start: { x: xLeftBandeja, y: yFirstChan }, end: { x: xLeftBandeja + cw, y: yFirstChan + cw }, color: "#64748B", lineWidth: 0.8 },
-        { id: "canal-corner-top-right-45", dataId: `canal-corner-top-right-45:${lInglete}:${canalMeasureLabel}`, layerId: "3_Cablecanal", type: "line", start: { x: xRightBandeja, y: yFirstChan }, end: { x: xRightBandeja - cw, y: yFirstChan + cw }, color: "#64748B", lineWidth: 0.8 }
+        { id: "canal-corner-top-left-45", dataId: `canal-corner-top-left-45:${lInglete}:${canalPerifLabel}`, layerId: "3_Cablecanal", type: "line", start: { x: xLeftBandeja, y: yFirstChan }, end: { x: xLeftBandeja + cwPerif, y: yFirstChan + cwPerif }, color: "#64748B", lineWidth: 0.8 },
+        { id: "canal-corner-top-right-45", dataId: `canal-corner-top-right-45:${lInglete}:${canalPerifLabel}`, layerId: "3_Cablecanal", type: "line", start: { x: xRightBandeja, y: yFirstChan }, end: { x: xRightBandeja - cwPerif, y: yFirstChan + cwPerif }, color: "#64748B", lineWidth: 0.8 }
       );
 
-      // 3. Canaletas Horizontales Intermedias (Entre Fila 1 y Fila 2, etc.)
+      // 3. Canaletas Horizontales Intermedias (Entre Fila 1 y Fila 2, etc. usando cwInter)
       for (let i = 1; i < numFilas - 1; i++) {
-        const yChan = (rowCentersY[i] + rowCentersY[i + 1]) / 2 - cw / 2;
+        const yChan = (rowCentersY[i] + rowCentersY[i + 1]) / 2 - cwInter / 2;
         primitives.push(
-          { id: `canal-horiz-${i}-mask`, dataId: `canal-horiz-${i}:${wHorizInter}:${canalMeasureLabel}`, layerId: "3_Cablecanal", type: "rect", x: xLeftBandeja + cw, y: yChan, width: wBandeja - 2 * cw, height: cw, fill: "bg", stroke: "none" },
-          { id: `canal-horiz-${i}-hit`, dataId: `canal-horiz-${i}:${wHorizInter}:${canalMeasureLabel}`, layerId: "3_Cablecanal", type: "rect", x: xLeftBandeja + cw, y: yChan, width: wBandeja - 2 * cw, height: cw, fill: "none", stroke: "none" },
-          { id: `canal-horiz-${i}-top`, dataId: `canal-horiz-${i}:${wHorizInter}:${canalMeasureLabel}`, layerId: "3_Cablecanal", type: "line", start: { x: xLeftBandeja + cw, y: yChan }, end: { x: xRightBandeja - cw, y: yChan }, color: "#64748B", lineWidth: 0.8 },
-          { id: `canal-horiz-${i}-bot`, dataId: `canal-horiz-${i}:${wHorizInter}:${canalMeasureLabel}`, layerId: "3_Cablecanal", type: "line", start: { x: xLeftBandeja + cw, y: yChan + cw }, end: { x: xRightBandeja - cw, y: yChan + cw }, color: "#64748B", lineWidth: 0.8 }
+          { id: `canal-horiz-${i}-mask`, dataId: `canal-horiz-${i}:${wHorizInter}:${canalInterLabel}`, layerId: "3_Cablecanal", type: "rect", x: xLeftBandeja + cwPerif, y: yChan, width: wBandeja - 2 * cwPerif, height: cwInter, fill: "bg", stroke: "none" },
+          { id: `canal-horiz-${i}-hit`, dataId: `canal-horiz-${i}:${wHorizInter}:${canalInterLabel}`, layerId: "3_Cablecanal", type: "rect", x: xLeftBandeja + cwPerif, y: yChan, width: wBandeja - 2 * cwPerif, height: cwInter, fill: "none", stroke: "none" },
+          { id: `canal-horiz-${i}-top`, dataId: `canal-horiz-${i}:${wHorizInter}:${canalInterLabel}`, layerId: "3_Cablecanal", type: "line", start: { x: xLeftBandeja + cwPerif, y: yChan }, end: { x: xRightBandeja - cwPerif, y: yChan }, color: "#64748B", lineWidth: 0.8 },
+          { id: `canal-horiz-${i}-bot`, dataId: `canal-horiz-${i}:${wHorizInter}:${canalInterLabel}`, layerId: "3_Cablecanal", type: "line", start: { x: xLeftBandeja + cwPerif, y: yChan + cwInter }, end: { x: xRightBandeja - cwPerif, y: yChan + cwInter }, color: "#64748B", lineWidth: 0.8 }
         );
       }
 
       // 4. Canaleta Horizontal Inferior (Por debajo de la última fila, con empalmes a 45° en esquinas inferiores)
       primitives.push(
-        { id: "canal-horiz-bot-mask", dataId: `canal-horiz-bot:${wHorizTotal}:${canalMeasureLabel}`, layerId: "3_Cablecanal", type: "rect", x: xLeftBandeja, y: yBotChan, width: wBandeja, height: cw, fill: "bg", stroke: "none" },
-        { id: "canal-horiz-bot-hit", dataId: `canal-horiz-bot:${wHorizTotal}:${canalMeasureLabel}`, layerId: "3_Cablecanal", type: "rect", x: xLeftBandeja, y: yBotChan, width: wBandeja, height: cw, fill: "none", stroke: "none" },
-        { id: "canal-horiz-bot-outer", dataId: `canal-horiz-bot:${wHorizTotal}:${canalMeasureLabel}`, layerId: "3_Cablecanal", type: "line", start: { x: xLeftBandeja, y: yBotChan + cw }, end: { x: xRightBandeja, y: yBotChan + cw }, color: "#64748B", lineWidth: 0.8 },
-        { id: "canal-horiz-bot-inner", dataId: `canal-horiz-bot:${wHorizTotal}:${canalMeasureLabel}`, layerId: "3_Cablecanal", type: "line", start: { x: xLeftBandeja + cw, y: yBotChan }, end: { x: xRightBandeja - cw, y: yBotChan }, color: "#64748B", lineWidth: 0.8 },
+        { id: "canal-horiz-bot-mask", dataId: `canal-horiz-bot:${wHorizTotal}:${canalPerifLabel}`, layerId: "3_Cablecanal", type: "rect", x: xLeftBandeja, y: yBotChan, width: wBandeja, height: cwPerif, fill: "bg", stroke: "none" },
+        { id: "canal-horiz-bot-hit", dataId: `canal-horiz-bot:${wHorizTotal}:${canalPerifLabel}`, layerId: "3_Cablecanal", type: "rect", x: xLeftBandeja, y: yBotChan, width: wBandeja, height: cwPerif, fill: "none", stroke: "none" },
+        { id: "canal-horiz-bot-outer", dataId: `canal-horiz-bot:${wHorizTotal}:${canalPerifLabel}`, layerId: "3_Cablecanal", type: "line", start: { x: xLeftBandeja, y: yBotChan + cwPerif }, end: { x: xRightBandeja, y: yBotChan + cwPerif }, color: "#64748B", lineWidth: 0.8 },
+        { id: "canal-horiz-bot-inner", dataId: `canal-horiz-bot:${wHorizTotal}:${canalPerifLabel}`, layerId: "3_Cablecanal", type: "line", start: { x: xLeftBandeja + cwPerif, y: yBotChan }, end: { x: xRightBandeja - cwPerif, y: yBotChan }, color: "#64748B", lineWidth: 0.8 },
         // Cortes biselados a 45° (ingletes) en esquinas inferiores
-        { id: "canal-corner-bot-left-45", dataId: `canal-corner-left-45:${lInglete}:${canalMeasureLabel}`, layerId: "3_Cablecanal", type: "line", start: { x: xLeftBandeja, y: yBotChan + cw }, end: { x: xLeftBandeja + cw, y: yBotChan }, color: "#64748B", lineWidth: 0.8 },
-        { id: "canal-corner-bot-right-45", dataId: `canal-corner-right-45:${lInglete}:${canalMeasureLabel}`, layerId: "3_Cablecanal", type: "line", start: { x: xRightBandeja, y: yBotChan + cw }, end: { x: xRightBandeja - cw, y: yBotChan }, color: "#64748B", lineWidth: 0.8 }
+        { id: "canal-corner-bot-left-45", dataId: `canal-corner-bot-left-45:${lInglete}:${canalPerifLabel}`, layerId: "3_Cablecanal", type: "line", start: { x: xLeftBandeja, y: yBotChan + cwPerif }, end: { x: xLeftBandeja + cwPerif, y: yBotChan }, color: "#64748B", lineWidth: 0.8 },
+        { id: "canal-corner-bot-right-45", dataId: `canal-corner-bot-right-45:${lInglete}:${canalPerifLabel}`, layerId: "3_Cablecanal", type: "line", start: { x: xRightBandeja, y: yBotChan + cwPerif }, end: { x: xRightBandeja - cwPerif, y: yBotChan }, color: "#64748B", lineWidth: 0.8 }
       );
 
-      // 4. Rieles DIN 35 (enmarcados entre la canaleta izquierda y la canaleta derecha)
-      const dinX = xLeftBandeja + cw;
-      const dinW = wBandeja - 2 * cw;
+      // 5. Rieles DIN 35 (Posición X fija e inalterable a 25mm desde el borde izquierdo de la bandeja)
+      const dinX = xLeftBandeja + 25;
+      const dinW = wBandeja - 50;
       rowCentersY.forEach((centerY, rIdx) => {
         if (rIdx === 0 && tieneInterruptorPrincipal) {
           // Rule 8: Riel DIN corto solo para Q1 en el lado izquierdo
@@ -1322,7 +1388,10 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
           const keyQ1 = es4P ? "abb_topo_cbr_x4f" : "abb_topo_cbr_x3f";
           const symbolQ1 = symbolRegistry.getSymbol(interruptorPrincipal?.codigo || keyQ1) || symbolRegistry.getSymbol(keyQ1);
           const q1W = symbolQ1 ? symbolQ1.widthMm : ((interruptorPrincipal?.polos || 3) * 17.5);
-          pushDinRail(primitives, `rail-din-${rIdx}`, dinX, centerY - RIEL_ALTO / 2, Math.min(dinW, q1W + 20), "1_Equipos_DIN");
+          const q1X = winX;
+          const marginQ1Left = Math.max(10, q1X - dinX);
+          const largoRielQ1 = Math.min(dinW, marginQ1Left + q1W + marginQ1Left);
+          pushDinRail(primitives, `rail-din-${rIdx}`, dinX, centerY - RIEL_ALTO / 2, largoRielQ1, "1_Equipos_DIN");
         } else {
           pushDinRail(primitives, `rail-din-${rIdx}`, dinX, centerY - RIEL_ALTO / 2, dinW, "1_Equipos_DIN");
         }
@@ -1519,11 +1588,633 @@ export function generateBoardCadDocument(params: BoardCadGeneratorParams): CadDo
       });
     });
 
+    // =========================================================================
+    // REPLICA MAESTRA Y PARAMÉTRICA 1:1 DE LA VISTA LATERAL NOLLMANN NIS
+    // (Medidas, radios R3.2, doblez goterón, burlete de goma, falleba exterior, banquitos regulables y perfil DIN 35 DXF)
+    // =========================================================================
+    const GAP_VISTAS = 300; // Separación respecto a la vista frontal (300mm)
+    const PROFUNDIDAD_GABINETE = 225; // Profundidad nominal Nollmann NIS (225mm)
+    const xSideStart = marginX + anchoGabinete + GAP_VISTAS;
+    const ySideTop = marginY;
+    const ySideBot = marginY + altoGabinete;
+
+    // 1. Envolvente Chasis Exterior (Vista Lateral: 225mm x altoGabinete)
+    primitives.push({
+      id: "side-chassis-outer",
+      layerId: "0_Gabinete",
+      type: "rect",
+      x: xSideStart,
+      y: ySideTop,
+      width: PROFUNDIDAD_GABINETE,
+      height: altoGabinete,
+      color: "#64748B",
+      stroke: "#64748B",
+      fill: "none",
+      lineWidth: 0.8,
+      rx: NOLLMANN_NIS_GEOMETRY.RADIO_MARCO_EXT, // R3.2mm
+    });
+
+    // Helper para generar arcos de doblado de chapa divididos en segmentos de línea
+    const generateArcSegments = (
+      cx: number, cy: number, r: number, startDeg: number, endDeg: number, steps = 6
+    ): { start: CadPoint; end: CadPoint }[] => {
+      const segs: { start: CadPoint; end: CadPoint }[] = [];
+      const radStart = (startDeg * Math.PI) / 180;
+      const radEnd = (endDeg * Math.PI) / 180;
+      for (let i = 0; i < steps; i++) {
+        const a1 = radStart + ((radEnd - radStart) * i) / steps;
+        const a2 = radStart + ((radEnd - radStart) * (i + 1)) / steps;
+        segs.push({
+          start: { x: cx + r * Math.cos(a1), y: cy + r * Math.sin(a1) },
+          end: { x: cx + r * Math.cos(a2), y: cy + r * Math.sin(a2) },
+        });
+      }
+      return segs;
+    };
+
+    // Puerta Exterior Frontal 1:1 DXF (Chapa 2.1mm de espesor con doble cara y radios de plegado Rext=4.2mm, Rint=2.1mm)
+    const xDoorFaceOuter = xSideStart - 25.0; // Cara frontal exterior
+    const xDoorFaceInner = xSideStart - 22.9; // Cara frontal interior (chapa 2.1mm)
+    const xDoorBendCenter = xSideStart - 20.8; // Centro de curvatura del radio de plegado
+    const xDoorReturn = xSideStart - 2.5;     // Pestaña interior de la puerta
+
+    // Cara frontal exterior e interior de la puerta (Chapa 2.1mm de espesor)
+    primitives.push(
+      { id: "side-front-door-outer-skin", layerId: "0_Gabinete", type: "line", start: { x: xDoorFaceOuter, y: ySideTop + 6.7 }, end: { x: xDoorFaceOuter, y: ySideBot - 6.7 }, color: "#64748B", lineWidth: 0.8 },
+      { id: "side-front-door-inner-skin", layerId: "0_Gabinete", type: "line", start: { x: xDoorFaceInner, y: ySideTop + 6.7 }, end: { x: xDoorFaceInner, y: ySideBot - 6.7 }, color: "#64748B", lineWidth: 0.5 }
+    );
+
+    // Radios de Plegado Superior (Radio exterior R4.2mm e interior R2.1mm)
+    const topArcOuter = generateArcSegments(xDoorBendCenter, ySideTop + 6.7, 4.2, 180, 270, 6);
+    topArcOuter.forEach((seg, i) => {
+      primitives.push({ id: `side-door-top-arc-out-${i}`, layerId: "0_Gabinete", type: "line", start: seg.start, end: seg.end, color: "#64748B", lineWidth: 0.8 });
+    });
+    const topArcInner = generateArcSegments(xDoorBendCenter, ySideTop + 6.7, 2.1, 180, 270, 6);
+    topArcInner.forEach((seg, i) => {
+      primitives.push({ id: `side-door-top-arc-in-${i}`, layerId: "0_Gabinete", type: "line", start: seg.start, end: seg.end, color: "#64748B", lineWidth: 0.5 });
+    });
+
+    // Radios de Plegado Inferior (Radio exterior R4.2mm e interior R2.1mm)
+    const botArcOuter = generateArcSegments(xDoorBendCenter, ySideBot - 6.7, 4.2, 180, 90, 6);
+    botArcOuter.forEach((seg, i) => {
+      primitives.push({ id: `side-door-bot-arc-out-${i}`, layerId: "0_Gabinete", type: "line", start: seg.start, end: seg.end, color: "#64748B", lineWidth: 0.8 });
+    });
+    const botArcInner = generateArcSegments(xDoorBendCenter, ySideBot - 6.7, 2.1, 180, 90, 6);
+    botArcInner.forEach((seg, i) => {
+      primitives.push({ id: `side-door-bot-arc-in-${i}`, layerId: "0_Gabinete", type: "line", start: seg.start, end: seg.end, color: "#64748B", lineWidth: 0.5 });
+    });
+
+    // Caja / Doblez Superior de la Puerta (Chapa superior 2.1mm)
+    primitives.push(
+      { id: "side-door-top-outer", layerId: "0_Gabinete", type: "line", start: { x: xDoorBendCenter, y: ySideTop + 2.5 }, end: { x: xDoorReturn, y: ySideTop + 2.5 }, color: "#64748B", lineWidth: 0.8 },
+      { id: "side-door-top-inner", layerId: "0_Gabinete", type: "line", start: { x: xDoorBendCenter, y: ySideTop + 4.6 }, end: { x: xDoorReturn, y: ySideTop + 4.6 }, color: "#64748B", lineWidth: 0.5 },
+      { id: "side-door-top-return", layerId: "0_Gabinete", type: "line", start: { x: xDoorReturn, y: ySideTop + 2.5 }, end: { x: xDoorReturn, y: ySideTop + 24.9 }, color: "#64748B", lineWidth: 0.5 }
+    );
+
+    // Caja / Doblez Inferior de la Puerta (Chapa inferior 2.1mm)
+    primitives.push(
+      { id: "side-door-bot-outer", layerId: "0_Gabinete", type: "line", start: { x: xDoorBendCenter, y: ySideBot - 2.5 }, end: { x: xDoorReturn, y: ySideBot - 2.5 }, color: "#64748B", lineWidth: 0.8 },
+      { id: "side-door-bot-inner", layerId: "0_Gabinete", type: "line", start: { x: xDoorBendCenter, y: ySideBot - 4.6 }, end: { x: xDoorReturn, y: ySideBot - 4.6 }, color: "#64748B", lineWidth: 0.5 },
+      { id: "side-door-bot-return", layerId: "0_Gabinete", type: "line", start: { x: xDoorReturn, y: ySideBot - 2.5 }, end: { x: xDoorReturn, y: ySideBot - 24.9 }, color: "#64748B", lineWidth: 0.5 }
+    );
+
+    // Pared Posterior de la Envolvente (Línea Exterior a xSideStart + 225mm, Doblez Interior a 222.9mm)
+    const xCasingBackOuter = xSideStart + PROFUNDIDAD_GABINETE; // 225.0mm
+    const xCasingBackInner = xSideStart + PROFUNDIDAD_GABINETE - 2.1; // 222.9mm (Chapa 2.1mm)
+
+    primitives.push(
+      { id: "side-casing-back-outer", layerId: "0_Gabinete", type: "line", start: { x: xCasingBackOuter, y: ySideTop + 4.2 }, end: { x: xCasingBackOuter, y: ySideBot - 4.2 }, color: "#64748B", lineWidth: 0.8 },
+      { id: "side-casing-back-inner", layerId: "0_Gabinete", type: "line", start: { x: xCasingBackInner, y: ySideTop + 4.2 }, end: { x: xCasingBackInner, y: ySideBot - 4.2 }, color: "#64748B", lineWidth: 0.5 }
+    );
+
+    // 2. Doblez de Marco en Z del Gabinete y Burlete de Goma (Rubber Seal 1:1 DXF con Rayado a 45°)
+    // Marco Z Superior (Y = ySideTop)
+    primitives.push(
+      { id: "side-casing-top-inner-sheet", layerId: "0_Gabinete", type: "line", start: { x: xSideStart + 4.2, y: ySideTop + 2.1 }, end: { x: xSideStart + 220.8, y: ySideTop + 2.1 }, color: "#64748B", lineWidth: 0.5 },
+      { id: "side-z-vert-top", layerId: "0_Gabinete", type: "line", start: { x: xSideStart, y: ySideTop + 4.2 }, end: { x: xSideStart, y: ySideTop + 22.8 }, color: "#64748B", lineWidth: 0.5 },
+      { id: "side-z-horiz-top", layerId: "0_Gabinete", type: "line", start: { x: xSideStart - 2.1, y: ySideTop + 24.9 }, end: { x: xSideStart - 10.13, y: ySideTop + 24.9 }, color: "#64748B", lineWidth: 0.5 },
+      { id: "side-z-return-top", layerId: "0_Gabinete", type: "line", start: { x: xSideStart - 10.13, y: ySideTop + 27.0 }, end: { x: xSideStart - 2.1, y: ySideTop + 27.0 }, color: "#64748B", lineWidth: 0.5 },
+      { id: "side-z-tip-top", layerId: "0_Gabinete", type: "line", start: { x: xSideStart - 11.44, y: ySideTop + 24.44 }, end: { x: xSideStart - 18.23, y: ySideTop + 19.02 }, color: "#64748B", lineWidth: 0.5 }
+    );
+
+    // Burlete de Goma Superior (Contorno de Lóbulos de Sellado)
+    const topSealContour: { start: CadPoint; end: CadPoint }[] = [
+      { start: { x: xSideStart - 18.23, y: ySideTop + 19.02 }, end: { x: xSideStart - 19.54, y: ySideTop + 20.66 } },
+      { start: { x: xSideStart - 19.54, y: ySideTop + 20.66 }, end: { x: xSideStart - 19.54, y: ySideTop + 22.1 } },
+      { start: { x: xSideStart - 19.54, y: ySideTop + 20.66 }, end: { x: xSideStart - 12.75, y: ySideTop + 26.08 } },
+      { start: { x: xSideStart - 20.8, y: ySideTop + 4.6 }, end: { x: xSideStart - 2.5, y: ySideTop + 4.6 } },
+      { start: { x: xSideStart - 20.8, y: ySideTop + 4.6 }, end: { x: xSideStart - 20.8, y: ySideTop + 24.9 } },
+    ];
+    topSealContour.forEach((seg, i) => {
+      primitives.push({
+        id: `side-top-seal-cnt-${i}`,
+        layerId: "0_Gabinete",
+        type: "line",
+        start: seg.start,
+        end: seg.end,
+        color: "#334155",
+        lineWidth: 0.5,
+      });
+    });
+
+    // Rayado / Hatching a 45° del Burlete Superior (Réplica Fiel AutoCAD)
+    for (let hY = ySideTop + 6; hY <= ySideTop + 24; hY += 3.5) {
+      primitives.push({
+        id: `side-top-seal-hatch-${Math.round(hY)}`,
+        layerId: "0_Gabinete",
+        type: "line",
+        start: { x: xSideStart - 20.0, y: hY },
+        end: { x: xSideStart - 13.0, y: hY - 3.5 },
+        color: "#475569",
+        lineWidth: 0.35,
+      });
+    }
+
+    // Marco Z Inferior (Y = ySideBot)
+    primitives.push(
+      { id: "side-casing-bot-inner-sheet", layerId: "0_Gabinete", type: "line", start: { x: xSideStart + 4.2, y: ySideBot - 2.1 }, end: { x: xSideStart + 220.8, y: ySideBot - 2.1 }, color: "#64748B", lineWidth: 0.5 },
+      { id: "side-z-vert-bot", layerId: "0_Gabinete", type: "line", start: { x: xSideStart, y: ySideBot - 4.2 }, end: { x: xSideStart, y: ySideBot - 22.8 }, color: "#64748B", lineWidth: 0.5 },
+      { id: "side-z-horiz-bot", layerId: "0_Gabinete", type: "line", start: { x: xSideStart - 2.1, y: ySideBot - 24.9 }, end: { x: xSideStart - 10.13, y: ySideBot - 24.9 }, color: "#64748B", lineWidth: 0.5 },
+      { id: "side-z-return-bot", layerId: "0_Gabinete", type: "line", start: { x: xSideStart - 10.13, y: ySideBot - 27.0 }, end: { x: xSideStart - 2.1, y: ySideBot - 27.0 }, color: "#64748B", lineWidth: 0.5 },
+      { id: "side-z-tip-bot", layerId: "0_Gabinete", type: "line", start: { x: xSideStart - 11.44, y: ySideBot - 24.44 }, end: { x: xSideStart - 18.23, y: ySideBot - 19.02 }, color: "#64748B", lineWidth: 0.5 }
+    );
+
+    // Burlete de Goma Inferior (Contorno de Lóbulos de Sellado)
+    const botSealContour: { start: CadPoint; end: CadPoint }[] = [
+      { start: { x: xSideStart - 18.23, y: ySideBot - 19.02 }, end: { x: xSideStart - 19.54, y: ySideBot - 20.66 } },
+      { start: { x: xSideStart - 19.54, y: ySideBot - 20.66 }, end: { x: xSideStart - 19.54, y: ySideBot - 22.1 } },
+      { start: { x: xSideStart - 19.54, y: ySideBot - 20.66 }, end: { x: xSideStart - 12.75, y: ySideBot - 26.08 } },
+      { start: { x: xSideStart - 20.8, y: ySideBot - 4.6 }, end: { x: xSideStart - 2.5, y: ySideBot - 4.6 } },
+      { start: { x: xSideStart - 20.8, y: ySideBot - 4.6 }, end: { x: xSideStart - 20.8, y: ySideBot - 24.9 } },
+    ];
+    botSealContour.forEach((seg, i) => {
+      primitives.push({
+        id: `side-bot-seal-cnt-${i}`,
+        layerId: "0_Gabinete",
+        type: "line",
+        start: seg.start,
+        end: seg.end,
+        color: "#334155",
+        lineWidth: 0.5,
+      });
+    });
+
+    // Rayado / Hatching a 45° del Burlete Inferior
+    for (let hY = ySideBot - 6; hY >= ySideBot - 24; hY -= 3.5) {
+      primitives.push({
+        id: `side-bot-seal-hatch-${Math.round(hY)}`,
+        layerId: "0_Gabinete",
+        type: "line",
+        start: { x: xSideStart - 20.0, y: hY },
+        end: { x: xSideStart - 13.0, y: hY + 3.5 },
+        color: "#475569",
+        lineWidth: 0.35,
+      });
+    }
+
+    // 3. Fallebas / Cerraduras de Maneta Exterior 1:1 DXF (Dos fallebas a 150mm de cada borde: Superior e Inferior)
+    const fallebaCentersY: number[] = altoGabinete <= 300
+      ? [ySideTop + altoGabinete / 2]
+      : [ySideTop + 150, ySideBot - 150];
+
+    const fallebaDxfLines: { x1: number; y1: number; x2: number; y2: number }[] = [
+      // Manija / Palanca Mariposa de Accionamiento
+      { x1: -51.50, y1: -14.61, x2: -49.24, y2: -2.88 },
+      { x1: -51.50, y1: 20.14, x2: -49.24, y2: 8.41 },
+      { x1: -49.46, y1: 7.51, x2: -49.46, y2: -1.99 },
+      { x1: -49.08, y1: -12.61, x2: -47.42, y2: -3.99 },
+      { x1: -49.08, y1: 18.14, x2: -47.42, y2: 9.51 },
+      { x1: -47.46, y1: 9.51, x2: -47.46, y2: -3.99 },
+      // Cuerpo del Cuello / Escudo de la Cerradura
+      { x1: -39.50, y1: -17.00, x2: -49.58, y2: -17.00 },
+      { x1: -39.50, y1: -15.00, x2: -47.16, y2: -15.00 },
+      { x1: -39.50, y1: -5.10, x2: -36.69, y2: -5.10 },
+      { x1: -39.50, y1: -5.10, x2: -34.50, y2: -5.10 },
+      { x1: -39.50, y1: -4.00, x2: -47.50, y2: -4.00 },
+      { x1: -39.50, y1: 9.50, x2: -47.50, y2: 9.50 },
+      { x1: -39.50, y1: 10.59, x2: -36.69, y2: 10.59 },
+      { x1: -39.50, y1: 10.59, x2: -34.50, y2: 10.59 },
+      { x1: -39.50, y1: 20.50, x2: -47.16, y2: 20.50 },
+      { x1: -39.50, y1: 22.50, x2: -49.58, y2: 22.50 },
+      { x1: -39.50, y1: 22.50, x2: -39.50, y2: -17.00 },
+      // Base del Escudo de Apoyo
+      { x1: -34.50, y1: -9.01, x2: -34.50, y2: 14.51 },
+      { x1: -34.50, y1: -0.75, x2: -26.50, y2: -0.75 },
+      { x1: -34.50, y1: 6.25, x2: -26.50, y2: 6.25 },
+      { x1: -34.50, y1: 10.59, x2: -34.50, y2: -5.10 },
+      { x1: -29.20, y1: -11.76, x2: -34.50, y2: -9.01 },
+      { x1: -29.20, y1: -11.76, x2: -29.20, y2: 17.24 },
+      { x1: -29.20, y1: 17.24, x2: -34.50, y2: 14.51 },
+      { x1: -26.50, y1: -0.75, x2: -26.50, y2: 6.25 },
+      // Mecanismo Retenedor y Placa en la Puerta
+      { x1: -26.20, y1: -14.76, x2: -25.00, y2: -14.76 },
+      { x1: -26.20, y1: -11.76, x2: -29.20, y2: -11.76 },
+      { x1: -26.20, y1: -11.76, x2: -26.20, y2: 17.24 },
+      { x1: -26.20, y1: 17.24, x2: -29.20, y2: 17.24 },
+      { x1: -26.20, y1: 20.24, x2: -26.20, y2: -14.76 },
+      { x1: -25.00, y1: -14.76, x2: -25.00, y2: 20.24 },
+      { x1: -25.00, y1: -4.26, x2: -26.20, y2: -4.26 },
+      { x1: -25.00, y1: 9.74, x2: -26.20, y2: 9.74 },
+      { x1: -25.00, y1: 20.24, x2: -26.20, y2: 20.24 },
+    ];
+
+    fallebaCentersY.forEach((yCenter, fIdx) => {
+      fallebaDxfLines.forEach((seg, i) => {
+        primitives.push({
+          id: `side-falleba-${fIdx}-${i}`,
+          layerId: "0_Gabinete",
+          type: "line",
+          start: { x: xSideStart + seg.x1, y: yCenter + seg.y1 },
+          end: { x: xSideStart + seg.x2, y: yCenter + seg.y2 },
+          color: "#475569",
+          lineWidth: 0.5,
+        });
+      });
+    });
+
+    // 4. Placa / Puerta de Contrafrente Calado 1:1 DXF (Perfil de caja de 20mm: xSideStart + 27.1mm a 47.1mm, a 104.603mm de la bandeja de soporte)
+    const xCoverFront = xSideStart + 27.1;
+    const xCoverBack = xSideStart + 47.1;
+    const yCoverTop = ySideTop + 35.0;
+    const yCoverBot = ySideBot - 35.0;
+
+    primitives.push(
+      // Cara frontal y posterior de la placa de contrafrente
+      { id: "side-cover-front", layerId: "0_Gabinete", type: "line", start: { x: xCoverFront, y: yCoverTop }, end: { x: xCoverFront, y: yCoverBot }, color: "#3B82F6", lineWidth: 0.6 },
+      { id: "side-cover-back", layerId: "0_Gabinete", type: "line", start: { x: xCoverBack, y: yCoverTop }, end: { x: xCoverBack, y: yCoverBot }, color: "#3B82F6", lineWidth: 0.6 },
+      // Tapas superior e inferior del contrafrente (20mm de profundidad)
+      { id: "side-cover-cap-top", layerId: "0_Gabinete", type: "line", start: { x: xCoverFront, y: yCoverTop }, end: { x: xCoverBack, y: yCoverTop }, color: "#3B82F6", lineWidth: 0.6 },
+      { id: "side-cover-cap-bot", layerId: "0_Gabinete", type: "line", start: { x: xCoverFront, y: yCoverBot }, end: { x: xCoverBack, y: yCoverBot }, color: "#3B82F6", lineWidth: 0.6 }
+    );
+
+    // 5. Rieles DIN 35 con perfil sombrero DXF 1:1 y Banquitos Regulables en cada fila
+    // Bandeja de Soporte / Canaleta Vertical Posterior (Perfil de caja de 15mm: xSideStart + 151.703mm a 166.703mm, a 56.197mm de la pared interior posterior)
+    const xSupportChannelInner = xSideStart + 151.703;
+    const xSupportChannelOuter = xSideStart + 166.703;
+    const ySupportChannelTop = ySideTop + 34.136;
+    const ySupportChannelBot = ySideBot - 34.136;
+    const xRearGuide = xSideStart + 150.703;
+
+    primitives.push(
+      // Cara interior y exterior de la bandeja vertical de soporte
+      { id: "side-support-chan-inner", layerId: "0_Gabinete", type: "line", start: { x: xSupportChannelInner, y: ySupportChannelTop }, end: { x: xSupportChannelInner, y: ySupportChannelBot }, color: "#64748B", lineWidth: 0.6 },
+      { id: "side-support-chan-outer", layerId: "0_Gabinete", type: "line", start: { x: xSupportChannelOuter, y: ySupportChannelTop }, end: { x: xSupportChannelOuter, y: ySupportChannelBot }, color: "#64748B", lineWidth: 0.6 },
+      // Tapas superior e inferior de la bandeja de soporte
+      { id: "side-support-chan-cap-top", layerId: "0_Gabinete", type: "line", start: { x: xSupportChannelInner, y: ySupportChannelTop }, end: { x: xSupportChannelOuter, y: ySupportChannelTop }, color: "#64748B", lineWidth: 0.6 },
+      { id: "side-support-chan-cap-bot", layerId: "0_Gabinete", type: "line", start: { x: xSupportChannelInner, y: ySupportChannelBot }, end: { x: xSupportChannelOuter, y: ySupportChannelBot }, color: "#64748B", lineWidth: 0.6 }
+    );
+
+    rowCentersY.forEach((yRiel, rIdx) => {
+      // A. Banquito Regulable 1:1 DXF (Brazos telescópicos horizontal e interior)
+      const dyTopOuter = yRiel - 10.873;
+      const dyBotOuter = yRiel + 9.627;
+      const dyTopInner = yRiel - 9.873;
+      const dyBotInner = yRiel + 8.627;
+
+      primitives.push(
+        // Brazo exterior e interior telescópico del banquito
+        { id: `side-banq-top-out-${rIdx}`, layerId: "1_Equipos_DIN", type: "line", start: { x: xSideStart + 41.703, y: dyTopOuter }, end: { x: xSideStart + 149.703, y: dyTopOuter }, color: "#64748B", lineWidth: 0.5 },
+        { id: `side-banq-bot-out-${rIdx}`, layerId: "1_Equipos_DIN", type: "line", start: { x: xSideStart + 41.703, y: dyBotOuter }, end: { x: xSideStart + 149.703, y: dyBotOuter }, color: "#64748B", lineWidth: 0.5 },
+        { id: `side-banq-top-in-${rIdx}`, layerId: "1_Equipos_DIN", type: "line", start: { x: xSideStart + 42.703, y: dyTopInner }, end: { x: xSideStart + 150.703, y: dyTopInner }, color: "#94A3B8", lineWidth: 0.4 },
+        { id: `side-banq-bot-in-${rIdx}`, layerId: "1_Equipos_DIN", type: "line", start: { x: xSideStart + 42.703, y: dyBotInner }, end: { x: xSideStart + 150.703, y: dyBotInner }, color: "#94A3B8", lineWidth: 0.4 },
+        // Ranura / Tira de refuerzo horizontal
+        { id: `side-banq-brace-${rIdx}`, layerId: "1_Equipos_DIN", type: "line", start: { x: xSideStart + 99.595, y: yRiel - 0.498 }, end: { x: xSideStart + 146.792, y: yRiel - 0.498 }, color: "#CBD5E1", lineWidth: 0.3 },
+        // Placa base de apoyo posterior (60.25mm de alto: yRiel - 30.623 a +29.627)
+        { id: `side-banq-base-${rIdx}`, layerId: "1_Equipos_DIN", type: "line", start: { x: xRearGuide, y: yRiel - 30.623 }, end: { x: xRearGuide, y: yRiel + 29.627 }, color: "#475569", lineWidth: 0.6 },
+        { id: `side-banq-base-top-flange-${rIdx}`, layerId: "1_Equipos_DIN", type: "line", start: { x: xRearGuide, y: yRiel + 29.627 }, end: { x: xRearGuide + 1.0, y: yRiel + 29.627 }, color: "#475569", lineWidth: 0.5 },
+        { id: `side-banq-base-bot-flange-${rIdx}`, layerId: "1_Equipos_DIN", type: "line", start: { x: xRearGuide, y: yRiel - 30.623 }, end: { x: xRearGuide + 1.0, y: yRiel - 30.623 }, color: "#475569", lineWidth: 0.5 }
+      );
+
+      // B. Perfil Sombrero Riel DIN 35 (Polígono Fiel 1:1 de 20 Vértices del DXF de Layer 015)
+      const xHatFront = xSideStart + 40.703;
+      const dinPolyVertices: CadPoint[] = [
+        { x: xSideStart + 38.703, y: yRiel - 12.500 },
+        { x: xSideStart + 35.703, y: yRiel - 12.500 },
+        { x: xSideStart + 33.703, y: yRiel - 14.500 },
+        { x: xSideStart + 33.703, y: yRiel - 17.500 },
+        { x: xSideStart + 34.703, y: yRiel - 17.500 },
+        { x: xSideStart + 34.703, y: yRiel - 14.500 },
+        { x: xSideStart + 35.703, y: yRiel - 13.500 },
+        { x: xSideStart + 38.703, y: yRiel - 13.500 },
+        { x: xSideStart + 40.703, y: yRiel - 11.500 },
+        { x: xSideStart + 40.703, y: yRiel + 11.500 },
+        { x: xSideStart + 38.703, y: yRiel + 13.500 },
+        { x: xSideStart + 35.703, y: yRiel + 13.500 },
+        { x: xSideStart + 34.703, y: yRiel + 14.500 },
+        { x: xSideStart + 34.703, y: yRiel + 17.500 },
+        { x: xSideStart + 33.703, y: yRiel + 17.500 },
+        { x: xSideStart + 33.703, y: yRiel + 14.500 },
+        { x: xSideStart + 35.703, y: yRiel + 12.500 },
+        { x: xSideStart + 38.703, y: yRiel + 12.500 },
+        { x: xSideStart + 39.703, y: yRiel + 11.500 },
+        { x: xSideStart + 39.703, y: yRiel - 11.500 },
+      ];
+
+      for (let vIdx = 0; vIdx < dinPolyVertices.length; vIdx++) {
+        const p1 = dinPolyVertices[vIdx];
+        const p2 = dinPolyVertices[(vIdx + 1) % dinPolyVertices.length];
+        primitives.push({
+          id: `side-din-hat-poly-${rIdx}-${vIdx}`,
+          layerId: "1_Equipos_DIN",
+          type: "line",
+          start: p1,
+          end: p2,
+          color: "#3B82F6",
+          lineWidth: 0.6,
+        });
+      }
+
+      // Remache / Tornillo de fijación del Riel DIN al Banquito
+      primitives.push({
+        id: `side-din-screw-${rIdx}`,
+        layerId: "1_Equipos_DIN",
+        type: "rect",
+        x: xSideStart + 41.703,
+        y: yRiel - 2.5,
+        width: 1.826,
+        height: 5.0,
+        color: "#94A3B8",
+        stroke: "#64748B",
+        fill: "none",
+        lineWidth: 0.4,
+      });
+
+      // C. Perfil / Carcasa Lateral de Módulos DIN
+      const modTopY = yRiel - 42.5; // Alto 85mm
+      const modHeight = 85;
+
+      primitives.push({
+        id: `side-mod-body-${rIdx}`,
+        layerId: "1_Equipos_DIN",
+        type: "rect",
+        x: xCoverFront,
+        y: modTopY,
+        width: xHatFront - xCoverFront, // 13.6mm desde contrafrente hasta sombrero DIN
+        height: modHeight,
+        color: "#1E40AF",
+        stroke: "#3B82F6",
+        fill: "none",
+        lineWidth: 0.5,
+      });
+
+      // Palanca / Gatillo rojo que sobresale del contrafrente calado hacia la puerta
+      primitives.push({
+        id: `side-mod-lever-${rIdx}`,
+        layerId: "1_Equipos_DIN",
+        type: "rect",
+        x: xCoverFront - 12.1, // Sobresale 12.1mm hacia la puerta (xSideStart + 15mm)
+        y: yRiel - 8,
+        width: 12.1,
+        height: 16,
+        color: "#EF4444",
+        stroke: "#DC2626",
+        fill: "none",
+        lineWidth: 0.5,
+      });
+    });
+
+    // 5.C. Perfil de Corte Transversal de Cable Canal / Canaletas Ranuradas (Montadas sobre bandeja posterior en Z=0)
+    // Regla de Adaptabilidad Inviolable: El alto (A) y profundidad (B) del canal AxB se extraen dinámicamente
+    const geomPerifSide = obtenerGeometriaCanaleta(params.cablecanalPeriferia || params.cablecanalSugerido, numTotalFilas);
+    const geomInterSide = obtenerGeometriaCanaleta(params.cablecanalInteriores || params.cablecanalSugerido, numTotalFilas);
+
+    const xCanalBack = xSupportChannelInner; // xSideStart + 151.703mm (Cara frontal de la bandeja de soporte)
+
+    const sideCanals: { yTop: number; height: number; depth: number; type: string }[] = [];
+    const numFilasSide = rowCentersY.length;
+
+    if (numFilasSide > 0) {
+      // 1. Canaleta horizontal superior (debajo de Q1 / Fila 0)
+      const yFirstChanSide = numFilasSide > 1
+        ? (rowCentersY[0] + rowCentersY[1]) / 2 - geomInterSide.altoMm / 2
+        : rowCentersY[0] + pasoMm / 2 - geomInterSide.altoMm / 2;
+      sideCanals.push({ yTop: yFirstChanSide, height: geomPerifSide.altoMm, depth: geomPerifSide.profundidadMm, type: "top" });
+
+      // 2. Canaletas horizontales intermedias (entre Fila 1 y Fila 2, etc.)
+      for (let i = 1; i < numFilasSide - 1; i++) {
+        const yChanInter = (rowCentersY[i] + rowCentersY[i + 1]) / 2 - geomInterSide.altoMm / 2;
+        sideCanals.push({ yTop: yChanInter, height: geomInterSide.altoMm, depth: geomInterSide.profundidadMm, type: `inter-${i}` });
+      }
+
+      // 3. Canaleta horizontal inferior (debajo de la última fila, coincidente 1:1 con la vista frontal)
+      const lastRowIdxSide = numFilasSide - 1;
+      const ySubpanelBottomSide = marginY + altoGabinete - NOLLMANN_NIS_GEOMETRY.DELTA_BANDEJA_POSTERIOR;
+      const yBotChanNominalSide = rowCentersY[lastRowIdxSide] + pasoMm / 2 - geomPerifSide.altoMm / 2;
+      const yBotChanMaxSide = ySubpanelBottomSide - geomPerifSide.altoMm - 10;
+      const yBotChanSide = Math.min(yBotChanNominalSide, yBotChanMaxSide);
+      sideCanals.push({ yTop: yBotChanSide, height: geomPerifSide.altoMm, depth: geomPerifSide.profundidadMm, type: "bot" });
+    }
+
+    sideCanals.forEach((c, cIdx) => {
+      const yCanalTop = c.yTop;
+      const yCanalBot = c.yTop + c.height;
+      const yCanalCenter = c.yTop + c.height / 2;
+      const xCanalFront = xCanalBack - c.depth;
+
+      primitives.push(
+        // Cuerpo exterior de la canaleta ranurada (Perfil de corte)
+        {
+          id: `side-canal-body-${cIdx}`,
+          layerId: "1_Equipos_DIN",
+          type: "rect",
+          x: xCanalFront,
+          y: yCanalTop,
+          width: c.depth,
+          height: c.height,
+          color: "#64748B",
+          stroke: "#64748B",
+          fill: "none",
+          lineWidth: 0.6,
+        },
+        // Tapa frontal desmontable (Snap-on cover) con pestañas de encastre
+        {
+          id: `side-canal-cover-${cIdx}`,
+          layerId: "1_Equipos_DIN",
+          type: "line",
+          start: { x: xCanalFront, y: yCanalTop - 3.0 },
+          end: { x: xCanalFront, y: yCanalBot + 3.0 },
+          color: "#475569",
+          lineWidth: 0.8,
+        },
+        {
+          id: `side-canal-cover-top-lip-${cIdx}`,
+          layerId: "1_Equipos_DIN",
+          type: "line",
+          start: { x: xCanalFront, y: yCanalTop - 3.0 },
+          end: { x: xCanalFront + 4.0, y: yCanalTop - 3.0 },
+          color: "#475569",
+          lineWidth: 0.6,
+        },
+        {
+          id: `side-canal-cover-bot-lip-${cIdx}`,
+          layerId: "1_Equipos_DIN",
+          type: "line",
+          start: { x: xCanalFront, y: yCanalBot + 3.0 },
+          end: { x: xCanalFront + 4.0, y: yCanalBot + 3.0 },
+          color: "#475569",
+          lineWidth: 0.6,
+        },
+        // Ranuras de aireación / Pasacables de peine en caras superior e inferior
+        {
+          id: `side-canal-slot-top-${cIdx}`,
+          layerId: "1_Equipos_DIN",
+          type: "line",
+          start: { x: xCanalFront + 5.0, y: yCanalTop },
+          end: { x: xCanalBack - 5.0, y: yCanalTop },
+          color: "#94A3B8",
+          lineWidth: 0.4,
+          lineDash: [4, 4],
+        },
+        {
+          id: `side-canal-slot-bot-${cIdx}`,
+          layerId: "1_Equipos_DIN",
+          type: "line",
+          start: { x: xCanalFront + 5.0, y: yCanalBot },
+          end: { x: xCanalBack - 5.0, y: yCanalBot },
+          color: "#94A3B8",
+          lineWidth: 0.4,
+          lineDash: [4, 4],
+        },
+        // Mazo de cables indicativo interior (Peinado de conductores)
+        {
+          id: `side-canal-bundle-${cIdx}`,
+          layerId: "1_Equipos_DIN",
+          type: "line",
+          start: { x: xCanalFront + 10.0, y: yCanalCenter },
+          end: { x: xCanalBack - 10.0, y: yCanalCenter },
+          color: "#CBD5E1",
+          lineWidth: 0.4,
+          lineDash: [2, 4],
+        }
+      );
+    });
+
+    // 6. Cotas y Etiquetas Descriptivas en Vista Lateral
+    // Cota de Profundidad Nominal 225mm (arriba del chasis lateral)
+    const dimY = ySideTop - 25;
+    primitives.push({
+      id: "side-dim-line",
+      layerId: "6_Cotas_Textos",
+      type: "line",
+      start: { x: xSideStart, y: dimY },
+      end: { x: xSideStart + PROFUNDIDAD_GABINETE, y: dimY },
+      color: "auto",
+      lineWidth: 0.8,
+    });
+    primitives.push({
+      id: "side-dim-tick-left",
+      layerId: "6_Cotas_Textos",
+      type: "line",
+      start: { x: xSideStart, y: dimY - 4 },
+      end: { x: xSideStart, y: dimY + 4 },
+      color: "auto",
+      lineWidth: 0.8,
+    });
+    primitives.push({
+      id: "side-dim-tick-right",
+      layerId: "6_Cotas_Textos",
+      type: "line",
+      start: { x: xSideStart + PROFUNDIDAD_GABINETE, y: dimY - 4 },
+      end: { x: xSideStart + PROFUNDIDAD_GABINETE, y: dimY + 4 },
+      color: "auto",
+      lineWidth: 0.8,
+    });
+    primitives.push({
+      id: "side-dim-txt",
+      layerId: "6_Cotas_Textos",
+      type: "text",
+      x: xSideStart + PROFUNDIDAD_GABINETE / 2,
+      y: dimY - 4,
+      text: `${PROFUNDIDAD_GABINETE} mm (Profundidad)`,
+      fontSize: 6.0,
+      weight: "bold",
+      align: "center",
+      color: "auto",
+    });
+
+    // Indicadores de Cotas de Nivel Z (Puerta Z=225, Tapa Z=195, Rieles Z=110, Fondo Z=0)
+    primitives.push({
+      id: "side-z-lbl-225",
+      layerId: "6_Cotas_Textos",
+      type: "text",
+      x: xSideStart,
+      y: ySideTop - 8,
+      text: "Z=225 (Puerta)",
+      fontSize: 4.2,
+      weight: "bold",
+      align: "center",
+      color: "auto",
+    });
+    primitives.push({
+      id: "side-z-lbl-195",
+      layerId: "6_Cotas_Textos",
+      type: "text",
+      x: xSideStart + 30,
+      y: ySideTop - 8,
+      text: "Z=195 (Tapa)",
+      fontSize: 4.2,
+      weight: "bold",
+      align: "center",
+      color: "auto",
+    });
+    primitives.push({
+      id: "side-z-lbl-110",
+      layerId: "6_Cotas_Textos",
+      type: "text",
+      x: xSideStart + 115,
+      y: ySideTop - 8,
+      text: "Z=110 (Rieles)",
+      fontSize: 4.2,
+      weight: "bold",
+      align: "center",
+      color: "auto",
+    });
+    primitives.push({
+      id: "side-z-lbl-0",
+      layerId: "6_Cotas_Textos",
+      type: "text",
+      x: xSideStart + 225,
+      y: ySideTop - 8,
+      text: "Z=0 (Fondo)",
+      fontSize: 4.2,
+      weight: "bold",
+      align: "center",
+      color: "auto",
+    });
+
+    // Título Principal al pie de la Vista Lateral
+    primitives.push({
+      id: "side-view-title",
+      layerId: "6_Cotas_Textos",
+      type: "text",
+      x: xSideStart + PROFUNDIDAD_GABINETE / 2,
+      y: ySideBot + 30,
+      text: "VISTA LATERAL DERECHA (SECCIÓN Z-Y)",
+      fontSize: 7.0,
+      weight: "bold",
+      align: "center",
+      color: "auto",
+    });
+    primitives.push({
+      id: "side-view-subtitle",
+      layerId: "6_Cotas_Textos",
+      type: "text",
+      x: xSideStart + PROFUNDIDAD_GABINETE / 2,
+      y: ySideBot + 42,
+      text: "Envolvente Nollmann NIS 225mm · Chasis Regulable 110mm",
+      fontSize: 4.8,
+      align: "center",
+      color: "auto",
+    });
+
+    const totalCadWidth = xSideStart + PROFUNDIDAD_GABINETE + marginX;
+    const totalCadHeight = altoGabinete + marginY * 2 + 50;
+
     return {
-      title: "Elevación Topográfica CAD del Tablero",
+      title: "Elevación Topográfica CAD del Tablero (Vistas Frontal y Lateral)",
       layers: CAPAS_ESTANDAR_CAD,
       primitives,
-      bounds: { minX: 0, minY: 0, maxX: anchoGabinete + marginX * 2, maxY: altoGabinete + marginY * 2 },
+      bounds: { minX: 0, minY: 0, maxX: totalCadWidth, maxY: totalCadHeight },
     };
   }
 

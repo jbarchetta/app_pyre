@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from "react";
+import { WrenchIcon } from "@heroicons/react/24/outline";
+import { Modal } from "./common/Modal";
 import {
   buscarCatalogo,
   obtenerOpcionesFiltro,
@@ -6,7 +8,6 @@ import {
   type OpcionesFiltro,
   type TipoProteccion,
 } from "../api/client";
-import { useCerrarAlClickFuera } from "../hooks/useCerrarAlClickFuera";
 import { guardarMemoria, obtenerMemoria, type MemoriaBusqueda } from "./componentePickerMemoria";
 
 const RESULTADOS_POR_PAGINA = 20;
@@ -144,7 +145,6 @@ export function ComponentePicker({
 
   const solicitudActualRef = useRef(0);
   const inputRef = useRef<HTMLInputElement>(null);
-  const { onMouseDown, onClick } = useCerrarAlClickFuera(onCancel);
 
   useEffect(() => {
     inputRef.current?.focus();
@@ -286,236 +286,231 @@ export function ComponentePicker({
     filtroCapacidad !== null ||
     filtroSensibilidad !== null ||
     filtroAccesorios !== null;
-
   return (
-    <div
-      className="fixed inset-0 z-20 flex items-center justify-center bg-black/40"
-      onMouseDown={onMouseDown}
-      onClick={onClick}
-    >
-      <div
-        tabIndex={-1}
-        onClick={(e) => e.stopPropagation()}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="component-picker-titulo"
-        className="flex w-[700px] max-w-full flex-col gap-3 border border-surface-stroke bg-white p-8"
-      >
-        <h2 id="component-picker-titulo" className="text-lg font-bold text-gray-900">
-          {titulo}
-        </h2>
-
-        {/* Pestañas: Estándar vs Otro */}
-        <div className="flex border-b border-gray-200 mb-2">
-          <button
-            type="button"
-            onClick={() => handleSwitchTab("estandar")}
-            className={`py-2 px-4 text-xs uppercase font-bold tracking-wider border-b-2 transition ${
-              activeTab === "estandar"
-                ? "border-abb-red text-abb-red bg-red-50/50"
-                : "border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50"
-            }`}
-          >
-            Protecciones Estándar
-          </button>
-          <button
-            type="button"
-            onClick={() => handleSwitchTab("otro")}
-            className={`py-2 px-4 text-xs uppercase font-bold tracking-wider border-b-2 transition ${
-              activeTab === "otro"
-                ? "border-abb-red text-abb-red bg-red-50/50"
-                : "border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50"
-            }`}
-          >
-            Otros (Fusibles / Seccionadores)
-          </button>
-        </div>
-
-        <div className="flex gap-2">
-          <input
-            ref={inputRef}
-            aria-label="Buscar código o descripción"
-            value={query}
-            onChange={(e) => handleChange(e.target.value)}
-            className="flex-1 border border-surface-stroke p-2"
-          />
-          <button
-            type="button"
-            aria-expanded={filtrosAbiertos}
-            onClick={() => setFiltrosAbiertos((actual) => !actual)}
-            className="flex items-center gap-2 whitespace-nowrap border border-surface-stroke px-4 py-2 text-xs uppercase tracking-widest text-secondary hover:border-abb-red hover:text-abb-red"
-          >
-            <span aria-hidden="true">⚙</span> Filtros
-          </button>
-        </div>
-
-        {filtrosAbiertos && (
-          <div className="flex flex-wrap gap-5 border border-surface-stroke bg-industrial-gray p-4">
-            <FiltroSelect
-              id="filtro-tipo"
-              label="Tipo de Protección"
-              value={filtroTipo ?? ""}
-              options={[
-                { value: "seccional_termomagnetico", label: "Termomagnético" },
-                { value: "seccional_diferencial", label: "Diferencial" },
-              ]}
-              onChange={(value) => {
-                const valor = value || null;
-                handleFiltroChange(() => setFiltroTipo(valor), { tipo: valor });
-              }}
-            />
-            <FiltroSelect
-              id="filtro-polos"
-              label={esDiferencial ? "Tamaño (Polos)" : "Polos"}
-              value={filtroPolos ?? ""}
-              options={polosOpciones}
-              onChange={(value) => {
-                const valor = value ? Number(value) : null;
-                handleFiltroChange(() => setFiltroPolos(valor), { polos: valor });
-              }}
-            />
-
-            {esDiferencial && (
-              <FiltroSelect
-                id="filtro-sensibilidad"
-                label="Sensibilidad (IΔn)"
-                value={filtroSensibilidad ?? ""}
-                options={(opciones?.sensabilidades_ma ?? opciones?.sensibilidades_ma ?? []).map((s: number) => ({
-                  value: s,
-                  label: `${s} mA`,
-                }))}
-                onChange={(value) => {
-                  const valor = value ? Number(value) : null;
-                  handleFiltroChange(() => setFiltroSensibilidad(valor), { sensibilidad: valor });
-                }}
-              />
-            )}
-
-            <FiltroSelect
-              id="filtro-corriente"
-              label="Corriente (In)"
-              value={filtroCorriente ?? ""}
-              options={opciones?.corrientes_nominales_a ?? []}
-              unidad="A"
-              onChange={(value) => {
-                const valor = value || null;
-                handleFiltroChange(() => setFiltroCorriente(valor), { corriente: valor });
-              }}
-            />
-
-            {!esDiferencial && (
-              <FiltroSelect
-                id="filtro-capacidad"
-                label="Capacidad de corte"
-                value={filtroCapacidad ?? ""}
-                options={opciones?.capacidades_corte_ka ?? []}
-                unidad="kA"
-                onChange={(value) => {
-                  const valor = value || null;
-                  handleFiltroChange(() => setFiltroCapacidad(valor), { capacidad: valor });
-                }}
-              />
-            )}
-
-            <FiltroSelect
-              id="filtro-accesorios"
-              label="Accesorios"
-              value={filtroAccesorios === null ? "" : String(filtroAccesorios)}
-              options={[
-                { value: "true", label: "Con accesorios" },
-                { value: "false", label: "Sin accesorios" },
-              ]}
-              onChange={(value) => {
-                const valor = value === "" ? null : value === "true";
-                handleFiltroChange(() => setFiltroAccesorios(valor), { accesorios: valor });
-              }}
-            />
-          </div>
-        )}
-
-        {hayFiltrosActivos && (
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-[10px] uppercase tracking-widest text-secondary">Activos:</span>
-            {filtroTipo !== null && (
-              <FiltroChip
-                label={filtroTipo === "seccional_diferencial" ? "Diferencial" : "Termomagnético"}
-                onRemove={() => handleFiltroChange(() => setFiltroTipo(null), { tipo: null })}
-              />
-            )}
-            {filtroPolos !== null && (
-              <FiltroChip
-                label={filtroPolos === 2 ? "2P (Bipolar)" : filtroPolos === 4 ? "4P (Tetrapolar)" : `${filtroPolos} polos`}
-                onRemove={() => handleFiltroChange(() => setFiltroPolos(null), { polos: null })}
-              />
-            )}
-            {filtroSensibilidad !== null && (
-              <FiltroChip
-                label={`Sens: ${filtroSensibilidad}mA`}
-                onRemove={() => handleFiltroChange(() => setFiltroSensibilidad(null), { sensibilidad: null })}
-              />
-            )}
-            {filtroCorriente !== null && (
-              <FiltroChip
-                label={`${filtroCorriente}A`}
-                onRemove={() => handleFiltroChange(() => setFiltroCorriente(null), { corriente: null })}
-              />
-            )}
-            {filtroCapacidad !== null && (
-              <FiltroChip
-                label={`${filtroCapacidad}kA`}
-                onRemove={() => handleFiltroChange(() => setFiltroCapacidad(null), { capacidad: null })}
-              />
-            )}
-            {filtroAccesorios !== null && (
-              <FiltroChip
-                label={filtroAccesorios ? "Con accesorios" : "Sin accesorios"}
-                onRemove={() => handleFiltroChange(() => setFiltroAccesorios(null), { accesorios: null })}
-              />
-            )}
-          </div>
-        )}
-
-        {resultados !== null && resultados.length === 0 && <p className="text-secondary">sin resultados</p>}
-        {resultados !== null && resultados.length > 0 && (
-          <div className="max-h-96 overflow-y-auto border border-surface-stroke">
-            <ul>
-              {resultados.map((componente) => (
-                <li key={componente.id}>
-                  <button
-                    type="button"
-                    onClick={() => onSelect(componente)}
-                    className="flex w-full items-center gap-2 p-2 text-left hover:bg-industrial-gray"
-                  >
-                    <span className="font-mono text-sm">{componente.codigo}</span>
-                    <span className="text-secondary">— {componente.descripcion}</span>
-                  </button>
-                </li>
-              ))}
-            </ul>
-            <p className="border-t border-surface-stroke p-2 text-xs text-secondary">
-              Mostrando {resultados.length} de {total} resultados
-            </p>
-            {resultados.length < total && (
-              <button
-                type="button"
-                onClick={handleCargarMas}
-                disabled={cargandoMas}
-                className="w-full border-t border-surface-stroke p-2 text-sm uppercase tracking-widest text-abb-red hover:bg-industrial-gray disabled:opacity-50"
-              >
-                {cargandoMas ? "Cargando..." : "Cargar más"}
-              </button>
-            )}
-          </div>
-        )}
-
+    <Modal
+      titulo={titulo}
+      subtitulo="Selección de componentes del catálogo oficial ABB"
+      icon={<WrenchIcon className="w-5 h-5 text-abb-red" />}
+      onClose={onCancel}
+      size="xl"
+      footer={
         <button
           type="button"
           onClick={onCancel}
-          className="mt-1 self-start border border-surface-stroke px-6 py-3 text-sm uppercase tracking-widest"
+          className="border border-slate-300 bg-white hover:bg-slate-100 text-slate-700 font-semibold px-5 py-2 text-xs rounded-lg transition cursor-pointer"
         >
-          Cancelar
+          Cerrar selección
+        </button>
+      }
+    >
+      {/* Pestañas: Estándar vs Otro */}
+      <div className="flex border-b border-slate-200 mb-2">
+        <button
+          type="button"
+          onClick={() => handleSwitchTab("estandar")}
+          className={`py-2.5 px-4 text-xs uppercase font-bold tracking-wider border-b-2 transition cursor-pointer ${
+            activeTab === "estandar"
+              ? "border-abb-red text-abb-red bg-red-50/50"
+              : "border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-50"
+          }`}
+        >
+          Protecciones Estándar
+        </button>
+        <button
+          type="button"
+          onClick={() => handleSwitchTab("otro")}
+          className={`py-2.5 px-4 text-xs uppercase font-bold tracking-wider border-b-2 transition cursor-pointer ${
+            activeTab === "otro"
+              ? "border-abb-red text-abb-red bg-red-50/50"
+              : "border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-50"
+          }`}
+        >
+          Otros (Fusibles / Seccionadores)
         </button>
       </div>
-    </div>
+
+      <div className="flex gap-2">
+        <input
+          ref={inputRef}
+          aria-label="Buscar código o descripción"
+          placeholder="Buscar por código o descripción comercial ABB..."
+          value={query}
+          onChange={(e) => handleChange(e.target.value)}
+          className="flex-1 border border-slate-300 rounded-lg px-3.5 py-2 text-sm focus:ring-1 focus:ring-abb-red focus:border-abb-red focus:outline-none shadow-sm"
+        />
+        <button
+          type="button"
+          aria-expanded={filtrosAbiertos}
+          onClick={() => setFiltrosAbiertos((actual) => !actual)}
+          className="flex items-center gap-2 whitespace-nowrap border border-slate-300 rounded-lg px-4 py-2 text-xs font-bold uppercase tracking-wider text-slate-700 hover:border-abb-red hover:text-abb-red transition cursor-pointer"
+        >
+          <span aria-hidden="true">⚙</span> Filtros
+        </button>
+      </div>
+
+      {filtrosAbiertos && (
+        <div className="flex flex-wrap gap-4 border border-slate-200 bg-slate-50/70 rounded-lg p-4">
+          <FiltroSelect
+            id="filtro-tipo"
+            label="Tipo de Protección"
+            value={filtroTipo ?? ""}
+            options={[
+              { value: "seccional_termomagnetico", label: "Termomagnético" },
+              { value: "seccional_diferencial", label: "Diferencial" },
+            ]}
+            onChange={(value) => {
+              const valor = value || null;
+              handleFiltroChange(() => setFiltroTipo(valor), { tipo: valor });
+            }}
+          />
+          <FiltroSelect
+            id="filtro-polos"
+            label={esDiferencial ? "Tamaño (Polos)" : "Polos"}
+            value={filtroPolos ?? ""}
+            options={polosOpciones}
+            onChange={(value) => {
+              const valor = value ? Number(value) : null;
+              handleFiltroChange(() => setFiltroPolos(valor), { polos: valor });
+            }}
+          />
+
+          {esDiferencial && (
+            <FiltroSelect
+              id="filtro-sensibilidad"
+              label="Sensibilidad (IΔn)"
+              value={filtroSensibilidad ?? ""}
+              options={(opciones?.sensabilidades_ma ?? opciones?.sensibilidades_ma ?? []).map((s: number) => ({
+                value: s,
+                label: `${s} mA`,
+              }))}
+              onChange={(value) => {
+                const valor = value ? Number(value) : null;
+                handleFiltroChange(() => setFiltroSensibilidad(valor), { sensibilidad: valor });
+              }}
+            />
+          )}
+
+          <FiltroSelect
+            id="filtro-corriente"
+            label="Corriente (In)"
+            value={filtroCorriente ?? ""}
+            options={opciones?.corrientes_nominales_a ?? []}
+            unidad="A"
+            onChange={(value) => {
+              const valor = value || null;
+              handleFiltroChange(() => setFiltroCorriente(valor), { corriente: valor });
+            }}
+          />
+
+          {!esDiferencial && (
+            <FiltroSelect
+              id="filtro-capacidad"
+              label="Capacidad de corte"
+              value={filtroCapacidad ?? ""}
+              options={opciones?.capacidades_corte_ka ?? []}
+              unidad="kA"
+              onChange={(value) => {
+                const valor = value || null;
+                handleFiltroChange(() => setFiltroCapacidad(valor), { capacidad: valor });
+              }}
+            />
+          )}
+
+          <FiltroSelect
+            id="filtro-accesorios"
+            label="Accesorios"
+            value={filtroAccesorios === null ? "" : String(filtroAccesorios)}
+            options={[
+              { value: "true", label: "Con accesorios" },
+              { value: "false", label: "Sin accesorios" },
+            ]}
+            onChange={(value) => {
+              const valor = value === "" ? null : value === "true";
+              handleFiltroChange(() => setFiltroAccesorios(valor), { accesorios: valor });
+            }}
+          />
+        </div>
+      )}
+
+      {hayFiltrosActivos && (
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-[10px] uppercase font-bold tracking-widest text-slate-500">Activos:</span>
+          {filtroTipo !== null && (
+            <FiltroChip
+              label={filtroTipo === "seccional_diferencial" ? "Diferencial" : "Termomagnético"}
+              onRemove={() => handleFiltroChange(() => setFiltroTipo(null), { tipo: null })}
+            />
+          )}
+          {filtroPolos !== null && (
+            <FiltroChip
+              label={filtroPolos === 2 ? "2P (Bipolar)" : filtroPolos === 4 ? "4P (Tetrapolar)" : `${filtroPolos} polos`}
+              onRemove={() => handleFiltroChange(() => setFiltroPolos(null), { polos: null })}
+            />
+          )}
+          {filtroSensibilidad !== null && (
+            <FiltroChip
+              label={`Sens: ${filtroSensibilidad}mA`}
+              onRemove={() => handleFiltroChange(() => setFiltroSensibilidad(null), { sensibilidad: null })}
+            />
+          )}
+          {filtroCorriente !== null && (
+            <FiltroChip
+              label={`${filtroCorriente}A`}
+              onRemove={() => handleFiltroChange(() => setFiltroCorriente(null), { corriente: null })}
+            />
+          )}
+          {filtroCapacidad !== null && (
+            <FiltroChip
+              label={`${filtroCapacidad}kA`}
+              onRemove={() => handleFiltroChange(() => setFiltroCapacidad(null), { capacidad: null })}
+            />
+          )}
+          {filtroAccesorios !== null && (
+            <FiltroChip
+              label={filtroAccesorios ? "Con accesorios" : "Sin accesorios"}
+              onRemove={() => handleFiltroChange(() => setFiltroAccesorios(null), { accesorios: null })}
+            />
+          )}
+        </div>
+      )}
+
+      {resultados !== null && resultados.length === 0 && <p className="text-slate-500 italic p-4 text-center">Sin resultados encontrados</p>}
+      {resultados !== null && resultados.length > 0 && (
+        <div className="max-h-96 overflow-y-auto border border-slate-200 rounded-lg shadow-inner">
+          <ul className="divide-y divide-slate-100">
+            {resultados.map((componente) => (
+              <li key={componente.id}>
+                <button
+                  type="button"
+                  onClick={() => onSelect(componente)}
+                  className="flex w-full items-center justify-between gap-3 p-3 text-left hover:bg-red-50/50 transition cursor-pointer group"
+                >
+                  <div className="flex items-center gap-3">
+                    <span className="font-mono font-bold text-sm text-abb-red bg-red-50 px-2 py-0.5 rounded border border-red-100 group-hover:bg-abb-red group-hover:text-white transition">{componente.codigo}</span>
+                    <span className="text-sm font-medium text-slate-800">{componente.descripcion}</span>
+                  </div>
+                  {componente.codigo_comercial && (
+                    <span className="text-xs text-slate-400 font-mono">{componente.codigo_comercial}</span>
+                  )}
+                </button>
+              </li>
+            ))}
+          </ul>
+          <p className="border-t border-slate-200 p-2.5 text-xs text-slate-500 bg-slate-50 font-medium text-center">
+            Mostrando {resultados.length} de {total} resultados
+          </p>
+          {resultados.length < total && (
+            <button
+              type="button"
+              onClick={handleCargarMas}
+              disabled={cargandoMas}
+              className="w-full border-t border-slate-200 p-2.5 text-xs font-bold uppercase tracking-wider text-abb-red hover:bg-red-50 disabled:opacity-50 transition cursor-pointer"
+            >
+              {cargandoMas ? "Cargando..." : "Cargar más resultados"}
+            </button>
+          )}
+        </div>
+      )}
+    </Modal>
   );
 }

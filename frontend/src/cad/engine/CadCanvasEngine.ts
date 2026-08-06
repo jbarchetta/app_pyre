@@ -120,25 +120,30 @@ export class CadCanvasEngine {
     ctx.restore();
   }
 
-  private renderGrid(width: number, height: number, transform: ViewportTransform, gridSizeMm: number, theme: "dark" | "light") {
+  private renderGrid(width: number, height: number, transform: ViewportTransform, baseGridSizeMm: number, theme: "dark" | "light") {
     const { ctx } = this;
-    const stepPx = gridSizeMm * transform.zoom;
-    if (stepPx < 4) return;
+    let effectiveGridSize = baseGridSizeMm || 10;
+    
+    // Adaptación dinámica de rejilla estilo AutoCAD: ajusta la escala del grid al alejar el zoom
+    const minStepPx = 15;
+    while (effectiveGridSize * transform.zoom < minStepPx) {
+      effectiveGridSize *= 2;
+    }
 
     const startWorld = screenToWorld({ x: 0, y: 0 }, transform);
     const endWorld = screenToWorld({ x: width, y: height }, transform);
 
-    const firstX = Math.floor(startWorld.x / gridSizeMm) * gridSizeMm;
-    const lastX = Math.ceil(endWorld.x / gridSizeMm) * gridSizeMm;
+    const firstX = Math.floor(startWorld.x / effectiveGridSize) * effectiveGridSize;
+    const lastX = Math.ceil(endWorld.x / effectiveGridSize) * effectiveGridSize;
 
-    const firstY = Math.floor(startWorld.y / gridSizeMm) * gridSizeMm;
-    const lastY = Math.ceil(endWorld.y / gridSizeMm) * gridSizeMm;
+    const firstY = Math.floor(startWorld.y / effectiveGridSize) * effectiveGridSize;
+    const lastY = Math.ceil(endWorld.y / effectiveGridSize) * effectiveGridSize;
 
     ctx.lineWidth = 0.5;
 
-    for (let x = firstX; x <= lastX; x += gridSizeMm) {
+    for (let x = firstX; x <= lastX; x += effectiveGridSize) {
       const screenX = x * transform.zoom + transform.panX;
-      const isMajor = x % (gridSizeMm * 5) === 0;
+      const isMajor = Math.round(x) % (effectiveGridSize * 5) === 0;
       if (theme === "light") {
         ctx.strokeStyle = isMajor ? "rgba(148, 163, 184, 0.8)" : "rgba(226, 232, 240, 0.7)";
       } else {
@@ -150,9 +155,9 @@ export class CadCanvasEngine {
       ctx.stroke();
     }
 
-    for (let y = firstY; y <= lastY; y += gridSizeMm) {
+    for (let y = firstY; y <= lastY; y += effectiveGridSize) {
       const screenY = y * transform.zoom + transform.panY;
-      const isMajor = y % (gridSizeMm * 5) === 0;
+      const isMajor = Math.round(y) % (effectiveGridSize * 5) === 0;
       if (theme === "light") {
         ctx.strokeStyle = isMajor ? "rgba(148, 163, 184, 0.8)" : "rgba(226, 232, 240, 0.7)";
       } else {

@@ -12,7 +12,7 @@ import React, { useId } from "react";
    ========================================================================== */
 
 const controlBase =
-  "w-full rounded-control border bg-surface px-3 py-2 text-sm text-ink placeholder:text-ink-subtle transition-colors disabled:cursor-not-allowed disabled:bg-surface-sunken disabled:text-ink-subtle";
+  "w-full rounded-control border bg-surface px-3 py-2 text-sm text-ink placeholder:text-ink-subtle transition-colors disabled:cursor-not-allowed disabled:bg-surface-sunken disabled:text-ink-subtle focus:outline-none focus:ring-1 focus:ring-abb-red focus:border-abb-red";
 
 const controlNormal = "border-line-strong hover:border-ink-subtle";
 const controlError = "border-danger hover:border-danger";

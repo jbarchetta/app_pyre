@@ -217,19 +217,28 @@ export function LoginPage() {
       </div>
 
       {modalReset && (
-        <Modal titulo="Restablecer contraseña" onClose={cerrarReset}>
+        <Modal
+          titulo="Restablecer contraseña"
+          subtitulo="Recuperación de acceso al portal de ingeniería ABB"
+          icon={<KeyIcon className="w-5 h-5 text-abb-red" />}
+          onClose={cerrarReset}
+          size="md"
+          footer={
+            <>
+              <Button type="submit" form="form-reset-password" variant="primary" size="md" isLoading={resetCargando}>
+                Actualizar contraseña
+              </Button>
+              <Button type="button" variant="secondary" size="md" onClick={cerrarReset}>
+                Cancelar
+              </Button>
+            </>
+          }
+        >
           <div className="space-y-4">
-            <div className="flex items-center gap-2.5 text-brand">
-              <KeyIcon className="h-5 w-5 shrink-0" aria-hidden="true" />
-              <p className="text-xs text-ink-muted">
-                Ingresá tu correo corporativo y definí una nueva contraseña para actualizar el acceso.
-              </p>
-            </div>
-
             {resetError && <Aviso tono="danger">{resetError}</Aviso>}
             {resetExito && <Aviso tono="success">{resetExito}</Aviso>}
 
-            <form onSubmit={handleResetSubmit} className="space-y-4">
+            <form id="form-reset-password" onSubmit={handleResetSubmit} className="space-y-4">
               <Field label="Email registrado" required>
                 {(p) => (
                   <Input
@@ -263,15 +272,6 @@ export function LoginPage() {
                   </div>
                 )}
               </Field>
-
-              <div className="flex items-center justify-end gap-2 border-t border-line pt-4">
-                <Button type="button" variant="secondary" size="md" onClick={cerrarReset}>
-                  Cancelar
-                </Button>
-                <Button type="submit" variant="primary" size="md" isLoading={resetCargando}>
-                  Actualizar contraseña
-                </Button>
-              </div>
             </form>
           </div>
         </Modal>
