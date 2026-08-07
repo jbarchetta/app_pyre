@@ -249,62 +249,73 @@ export function ProyectoWorkspacePage() {
         </nav>
       </div>
 
-      {/* Tabs list of tableros */}
-      <div className="flex flex-wrap items-center justify-between border-b border-line pb-1.5 gap-2">
-        <div role="tablist" aria-label="Tableros del proyecto" className="flex flex-wrap items-center gap-2">
+      {/* CONTENEDOR UNIFICADO: BARRA DE TABLEROS Y COMANDOS DE PROYECTO */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-line bg-surface-sunken/40 p-1.5 rounded-t-card border-x border-t border-line gap-2">
+        {/* Listado de Pestañas de Tableros */}
+        <div role="tablist" aria-label="Tableros del proyecto" className="flex items-center gap-1 p-0.5 bg-surface-sunken rounded-control border border-line overflow-x-auto scrollbar-none">
+          <span className="px-2 text-[10px] font-mono font-bold uppercase tracking-wider text-ink-muted shrink-0">
+            Tableros:
+          </span>
           {tableros.map((t) => {
             const isActivo = t.id === tableroActivoId;
             return (
-              <div key={t.id} className="group relative flex items-center">
-                <button
-                  role="tab"
-                  aria-selected={isActivo}
-                  onClick={() => handleSeleccionarTablero(t.id)}
-                  className={`px-4 py-2 text-sm font-medium rounded-t-lg transition flex items-center gap-2 border-t border-x ${
-                    isActivo
-                      ? "bg-white text-abb-red shadow-sm border-surface-stroke font-bold"
-                      : "bg-gray-100 hover:bg-gray-200 text-gray-700 border-transparent"
-                  }`}
-                >
-                  {t.nombre}
-                </button>
+              <button
+                key={t.id}
+                role="tab"
+                aria-selected={isActivo}
+                onClick={() => handleSeleccionarTablero(t.id)}
+                className={`px-3 py-1.5 text-xs font-sans rounded-control transition-all duration-150 flex items-center gap-1.5 whitespace-nowrap ${
+                  isActivo
+                    ? "bg-surface text-brand shadow-control font-bold border border-line"
+                    : "text-ink-muted hover:text-ink hover:bg-surface-sunken font-medium"
+                }`}
+              >
+                <CpuChipIcon className={`w-3.5 h-3.5 ${isActivo ? "text-brand" : "opacity-60"}`} />
+                <span>{t.nombre}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* Toolbar de Acciones del Tablero Activo + Botón Nuevo Tablero */}
+        <div className="flex items-center gap-1.5 shrink-0 sm:ml-auto">
+          {tableroActivo && (
+            <>
+              <button
+                type="button"
+                title="Renombrar tablero activo"
+                aria-label="Renombrar tablero activo"
+                onClick={() => {
+                  setTableroEnEdicion(tableroActivo);
+                  setNombreTableroEdit(tableroActivo.nombre);
+                }}
+                className="flex h-7 w-7 items-center justify-center rounded-control border border-line bg-surface text-ink-muted shadow-control transition-colors hover:border-line-strong hover:bg-surface-sunken hover:text-ink"
+              >
+                <PencilIcon className="w-3.5 h-3.5" />
+              </button>
+              {tableros.length > 1 && (
                 <button
                   type="button"
-                  title="Editar nombre"
-                  aria-label={isActivo ? "Renombrar tablero activo" : `Editar ${t.nombre}`}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setTableroEnEdicion(t);
-                    setNombreTableroEdit(t.nombre);
-                  }}
-                  className="hidden group-hover:block p-1 text-gray-400 hover:text-gray-700 absolute right-6 top-2 z-10"
-                >
-                  <PencilIcon className="w-3.5 h-3.5" />
-                </button>
-                <button
-                  type="button"
-                  title="Eliminar tablero"
-                  aria-label={isActivo ? "Borrar tablero activo" : `Eliminar ${t.nombre}`}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setTableroABorrar(t);
-                  }}
-                  className="hidden group-hover:block p-1 text-gray-400 hover:text-red-600 absolute right-1 top-2 z-10"
+                  title="Eliminar tablero activo"
+                  aria-label="Eliminar tablero activo"
+                  onClick={() => setTableroABorrar(tableroActivo)}
+                  className="flex h-7 w-7 items-center justify-center rounded-control border border-danger-line bg-danger-tint text-danger shadow-control transition-colors hover:bg-danger hover:text-white"
                 >
                   <TrashIcon className="w-3.5 h-3.5" />
                 </button>
-              </div>
-            );
-          })}
+              )}
+            </>
+          )}
+
+          <div className="h-4 w-px bg-line mx-0.5" />
+
           <button
             type="button"
             aria-label="Nuevo tablero"
-            onClick={() => {
-              setModalNuevoTablero(true);
-            }}
-            className="px-3 py-2 text-sm font-medium text-gray-600 hover:text-abb-red hover:bg-gray-100 rounded-t-lg transition flex items-center gap-1"
+            onClick={() => setModalNuevoTablero(true)}
+            className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-control border border-brand bg-brand text-white shadow-control transition-all hover:bg-brand-hover"
           >
-            <PlusIcon className="w-4 h-4" />
+            <PlusIcon className="w-3.5 h-3.5" />
             <span>Nuevo Tablero</span>
           </button>
         </div>

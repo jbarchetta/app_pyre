@@ -641,12 +641,15 @@ export function DetalleTablero({
         </div>
       )}
 
-      {/* ZONA SUPERIOR: TABS DE FILAS Y CONFIGURACIÓN A ANCHO COMPLETO */}
-      <div className="w-full mt-1 bg-surface border border-line rounded-card shadow-card flex flex-col min-h-[340px]">
+      {/* ZONA SUPERIOR: TABS DE FILAS Y CONFIGURACIÓN A ANCHO COMPLETO - ACOPLADO CONTINUO */}
+      <div className="w-full bg-surface border-x border-b border-line rounded-b-card shadow-card flex flex-col min-h-[340px]">
         {/* Header con Pestañas de Selección de Sección y Toolbar de Acciones */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-line bg-surface-sunken/60 p-1.5 gap-2 shrink-0 rounded-t-card">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-line bg-surface-sunken/60 p-1.5 gap-2 shrink-0">
           {/* Listado de Pestañas (Scroll horizontal si es necesario) */}
-          <nav className="flex gap-1 p-0.5 bg-surface-sunken rounded-control border border-line max-w-full overflow-x-auto scrollbar-none" role="tablist" aria-label="Filas del tablero">
+          <nav className="flex items-center gap-1 p-0.5 bg-surface-sunken rounded-control border border-line max-w-full overflow-x-auto scrollbar-none" role="tablist" aria-label="Filas del tablero">
+            <span className="px-2 text-[10px] font-mono font-bold uppercase tracking-wider text-ink-muted shrink-0">
+              Secciones / Filas:
+            </span>
             <button
               role="tab"
               aria-selected={tabActivo === TAB_PRINCIPAL}
@@ -695,43 +698,47 @@ export function DetalleTablero({
           <div className="flex items-center gap-1.5 shrink-0 px-1 sm:ml-auto">
             {tabActivo !== TAB_PRINCIPAL && seccionSeleccionada && (
               <>
-                <Button
-                  size="icon"
-                  variant="secondary"
+                <button
+                  type="button"
+                  title="Renombrar fila activa"
                   aria-label="Renombrar fila activa"
                   onClick={(e) => {
                     ultimoTriggerRef.current = e.currentTarget;
                     setNombreFilaEdit(seccionSeleccionada.seccion.nombre);
                     setFilaEnEdicion(seccionSeleccionada.seccion);
                   }}
-                  title="Renombrar sub-sección activa"
-                  icon={<PencilIcon className="w-4 h-4 text-slate-600" />}
-                />
-                <Button
-                  size="icon"
-                  variant="danger"
-                  aria-label="Borrar fila activa"
+                  className="flex h-7 w-7 items-center justify-center rounded-control border border-line bg-surface text-ink-muted shadow-control transition-colors hover:border-line-strong hover:bg-surface-sunken hover:text-ink"
+                >
+                  <PencilIcon className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  type="button"
+                  title="Eliminar fila activa"
+                  aria-label="Eliminar fila activa"
                   onClick={(e) => {
                     ultimoTriggerRef.current = e.currentTarget;
                     setFilaABorrar(seccionSeleccionada.seccion);
                   }}
-                  title="Eliminar sub-sección activa"
-                  icon={<TrashIcon className="w-4 h-4 text-red-600" />}
-                />
+                  className="flex h-7 w-7 items-center justify-center rounded-control border border-danger-line bg-danger-tint text-danger shadow-control transition-colors hover:bg-danger hover:text-white"
+                >
+                  <TrashIcon className="w-3.5 h-3.5" />
+                </button>
               </>
             )}
-            <Button
-              size="icon"
-              variant="primary"
+            <button
+              type="button"
+              title="Nueva sub-sección"
               aria-label="Nueva fila"
               onClick={(e) => {
                 ultimoTriggerRef.current = e.currentTarget;
                 setNombreNuevaFila("");
                 setModalNuevaFila(true);
               }}
-              title="Nueva sub-sección"
-              icon={<PlusIcon className="w-4 h-4 text-white" />}
-            />
+              className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-control border border-line bg-surface text-ink shadow-control transition-all hover:bg-surface-sunken hover:border-line-strong"
+            >
+              <PlusIcon className="w-3.5 h-3.5 text-brand" />
+              <span>Nueva Fila</span>
+            </button>
           </div>
         </div>
 
