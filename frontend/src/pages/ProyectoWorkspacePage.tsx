@@ -23,7 +23,6 @@ import {
 import { ComponentePicker } from "../components/ComponentePicker";
 import { ConfirmDialog } from "../components/ConfirmDialog";
 import { DetalleTablero } from "../components/DetalleTablero";
-import { Button } from "../components/common/Button";
 import { Modal } from "../components/common/Modal";
 import {
   cargarEstadosVistaUsuario,
