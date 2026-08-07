@@ -696,7 +696,7 @@ export function DetalleTablero({
 
           {/* Acciones para la Fila Activa y Agregar Sub-sección */}
           <div className="flex items-center gap-1.5 shrink-0 px-1 sm:ml-auto">
-            {tabActivo !== TAB_PRINCIPAL && seccionSeleccionada && (
+            {seccionSeleccionada && (
               <>
                 <button
                   type="button"
@@ -713,18 +713,27 @@ export function DetalleTablero({
                 </button>
                 <button
                   type="button"
-                  title="Eliminar fila activa"
+                  disabled={tabActivo === TAB_PRINCIPAL}
+                  title={tabActivo === TAB_PRINCIPAL ? "La fila Principal no se puede eliminar" : "Eliminar fila activa"}
                   aria-label="Eliminar fila activa"
                   onClick={(e) => {
+                    if (tabActivo === TAB_PRINCIPAL) return;
                     ultimoTriggerRef.current = e.currentTarget;
                     setFilaABorrar(seccionSeleccionada.seccion);
                   }}
-                  className="flex h-7 w-7 items-center justify-center rounded-control border border-danger-line bg-danger-tint text-danger shadow-control transition-colors hover:bg-danger hover:text-white"
+                  className={`flex h-7 w-7 items-center justify-center rounded-control border transition-colors shadow-control ${
+                    tabActivo === TAB_PRINCIPAL
+                      ? "border-line bg-surface-sunken text-ink-muted opacity-40 cursor-not-allowed"
+                      : "border-danger-line bg-danger-tint text-danger hover:bg-danger hover:text-white"
+                  }`}
                 >
                   <TrashIcon className="w-3.5 h-3.5" />
                 </button>
               </>
             )}
+
+            <div className="h-4 w-px bg-line mx-0.5" />
+
             <button
               type="button"
               title="Nueva sub-sección"
@@ -734,9 +743,9 @@ export function DetalleTablero({
                 setNombreNuevaFila("");
                 setModalNuevaFila(true);
               }}
-              className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-control border border-line bg-surface text-ink shadow-control transition-all hover:bg-surface-sunken hover:border-line-strong"
+              className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-control border border-brand bg-brand text-white shadow-control transition-all hover:bg-brand-hover"
             >
-              <PlusIcon className="w-3.5 h-3.5 text-brand" />
+              <PlusIcon className="w-3.5 h-3.5" />
               <span>Nueva Fila</span>
             </button>
           </div>

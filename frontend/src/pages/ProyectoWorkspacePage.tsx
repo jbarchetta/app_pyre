@@ -293,17 +293,15 @@ export function ProyectoWorkspacePage() {
               >
                 <PencilIcon className="w-3.5 h-3.5" />
               </button>
-              {tableros.length > 1 && (
-                <button
-                  type="button"
-                  title="Eliminar tablero activo"
-                  aria-label="Eliminar tablero activo"
-                  onClick={() => setTableroABorrar(tableroActivo)}
-                  className="flex h-7 w-7 items-center justify-center rounded-control border border-danger-line bg-danger-tint text-danger shadow-control transition-colors hover:bg-danger hover:text-white"
-                >
-                  <TrashIcon className="w-3.5 h-3.5" />
-                </button>
-              )}
+              <button
+                type="button"
+                title="Eliminar tablero activo"
+                aria-label="Eliminar tablero activo"
+                onClick={() => setTableroABorrar(tableroActivo)}
+                className="flex h-7 w-7 items-center justify-center rounded-control border border-danger-line bg-danger-tint text-danger shadow-control transition-colors hover:bg-danger hover:text-white"
+              >
+                <TrashIcon className="w-3.5 h-3.5" />
+              </button>
             </>
           )}
 
