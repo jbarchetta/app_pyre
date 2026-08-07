@@ -12,7 +12,7 @@ import {
 import { logout } from "../api/client";
 import { APP_VERSION } from "../appInfo";
 import { iniciales, useSesion } from "../auth/SesionContext";
-import { Badge, Button } from "./common";
+import { Button } from "./common";
 
 interface NavItem {
   label: string;
