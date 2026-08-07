@@ -104,58 +104,49 @@ export function Layout() {
           </nav>
         </div>
 
-        <div className="mt-6 flex items-center justify-between gap-2 border-t border-line-inverse px-5 pt-4">
-          <span className="dato-tecnico text-[11px] text-ink-inverse-muted">{APP_VERSION}</span>
-          <span className="flex items-center gap-1.5 text-[11px] text-ink-inverse-muted">
-            <span className="h-1.5 w-1.5 rounded-full bg-success" aria-hidden="true" />
-            En línea
-          </span>
-        </div>
-      </aside>
-
-      <div className="flex min-w-0 flex-1 flex-col">
-        {/* Barra superior clara. Solo información real y acciones que
-            funcionan -- se quitaron el buscador inerte y el contador de
-            notificaciones falso que tenía antes. */}
-        <header className="flex h-14 shrink-0 items-center justify-between gap-4 border-b border-line bg-surface px-6">
-          <Badge tone="info">ABB · IEC 61439</Badge>
-
-          <div className="flex items-center gap-3">
-            {usuario && (
-              <div className="flex items-center gap-2.5">
-                <div className="dato-tecnico flex h-8 w-8 shrink-0 items-center justify-center rounded-card bg-brand text-xs font-bold text-white">
+        <div className="mt-auto border-t border-line-inverse px-3 pt-4">
+          {usuario && (
+            <div className="mb-3 flex items-center justify-between gap-2 rounded-control bg-surface-inverse-raised p-2.5">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="dato-tecnico flex h-8 w-8 shrink-0 items-center justify-center rounded-card bg-brand text-xs font-bold text-white shadow-xs">
                   {iniciales(usuario.nombre)}
                 </div>
-                <div className="hidden text-left md:block">
-                  <p className="text-xs font-semibold leading-tight text-ink">{usuario.nombre}</p>
-                  <p className="text-[11px] leading-tight text-ink-subtle">
+                <div className="min-w-0 text-left">
+                  <p className="truncate text-xs font-semibold leading-tight text-ink-inverse">
+                    {usuario.nombre}
+                  </p>
+                  <p className="truncate text-[10px] leading-tight text-ink-inverse-muted">
                     {ROL_LABEL[usuario.rol] ?? usuario.rol}
                   </p>
                 </div>
               </div>
-            )}
-
-            <div className="h-6 w-px bg-line" aria-hidden="true" />
-
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={handleLogout}
-              isLoading={cerrandoSesion}
-              icon={<ArrowRightStartOnRectangleIcon className="h-4 w-4" />}
-              title="Cerrar sesión"
-            >
-              Salir
-            </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleLogout}
+                isLoading={cerrandoSesion}
+                icon={<ArrowRightStartOnRectangleIcon className="h-4 w-4 text-ink-inverse-muted hover:text-brand" />}
+                title="Cerrar sesión"
+              />
+            </div>
+          )}
+          <div className="flex items-center justify-between px-1 text-[11px] text-ink-inverse-muted">
+            <span className="dato-tecnico">{APP_VERSION}</span>
+            <span className="flex items-center gap-1.5">
+              <span className="h-1.5 w-1.5 rounded-full bg-success" aria-hidden="true" />
+              En línea
+            </span>
           </div>
-        </header>
+        </div>
+      </aside>
 
+      <div className="flex min-w-0 flex-1 flex-col">
         <main className="flex flex-1 flex-col justify-between overflow-y-auto">
-          <div className="flex-1 p-6 md:p-8">
+          <div className="flex-1 p-4 md:p-5">
             <Outlet />
           </div>
 
-          <footer className="flex shrink-0 flex-col items-center justify-between gap-2 border-t border-line px-6 py-3 text-xs text-ink-subtle md:flex-row">
+          <footer className="flex shrink-0 flex-col items-center justify-between gap-2 border-t border-line px-5 py-2 text-[11px] text-ink-subtle md:flex-row">
             <span>
               PYRE Ingeniería · Configurador de tableros normalizados ABB IEC 61439
             </span>

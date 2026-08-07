@@ -219,35 +219,35 @@ export function ProyectoWorkspacePage() {
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-2.5">
       {/* Header and Return Button */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-surface-stroke pb-3 gap-2">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-line pb-2 gap-2">
         <div>
-          <div className="flex items-center gap-2 text-xs text-gray-500 mb-1">
-            <Link to="/proyectos" className="hover:text-abb-red hover:underline">
+          <div className="flex items-center gap-2 text-xs text-ink-muted mb-0.5">
+            <Link to="/proyectos" className="hover:text-brand hover:underline">
               Proyectos
             </Link>
             <span>/</span>
-            <span className="font-medium text-gray-800">{proyecto.nombre}</span>
+            <span className="font-medium text-ink">{proyecto.nombre}</span>
             {tableroActivo && (
               <>
                 <span>/</span>
-                <span className="font-mono font-bold text-abb-red">{tableroActivo.nombre}</span>
+                <span className="font-mono font-bold text-brand">{tableroActivo.nombre}</span>
               </>
             )}
           </div>
-          <h1 className="text-xl font-bold text-gray-900">{proyecto.nombre}</h1>
+          <h1 className="text-lg font-bold text-ink">{proyecto.nombre}</h1>
         </div>
 
         <Link to="/proyectos">
-          <Button variant="outline" size="sm" icon={<ArrowLeftIcon className="w-4 h-4 text-slate-600" />}>
+          <Button variant="outline" size="xs" icon={<ArrowLeftIcon className="w-3.5 h-3.5 text-ink-muted" />}>
             Volver a Proyectos
           </Button>
         </Link>
       </div>
 
       {/* Tabs list of tableros */}
-      <div className="flex flex-wrap items-center justify-between border-b border-surface-stroke pb-2 gap-2">
+      <div className="flex flex-wrap items-center justify-between border-b border-line pb-1.5 gap-2">
         <div role="tablist" aria-label="Tableros del proyecto" className="flex flex-wrap items-center gap-2">
           {tableros.map((t) => {
             const isActivo = t.id === tableroActivoId;

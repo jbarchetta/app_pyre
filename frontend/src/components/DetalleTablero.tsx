@@ -642,21 +642,21 @@ export function DetalleTablero({
       )}
 
       {/* ZONA SUPERIOR: TABS DE FILAS Y CONFIGURACIÓN A ANCHO COMPLETO */}
-      <div className="w-full mt-2 bg-white border border-surface-stroke rounded-xl shadow-sm flex flex-col min-h-[380px]">
+      <div className="w-full mt-1 bg-surface border border-line rounded-card shadow-card flex flex-col min-h-[340px]">
         {/* Header con Pestañas de Selección de Sección y Toolbar de Acciones */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-surface-stroke bg-slate-50/60 p-2 gap-3 shrink-0 rounded-t-xl">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-line bg-surface-sunken/60 p-1.5 gap-2 shrink-0 rounded-t-card">
           {/* Listado de Pestañas (Scroll horizontal si es necesario) */}
-          <nav className="flex gap-1 p-1 bg-slate-100/80 rounded-xl border border-slate-200/50 max-w-full overflow-x-auto scrollbar-none" role="tablist" aria-label="Filas del tablero">
+          <nav className="flex gap-1 p-0.5 bg-surface-sunken rounded-control border border-line max-w-full overflow-x-auto scrollbar-none" role="tablist" aria-label="Filas del tablero">
             <button
               role="tab"
               aria-selected={tabActivo === TAB_PRINCIPAL}
               aria-label="Principal"
               type="button"
               onClick={() => setTabSeleccionadoRaw(TAB_PRINCIPAL)}
-              className={`px-3 py-1.5 text-xs font-sans rounded-lg transition-all duration-150 flex items-center gap-1.5 ${
+              className={`px-2.5 py-1 text-xs font-sans rounded-control transition-all duration-150 flex items-center gap-1.5 ${
                 tabActivo === TAB_PRINCIPAL
-                  ? "bg-white text-abb-red shadow-sm border border-slate-200/80 font-bold border-b-2 border-b-abb-red"
-                  : "text-slate-600 hover:text-slate-900 hover:bg-slate-100 font-medium"
+                  ? "bg-surface text-brand shadow-control font-bold border border-line"
+                  : "text-ink-muted hover:text-ink hover:bg-surface-sunken font-medium"
               }`}
             >
               <span aria-hidden="true" className="opacity-60 font-mono text-[11px] font-bold">00</span>
@@ -673,16 +673,16 @@ export function DetalleTablero({
                   aria-label={seccion.nombre}
                   type="button"
                   onClick={() => setTabSeleccionadoRaw(seccion.id)}
-                  className={`px-3 py-1.5 text-xs font-sans rounded-lg transition-all duration-150 flex items-center gap-1.5 ${
+                  className={`px-2.5 py-1 text-xs font-sans rounded-control transition-all duration-150 flex items-center gap-1.5 ${
                     isSelected
-                      ? "bg-white text-slate-900 shadow-sm border border-slate-200/80 font-bold border-b-2 border-b-abb-red"
-                      : "text-slate-600 hover:text-slate-900 hover:bg-slate-100 font-medium"
+                      ? "bg-surface text-ink shadow-control font-bold border border-line"
+                      : "text-ink-muted hover:text-ink hover:bg-surface-sunken font-medium"
                   }`}
                 >
-                  <span aria-hidden="true" className={`font-mono text-[11px] font-bold ${isSelected ? "text-abb-red" : "opacity-50"}`}>{sNum}</span>
+                  <span aria-hidden="true" className={`font-mono text-[11px] font-bold ${isSelected ? "text-brand" : "opacity-50"}`}>{sNum}</span>
                   <span className="truncate max-w-[120px]">{seccion.nombre}</span>
                   <span className={`ml-1 text-[10px] px-1.5 py-0.2 rounded-full font-bold font-mono transition-colors ${
-                    isSelected ? "bg-red-50 text-abb-red border border-red-200" : "bg-slate-200/80 text-slate-700"
+                    isSelected ? "bg-brand-tint text-brand border border-brand-line" : "bg-surface-sunken text-ink-muted"
                   }`} aria-hidden="true">
                     {salidas.length}
                   </span>
