@@ -79,20 +79,20 @@ export function CotizacionBomPage() {
   return (
     <div className="space-y-6">
       {/* Cabecera Unificada Ejecutiva de Cotización */}
-      <div className="bg-[#181E29] border border-[#263040] text-slate-100 p-5 rounded-2xl shadow-xl flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+      <div className="bg-surface border border-line p-4 rounded-card shadow-card flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-2 text-xs font-mono font-bold text-abb-red uppercase tracking-wider mb-1">
-            <svg className="w-4 h-4 text-abb-red" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <div className="flex items-center gap-2 text-[10px] font-mono font-bold text-brand uppercase tracking-wider mb-0.5">
+            <svg className="w-3.5 h-3.5 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
             </svg>
             MÓDULO DE COTIZACIÓN Y MATERIALES (BOM)
           </div>
-          <h1 className="text-xl font-extrabold text-white tracking-tight">
+          <h1 className="text-lg font-bold text-ink tracking-tight">
             {proyectoActual ? proyectoActual.nombre : "Cotización de Proyecto"}
           </h1>
           {proyectoActual && (
-            <p className="text-xs text-slate-400 mt-1 font-sans">
-              Cliente: <strong className="text-slate-200">{proyectoActual.cliente}</strong> · Tableros: <strong className="text-slate-200">{tableros.length}</strong>
+            <p className="text-xs text-ink-muted mt-0.5">
+              Cliente: <strong className="text-ink">{proyectoActual.cliente}</strong> · Tableros: <strong className="text-ink">{tableros.length}</strong>
             </p>
           )}
         </div>

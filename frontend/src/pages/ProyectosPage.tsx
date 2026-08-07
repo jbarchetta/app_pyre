@@ -194,17 +194,17 @@ export function ProyectosPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col gap-4 border-b border-line pb-5 md:flex-row md:items-center md:justify-between">
+    <div className="space-y-4">
+      <div className="flex flex-col gap-3 border-b border-line pb-2.5 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-ink">Gestión de Proyectos</h1>
-          <p className="mt-1 text-sm text-ink-muted">
+          <h1 className="text-lg font-bold tracking-tight text-ink">Gestión de Proyectos</h1>
+          <p className="text-xs text-ink-muted">
             Listado y administración de proyectos de tableros eléctricos
           </p>
         </div>
         <Button
           variant="primary"
-          size="md"
+          size="sm"
           onClick={(e) => abrirCrear(e.currentTarget)}
           icon={<PlusIcon className="h-4 w-4" />}
         >

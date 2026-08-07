@@ -220,30 +220,34 @@ export function ProyectoWorkspacePage() {
 
   return (
     <div className="space-y-2.5">
-      {/* Header and Return Button */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-line pb-2 gap-2">
-        <div>
-          <div className="flex items-center gap-2 text-xs text-ink-muted mb-0.5">
-            <Link to="/proyectos" className="hover:text-brand hover:underline">
-              Proyectos
-            </Link>
-            <span>/</span>
-            <span className="font-medium text-ink">{proyecto.nombre}</span>
-            {tableroActivo && (
-              <>
-                <span>/</span>
-                <span className="font-mono font-bold text-brand">{tableroActivo.nombre}</span>
-              </>
-            )}
-          </div>
-          <h1 className="text-lg font-bold text-ink">{proyecto.nombre}</h1>
+      {/* Header profesional: Botón volver + Título a la izquierda | Breadcrumb sobrio a la derecha */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-line pb-2.5 gap-2">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <Link
+            to="/proyectos"
+            className="flex h-8 w-8 shrink-0 items-center justify-center rounded-control border border-line bg-surface text-ink-muted shadow-control transition-colors hover:border-line-strong hover:bg-surface-sunken hover:text-ink"
+            title="Volver a la lista de proyectos"
+            aria-label="Volver a proyectos"
+          >
+            <ArrowLeftIcon className="h-4 w-4" />
+          </Link>
+          <h1 className="truncate text-lg font-bold tracking-tight text-ink">{proyecto.nombre}</h1>
         </div>
 
-        <Link to="/proyectos">
-          <Button variant="outline" size="xs" icon={<ArrowLeftIcon className="w-3.5 h-3.5 text-ink-muted" />}>
-            Volver a Proyectos
-          </Button>
-        </Link>
+        {/* Breadcrumb a la derecha, pequeño y sobrio */}
+        <nav aria-label="Ubicación actual" className="flex shrink-0 items-center gap-1.5 text-[11px] text-ink-muted">
+          <Link to="/proyectos" className="transition-colors hover:text-brand hover:underline">
+            Proyectos
+          </Link>
+          <span className="opacity-40">/</span>
+          <span className="truncate max-w-[140px] font-medium text-ink-subtle">{proyecto.nombre}</span>
+          {tableroActivo && (
+            <>
+              <span className="opacity-40">/</span>
+              <span className="dato-tecnico font-bold text-brand">{tableroActivo.nombre}</span>
+            </>
+          )}
+        </nav>
       </div>
 
       {/* Tabs list of tableros */}
