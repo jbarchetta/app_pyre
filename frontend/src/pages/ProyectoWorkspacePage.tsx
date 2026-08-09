@@ -250,10 +250,10 @@ export function ProyectoWorkspacePage() {
       </div>
 
       {/* CONTENEDOR UNIFICADO: BARRA DE TABLEROS Y COMANDOS DE PROYECTO */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-line bg-surface-sunken/40 p-1.5 rounded-t-card border-x border-t border-line gap-2">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-line bg-surface-sunken/60 p-2 rounded-t-card border-x border-t border-line gap-2">
         {/* Listado de Pestañas de Tableros */}
-        <div role="tablist" aria-label="Tableros del proyecto" className="flex items-center gap-1 p-0.5 bg-surface-sunken rounded-control border border-line overflow-x-auto scrollbar-none">
-          <span className="px-2 text-[10px] font-mono font-bold uppercase tracking-wider text-ink-muted shrink-0">
+        <div role="tablist" aria-label="Tableros del proyecto" className="flex items-center gap-1.5 p-1 bg-surface rounded-full border border-line shadow-xs overflow-x-auto scrollbar-none">
+          <span className="pl-3 pr-1 text-[10px] font-mono font-bold uppercase tracking-wider text-ink-subtle shrink-0">
             Tableros:
           </span>
           {tableros.map((t) => {
@@ -264,9 +264,9 @@ export function ProyectoWorkspacePage() {
                 role="tab"
                 aria-selected={isActivo}
                 onClick={() => handleSeleccionarTablero(t.id)}
-                className={`px-3 py-1.5 text-xs font-sans rounded-control transition-all duration-150 flex items-center gap-1.5 whitespace-nowrap ${
+                className={`px-3.5 py-1.5 text-xs font-sans rounded-full transition-all duration-150 flex items-center gap-2 whitespace-nowrap ${
                   isActivo
-                    ? "bg-surface text-brand shadow-control font-bold border border-line"
+                    ? "bg-ink text-white shadow-control font-bold"
                     : "text-ink-muted hover:text-ink hover:bg-surface-sunken font-medium"
                 }`}
               >
@@ -289,7 +289,7 @@ export function ProyectoWorkspacePage() {
                   setTableroEnEdicion(tableroActivo);
                   setNombreTableroEdit(tableroActivo.nombre);
                 }}
-                className="flex h-7 w-7 items-center justify-center rounded-control border border-line bg-surface text-ink-muted shadow-control transition-colors hover:border-line-strong hover:bg-surface-sunken hover:text-ink"
+                className="flex h-8 w-8 items-center justify-center rounded-full border border-line bg-surface text-ink-muted shadow-control transition-colors hover:border-line-strong hover:bg-surface-sunken hover:text-ink"
               >
                 <PencilIcon className="w-3.5 h-3.5" />
               </button>
@@ -298,7 +298,7 @@ export function ProyectoWorkspacePage() {
                 title="Eliminar tablero activo"
                 aria-label="Eliminar tablero activo"
                 onClick={() => setTableroABorrar(tableroActivo)}
-                className="flex h-7 w-7 items-center justify-center rounded-control border border-danger-line bg-danger-tint text-danger shadow-control transition-colors hover:bg-danger hover:text-white"
+                className="flex h-8 w-8 items-center justify-center rounded-full border border-danger-line bg-danger-tint text-danger shadow-control transition-colors hover:bg-danger hover:text-white"
               >
                 <TrashIcon className="w-3.5 h-3.5" />
               </button>
@@ -311,7 +311,7 @@ export function ProyectoWorkspacePage() {
             type="button"
             aria-label="Nuevo tablero"
             onClick={() => setModalNuevoTablero(true)}
-            className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-control border border-brand bg-brand text-white shadow-control transition-all hover:bg-brand-hover"
+            className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold rounded-full border border-brand bg-brand text-white shadow-control transition-all hover:bg-brand-hover"
           >
             <PlusIcon className="w-3.5 h-3.5" />
             <span>Nuevo Tablero</span>

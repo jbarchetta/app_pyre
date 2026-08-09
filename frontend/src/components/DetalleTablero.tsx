@@ -644,10 +644,10 @@ export function DetalleTablero({
       {/* ZONA SUPERIOR: TABS DE FILAS Y CONFIGURACIÓN A ANCHO COMPLETO - ACOPLADO CONTINUO */}
       <div className="w-full bg-surface border-x border-b border-line rounded-b-card shadow-card flex flex-col min-h-[340px]">
         {/* Header con Pestañas de Selección de Sección y Toolbar de Acciones */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-line bg-surface-sunken/60 p-1.5 gap-2 shrink-0">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-line bg-surface-sunken/60 p-2 gap-2 shrink-0">
           {/* Listado de Pestañas (Scroll horizontal si es necesario) */}
-          <nav className="flex items-center gap-1 p-0.5 bg-surface-sunken rounded-control border border-line max-w-full overflow-x-auto scrollbar-none" role="tablist" aria-label="Filas del tablero">
-            <span className="px-2 text-[10px] font-mono font-bold uppercase tracking-wider text-ink-muted shrink-0">
+          <nav className="flex items-center gap-1.5 p-1 bg-surface rounded-full border border-line shadow-xs max-w-full overflow-x-auto scrollbar-none" role="tablist" aria-label="Filas del tablero">
+            <span className="pl-3 pr-1 text-[10px] font-mono font-bold uppercase tracking-wider text-ink-subtle shrink-0">
               Secciones / Filas:
             </span>
             <button
@@ -656,13 +656,13 @@ export function DetalleTablero({
               aria-label="Principal"
               type="button"
               onClick={() => setTabSeleccionadoRaw(TAB_PRINCIPAL)}
-              className={`px-2.5 py-1 text-xs font-sans rounded-control transition-all duration-150 flex items-center gap-1.5 ${
+              className={`px-3.5 py-1.5 text-xs font-sans rounded-full transition-all duration-150 flex items-center gap-2 ${
                 tabActivo === TAB_PRINCIPAL
-                  ? "bg-surface text-brand shadow-control font-bold border border-line"
+                  ? "bg-ink text-white shadow-control font-bold"
                   : "text-ink-muted hover:text-ink hover:bg-surface-sunken font-medium"
               }`}
             >
-              <span aria-hidden="true" className="opacity-60 font-mono text-[11px] font-bold">00</span>
+              <span aria-hidden="true" className={`font-mono text-[11px] font-bold ${tabActivo === TAB_PRINCIPAL ? "text-brand-tint" : "opacity-60"}`}>00</span>
               <span>Principal</span>
             </button>
             {(secciones ?? []).map(({ seccion, salidas }, idx) => {
@@ -676,16 +676,16 @@ export function DetalleTablero({
                   aria-label={seccion.nombre}
                   type="button"
                   onClick={() => setTabSeleccionadoRaw(seccion.id)}
-                  className={`px-2.5 py-1 text-xs font-sans rounded-control transition-all duration-150 flex items-center gap-1.5 ${
+                  className={`px-3.5 py-1.5 text-xs font-sans rounded-full transition-all duration-150 flex items-center gap-2 ${
                     isSelected
-                      ? "bg-surface text-ink shadow-control font-bold border border-line"
+                      ? "bg-ink text-white shadow-control font-bold"
                       : "text-ink-muted hover:text-ink hover:bg-surface-sunken font-medium"
                   }`}
                 >
                   <span aria-hidden="true" className={`font-mono text-[11px] font-bold ${isSelected ? "text-brand" : "opacity-50"}`}>{sNum}</span>
                   <span className="truncate max-w-[120px]">{seccion.nombre}</span>
-                  <span className={`ml-1 text-[10px] px-1.5 py-0.2 rounded-full font-bold font-mono transition-colors ${
-                    isSelected ? "bg-brand-tint text-brand border border-brand-line" : "bg-surface-sunken text-ink-muted"
+                  <span className={`ml-1 text-[10px] px-2 py-0.2 rounded-full font-bold font-mono transition-colors ${
+                    isSelected ? "bg-white/20 text-white" : "bg-surface-sunken text-ink-muted"
                   }`} aria-hidden="true">
                     {salidas.length}
                   </span>
@@ -707,7 +707,7 @@ export function DetalleTablero({
                     setNombreFilaEdit(seccionSeleccionada.seccion.nombre);
                     setFilaEnEdicion(seccionSeleccionada.seccion);
                   }}
-                  className="flex h-7 w-7 items-center justify-center rounded-control border border-line bg-surface text-ink-muted shadow-control transition-colors hover:border-line-strong hover:bg-surface-sunken hover:text-ink"
+                  className="flex h-8 w-8 items-center justify-center rounded-full border border-line bg-surface text-ink-muted shadow-control transition-colors hover:border-line-strong hover:bg-surface-sunken hover:text-ink"
                 >
                   <PencilIcon className="w-3.5 h-3.5" />
                 </button>
@@ -721,7 +721,7 @@ export function DetalleTablero({
                     ultimoTriggerRef.current = e.currentTarget;
                     setFilaABorrar(seccionSeleccionada.seccion);
                   }}
-                  className={`flex h-7 w-7 items-center justify-center rounded-control border transition-colors shadow-control ${
+                  className={`flex h-8 w-8 items-center justify-center rounded-full border transition-colors shadow-control ${
                     tabActivo === TAB_PRINCIPAL
                       ? "border-line bg-surface-sunken text-ink-muted opacity-40 cursor-not-allowed"
                       : "border-danger-line bg-danger-tint text-danger hover:bg-danger hover:text-white"
@@ -743,7 +743,7 @@ export function DetalleTablero({
                 setNombreNuevaFila("");
                 setModalNuevaFila(true);
               }}
-              className="flex items-center gap-1 px-2.5 py-1 text-xs font-semibold rounded-control border border-brand bg-brand text-white shadow-control transition-all hover:bg-brand-hover"
+              className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold rounded-full border border-brand bg-brand text-white shadow-control transition-all hover:bg-brand-hover"
             >
               <PlusIcon className="w-3.5 h-3.5" />
               <span>Nueva Fila</span>
