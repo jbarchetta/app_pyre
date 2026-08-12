@@ -3,7 +3,8 @@ from datetime import datetime
 
 from sqlalchemy import JSON, DateTime, ForeignKey, String
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import Mapped, mapped_column
+from typing import Optional
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
 
@@ -21,3 +22,5 @@ class AuditLog(Base):
     entidad_id: Mapped[str] = mapped_column(String(100), nullable=False)
     detalle: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     creado_en: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
+
+    usuario: Mapped[Optional["Usuario"]] = relationship("Usuario", lazy="selectin")

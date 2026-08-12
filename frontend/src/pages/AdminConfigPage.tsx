@@ -4,56 +4,203 @@ import {
   crearReglaCablecanal,
   eliminarReglaCablecanal,
   buscarCatalogo,
+  listarUsuarios,
+  crearUsuario,
+  actualizarUsuario,
+  resetPasswordAdmin,
+  desactivarUsuario,
+  cambiarPasswordSelf,
+  listarAuditoria,
   type ReglaCablecanal,
   type ComponenteBusqueda,
+  type UsuarioGestion,
+  type AuditLogEntry,
+  type RolUsuarioType,
 } from "../api/client";
-import { PlusIcon, TrashIcon, ExclamationTriangleIcon, BoltIcon, ListBulletIcon } from "@heroicons/react/24/outline";
+import {
+  PlusIcon,
+  TrashIcon,
+  ExclamationTriangleIcon,
+  UsersIcon,
+  KeyIcon,
+  ClipboardDocumentListIcon,
+  PencilIcon,
+  CheckCircleIcon,
+  XCircleIcon,
+} from "@heroicons/react/24/outline";
 
 export function AdminConfigPage() {
+  const [tabActivo, setTabActivo] = useState<"usuarios" | "auditoria" | "micuenta" | "cablecanales" | "borneras">("usuarios");
+
+  // Reglas & Borneras
   const [reglas, setReglas] = useState<ReglaCablecanal[]>([]);
   const [bornes, setBornes] = useState<ComponenteBusqueda[]>([]);
-  const [tabActivo, setTabActivo] = useState<"cablecanales" | "borneras">("cablecanales");
-
-  // Form states
   const [corrienteMin, setCorrienteMin] = useState("");
   const [corrienteMax, setCorrienteMax] = useState("");
   const [medida, setMedida] = useState("");
 
-  const [cargandoReglas, setCargandoReglas] = useState(false);
-  const [cargandoBornes, setCargandoBornes] = useState(false);
+  // Usuarios State
+  const [usuarios, setUsuarios] = useState<UsuarioGestion[]>([]);
+  const [modalNuevoUsuario, setModalNuevoUsuario] = useState(false);
+  const [nuevoEmail, setNuevoEmail] = useState("");
+  const [nuevoNombre, setNuevoNombre] = useState("");
+  const [nuevoRol, setNuevoRol] = useState<RolUsuarioType>("analista");
+  const [nuevoPassword, setNuevoPassword] = useState("");
+
+  // Editar usuario
+  const [usuarioEditando, setUsuarioEditando] = useState<UsuarioGestion | null>(null);
+  const [editNombre, setEditNombre] = useState("");
+  const [editRol, setEditRol] = useState<RolUsuarioType>("analista");
+  const [editActivo, setEditActivo] = useState(true);
+
+  // Reset clave admin
+  const [userResetTarget, setUserResetTarget] = useState<UsuarioGestion | null>(null);
+  const [adminNewPassword, setAdminNewPassword] = useState("");
+
+  // Autogestión cambio de clave (Mi Cuenta)
+  const [currentPasswordSelf, setCurrentPasswordSelf] = useState("");
+  const [newPasswordSelf, setNewPasswordSelf] = useState("");
+  const [confirmPasswordSelf, setConfirmPasswordSelf] = useState("");
+
+  // Auditoría State
+  const [auditorias, setAuditorias] = useState<AuditLogEntry[]>([]);
+
+  // Feedback states
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
+  const cargarUsuarios = async () => {
+    try {
+      const list = await listarUsuarios();
+      setUsuarios(list);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const cargarAuditoria = async () => {
+    try {
+      const list = await listarAuditoria({ limit: 150 });
+      setAuditorias(list);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   const cargarReglas = async () => {
-    setCargandoReglas(true);
     try {
       const list = await listarReglasCablecanal();
       setReglas(list);
     } catch (err) {
       console.error(err);
-      setError("No se pudieron cargar las reglas de cablecanales");
-    } finally {
-      setCargandoReglas(false);
     }
   };
 
   const cargarBornes = async () => {
-    setCargandoBornes(true);
     try {
       const res = await buscarCatalogo("", { categorias: ["Terminales"], limit: 100 });
       setBornes(res.resultados);
     } catch (err) {
       console.error(err);
-      setError("No se pudieron cargar las borneras del catálogo");
-    } finally {
-      setCargandoBornes(false);
     }
   };
 
   useEffect(() => {
+    cargarUsuarios();
+    cargarAuditoria();
     cargarReglas();
     cargarBornes();
   }, []);
+
+  const handleCrearUsuario = async (e: FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setSuccess(null);
+    try {
+      await crearUsuario({
+        email: nuevoEmail.trim(),
+        nombre: nuevoNombre.trim(),
+        rol: nuevoRol,
+        password: nuevoPassword,
+      });
+      setSuccess(`Usuario ${nuevoEmail} creado con éxito.`);
+      setModalNuevoUsuario(false);
+      setNuevoEmail("");
+      setNuevoNombre("");
+      setNuevoPassword("");
+      await cargarUsuarios();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Error al crear el usuario");
+    }
+  };
+
+  const handleGuardarEdicionUsuario = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!usuarioEditando) return;
+    setError(null);
+    setSuccess(null);
+    try {
+      await actualizarUsuario(usuarioEditando.id, {
+        nombre: editNombre.trim(),
+        rol: editRol,
+        activo: editActivo,
+      });
+      setSuccess(`Usuario ${usuarioEditando.email} actualizado con éxito.`);
+      setUsuarioEditando(null);
+      await cargarUsuarios();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Error al actualizar el usuario");
+    }
+  };
+
+  const handleAdminResetPassword = async (e: FormEvent) => {
+    e.preventDefault();
+    if (!userResetTarget) return;
+    setError(null);
+    setSuccess(null);
+    try {
+      await resetPasswordAdmin(userResetTarget.id, adminNewPassword);
+      setSuccess(`Contraseña restablecida para ${userResetTarget.email}.`);
+      setUserResetTarget(null);
+      setAdminNewPassword("");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Error al restablecer la contraseña");
+    }
+  };
+
+  const handleDesactivarUsuario = async (u: UsuarioGestion) => {
+    if (!confirm(`¿Estás seguro de desactivar al usuario ${u.nombre} (${u.email})?`)) return;
+    setError(null);
+    setSuccess(null);
+    try {
+      await desactivarUsuario(u.id);
+      setSuccess(`Usuario ${u.email} desactivado.`);
+      await cargarUsuarios();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Error al desactivar el usuario");
+    }
+  };
+
+  const handleCambiarPasswordSelf = async (e: FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setSuccess(null);
+
+    if (newPasswordSelf !== confirmPasswordSelf) {
+      setError("La nueva contraseña y su confirmación no coinciden");
+      return;
+    }
+
+    try {
+      await cambiarPasswordSelf(currentPasswordSelf, newPasswordSelf);
+      setSuccess("Tu contraseña ha sido actualizada con éxito.");
+      setCurrentPasswordSelf("");
+      setNewPasswordSelf("");
+      setConfirmPasswordSelf("");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Error al cambiar la contraseña");
+    }
+  };
 
   const handleCrearRegla = async (e: FormEvent) => {
     e.preventDefault();
@@ -91,21 +238,70 @@ export function AdminConfigPage() {
     }
   };
 
+  const badgeColorRol = (rol: string) => {
+    switch (rol) {
+      case "administrador":
+        return "bg-purple-100 text-purple-800 border-purple-200";
+      case "desarrollador":
+        return "bg-amber-100 text-amber-800 border-amber-200";
+      case "supervisor":
+        return "bg-blue-100 text-blue-800 border-blue-200";
+      default:
+        return "bg-slate-100 text-slate-700 border-slate-200";
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-gray-900 tracking-tight">Panel de Administración</h1>
-          <p className="text-xs text-gray-500">Mantenimiento de reglas de dimensionamiento físico y catálogo PYRE</p>
+          <h1 className="text-xl font-bold text-gray-900 tracking-tight">Panel de Administración PYRE</h1>
+          <p className="text-xs text-gray-500">Módulo 1: Gestión autónoma de usuarios, roles, auditoría y parámetros físicos</p>
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="flex border-b border-gray-200">
+      <div className="flex border-b border-gray-200 overflow-x-auto">
+        <button
+          type="button"
+          onClick={() => setTabActivo("usuarios")}
+          className={`py-2.5 px-4 font-mono text-xs font-bold uppercase tracking-wider border-b-2 transition flex items-center gap-1.5 whitespace-nowrap ${
+            tabActivo === "usuarios"
+              ? "border-abb-red text-abb-red"
+              : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+          }`}
+        >
+          <UsersIcon className="w-4 h-4" />
+          Gestión de Usuarios PYRE
+        </button>
+        <button
+          type="button"
+          onClick={() => setTabActivo("auditoria")}
+          className={`py-2.5 px-4 font-mono text-xs font-bold uppercase tracking-wider border-b-2 transition flex items-center gap-1.5 whitespace-nowrap ${
+            tabActivo === "auditoria"
+              ? "border-abb-red text-abb-red"
+              : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+          }`}
+        >
+          <ClipboardDocumentListIcon className="w-4 h-4" />
+          Registro de Auditoría
+        </button>
+        <button
+          type="button"
+          onClick={() => setTabActivo("micuenta")}
+          className={`py-2.5 px-4 font-mono text-xs font-bold uppercase tracking-wider border-b-2 transition flex items-center gap-1.5 whitespace-nowrap ${
+            tabActivo === "micuenta"
+              ? "border-abb-red text-abb-red"
+              : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+          }`}
+        >
+          <KeyIcon className="w-4 h-4" />
+          Mi Cuenta (Autogestión)
+        </button>
         <button
           type="button"
           onClick={() => setTabActivo("cablecanales")}
-          className={`py-2.5 px-4 font-mono text-xs font-bold uppercase tracking-wider border-b-2 transition ${
+          className={`py-2.5 px-4 font-mono text-xs font-bold uppercase tracking-wider border-b-2 transition whitespace-nowrap ${
             tabActivo === "cablecanales"
               ? "border-abb-red text-abb-red"
               : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
@@ -116,7 +312,7 @@ export function AdminConfigPage() {
         <button
           type="button"
           onClick={() => setTabActivo("borneras")}
-          className={`py-2.5 px-4 font-mono text-xs font-bold uppercase tracking-wider border-b-2 transition ${
+          className={`py-2.5 px-4 font-mono text-xs font-bold uppercase tracking-wider border-b-2 transition whitespace-nowrap ${
             tabActivo === "borneras"
               ? "border-abb-red text-abb-red"
               : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
@@ -127,21 +323,213 @@ export function AdminConfigPage() {
       </div>
 
       {error && (
-        <div className="p-3 bg-red-50 text-red-700 text-xs rounded border border-red-200 flex items-center gap-2">
+        <div className="p-3 bg-red-50 text-red-700 text-xs rounded-lg border border-red-200 flex items-center gap-2">
           <ExclamationTriangleIcon className="w-4 h-4 text-red-500 shrink-0" />
           {error}
         </div>
       )}
 
       {success && (
-        <div className="p-3 bg-green-50 text-green-700 text-xs rounded border border-green-200">
+        <div className="p-3 bg-green-50 text-green-700 text-xs rounded-lg border border-green-200 flex items-center gap-2">
+          <CheckCircleIcon className="w-4 h-4 text-green-600 shrink-0" />
           {success}
         </div>
       )}
 
-      {tabActivo === "cablecanales" ? (
+      {/* TAB USUARIOS */}
+      {tabActivo === "usuarios" && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-bold text-gray-900">Usuarios Registrados en PYRE</h2>
+            <button
+              type="button"
+              onClick={() => setModalNuevoUsuario(true)}
+              className="bg-abb-red hover:bg-red-700 text-white font-bold text-xs uppercase tracking-wider px-3.5 py-2 rounded-lg transition flex items-center gap-1.5 shadow-sm"
+            >
+              <PlusIcon className="w-4 h-4" />
+              Nuevo Usuario
+            </button>
+          </div>
+
+          <div className="bg-white border border-surface-stroke rounded-xl shadow-sm overflow-hidden">
+            <table className="w-full text-left text-xs">
+              <thead className="bg-slate-50 border-b border-gray-200 text-[10px] uppercase font-bold text-gray-500 tracking-wider">
+                <tr>
+                  <th className="px-4 py-3">Nombre</th>
+                  <th className="px-4 py-3">Correo Electrónico</th>
+                  <th className="px-4 py-3">Rol Asignado</th>
+                  <th className="px-4 py-3 text-center">Estado</th>
+                  <th className="px-4 py-3 text-right">Acciones</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {usuarios.map((u) => (
+                  <tr key={u.id} className="hover:bg-slate-50/70 transition">
+                    <td className="px-4 py-3 font-bold text-gray-900">{u.nombre}</td>
+                    <td className="px-4 py-3 font-mono text-gray-600">{u.email}</td>
+                    <td className="px-4 py-3">
+                      <span className={`px-2.5 py-1 text-[10px] font-bold uppercase rounded-full border ${badgeColorRol(u.rol)}`}>
+                        {u.rol}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      {u.activo ? (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200">
+                          <CheckCircleIcon className="w-3 h-3 text-emerald-600" /> Activo
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-bold text-rose-700 bg-rose-50 px-2 py-0.5 rounded-full border border-rose-200">
+                          <XCircleIcon className="w-3 h-3 text-rose-600" /> Inactivo
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-right space-x-2">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setUsuarioEditando(u);
+                          setEditNombre(u.nombre);
+                          setEditRol(u.rol);
+                          setEditActivo(u.activo);
+                        }}
+                        className="p-1.5 text-gray-600 hover:text-abb-red bg-slate-100 hover:bg-red-50 rounded-lg transition"
+                        title="Editar rol / nombre / estado"
+                      >
+                        <PencilIcon className="w-3.5 h-3.5" />
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setUserResetTarget(u);
+                          setAdminNewPassword("");
+                        }}
+                        className="p-1.5 text-gray-600 hover:text-amber-700 bg-slate-100 hover:bg-amber-50 rounded-lg transition"
+                        title="Resetear Contraseña"
+                      >
+                        <KeyIcon className="w-3.5 h-3.5" />
+                      </button>
+
+                      {u.activo && (
+                        <button
+                          type="button"
+                          onClick={() => handleDesactivarUsuario(u)}
+                          className="p-1.5 text-rose-600 hover:text-rose-800 bg-rose-50 hover:bg-rose-100 rounded-lg transition"
+                          title="Desactivar Usuario"
+                        >
+                          <TrashIcon className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* TAB AUDITORÍA */}
+      {tabActivo === "auditoria" && (
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-bold text-gray-900">Historial de Auditoría del Sistema</h2>
+            <button
+              type="button"
+              onClick={cargarAuditoria}
+              className="text-xs text-abb-red hover:underline font-bold"
+            >
+              Actualizar
+            </button>
+          </div>
+
+          <div className="bg-white border border-surface-stroke rounded-xl shadow-sm overflow-hidden">
+            <table className="w-full text-left text-xs">
+              <thead className="bg-slate-50 border-b border-gray-200 text-[10px] uppercase font-bold text-gray-500 tracking-wider">
+                <tr>
+                  <th className="px-4 py-3">Fecha / Hora</th>
+                  <th className="px-4 py-3">Usuario / Actor</th>
+                  <th className="px-4 py-3">Acción</th>
+                  <th className="px-4 py-3">Entidad</th>
+                  <th className="px-4 py-3">Detalles</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-100">
+                {auditorias.map((a) => (
+                  <tr key={a.id} className="hover:bg-slate-50/70 transition">
+                    <td className="px-4 py-2.5 font-mono text-gray-500 text-[11px]">
+                      {new Date(a.creado_en).toLocaleString("es-AR")}
+                    </td>
+                    <td className="px-4 py-2.5">
+                      <div className="font-bold text-gray-900">{a.usuario_nombre}</div>
+                      {a.usuario_email && <div className="text-[10px] font-mono text-gray-400">{a.usuario_email}</div>}
+                    </td>
+                    <td className="px-4 py-2.5 font-mono font-bold text-abb-red">{a.accion}</td>
+                    <td className="px-4 py-2.5 text-gray-600">{a.entidad}</td>
+                    <td className="px-4 py-2.5 font-mono text-[10px] text-slate-600 max-w-xs truncate">
+                      {a.detalle ? JSON.stringify(a.detalle) : "—"}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* TAB MI CUENTA */}
+      {tabActivo === "micuenta" && (
+        <div className="max-w-md bg-white border border-surface-stroke rounded-xl shadow-sm p-6 space-y-4">
+          <h2 className="text-sm font-bold text-gray-900 border-b border-gray-100 pb-2 flex items-center gap-1.5">
+            <KeyIcon className="w-4 h-4 text-abb-red" />
+            Autogestión de Contraseña
+          </h2>
+          <form onSubmit={handleCambiarPasswordSelf} className="space-y-4">
+            <div>
+              <label className="block text-[10px] uppercase font-bold text-secondary mb-1">Contraseña Actual</label>
+              <input
+                type="password"
+                required
+                value={currentPasswordSelf}
+                onChange={(e) => setCurrentPasswordSelf(e.target.value)}
+                className="w-full border border-gray-300 rounded px-3 py-1.5 text-sm focus:outline-none focus:border-abb-red"
+              />
+            </div>
+            <div>
+              <label className="block text-[10px] uppercase font-bold text-secondary mb-1">Nueva Contraseña (mínimo 8 caracteres)</label>
+              <input
+                type="password"
+                required
+                minLength={8}
+                value={newPasswordSelf}
+                onChange={(e) => setNewPasswordSelf(e.target.value)}
+                className="w-full border border-gray-300 rounded px-3 py-1.5 text-sm focus:outline-none focus:border-abb-red"
+              />
+            </div>
+            <div>
+              <label className="block text-[10px] uppercase font-bold text-secondary mb-1">Confirmar Nueva Contraseña</label>
+              <input
+                type="password"
+                required
+                minLength={8}
+                value={confirmPasswordSelf}
+                onChange={(e) => setConfirmPasswordSelf(e.target.value)}
+                className="w-full border border-gray-300 rounded px-3 py-1.5 text-sm focus:outline-none focus:border-abb-red"
+              />
+            </div>
+            <button
+              type="submit"
+              className="w-full bg-abb-red hover:bg-red-700 text-white font-bold text-xs uppercase tracking-wider py-2 rounded-lg transition"
+            >
+              Cambiar mi contraseña
+            </button>
+          </form>
+        </div>
+      )}
+
+      {/* TAB CABLECANALES */}
+      {tabActivo === "cablecanales" && (
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-          {/* Formulario */}
           <div className="lg:col-span-4 bg-white border border-surface-stroke rounded-xl shadow-sm p-5 space-y-4">
             <h3 className="text-sm font-bold text-gray-900 border-b border-gray-100 pb-2 flex items-center gap-1.5">
               <PlusIcon className="w-4 h-4 text-abb-red" />
@@ -149,169 +537,285 @@ export function AdminConfigPage() {
             </h3>
             <form onSubmit={handleCrearRegla} className="space-y-3.5">
               <div>
-                <label htmlFor="corriente-min" className="block text-[10px] uppercase font-bold tracking-wider text-secondary mb-1">
+                <label className="block text-[10px] uppercase font-bold tracking-wider text-secondary mb-1">
                   Corriente Mínima (A)
                 </label>
                 <input
-                  id="corriente-min"
                   type="number"
                   step="0.01"
                   value={corrienteMin}
                   onChange={(e) => setCorrienteMin(e.target.value)}
                   className="w-full border border-gray-300 rounded px-3 py-1.5 text-sm focus:outline-none focus:border-abb-red"
-                  placeholder="ej. 0"
                   required
                 />
               </div>
-
               <div>
-                <label htmlFor="corriente-max" className="block text-[10px] uppercase font-bold tracking-wider text-secondary mb-1">
+                <label className="block text-[10px] uppercase font-bold tracking-wider text-secondary mb-1">
                   Corriente Máxima (A)
                 </label>
                 <input
-                  id="corriente-max"
                   type="number"
                   step="0.01"
                   value={corrienteMax}
                   onChange={(e) => setCorrienteMax(e.target.value)}
                   className="w-full border border-gray-300 rounded px-3 py-1.5 text-sm focus:outline-none focus:border-abb-red"
-                  placeholder="ej. 63"
                   required
                 />
               </div>
-
               <div>
-                <label htmlFor="medida-cablecanal" className="block text-[10px] uppercase font-bold tracking-wider text-secondary mb-1">
+                <label className="block text-[10px] uppercase font-bold tracking-wider text-secondary mb-1">
                   Medida del Cablecanal
                 </label>
                 <input
-                  id="medida-cablecanal"
                   type="text"
                   value={medida}
                   onChange={(e) => setMedida(e.target.value)}
                   className="w-full border border-gray-300 rounded px-3 py-1.5 text-sm focus:outline-none focus:border-abb-red"
-                  placeholder="ej. 40x40 mm o 60x40 mm"
+                  placeholder="ej. 40x40 mm"
                   required
                 />
               </div>
-
               <button
                 type="submit"
                 className="w-full bg-abb-red hover:bg-red-700 text-white font-bold text-xs uppercase tracking-wider py-2 rounded-lg transition"
               >
-                Crear Regla
+                Guardar Regla
               </button>
             </form>
           </div>
 
-          {/* Tabla de Reglas */}
           <div className="lg:col-span-8 bg-white border border-surface-stroke rounded-xl shadow-sm overflow-hidden">
-            <div className="border-b border-surface-stroke bg-slate-50 px-4 py-2.5 flex items-center justify-between">
-              <h3 className="font-mono text-xs font-bold uppercase tracking-wider text-gray-700 flex items-center gap-1.5">
-                <BoltIcon className="w-4 h-4 text-abb-red" />
-                Reglas de Cablecanal Configuradas
-              </h3>
-              <span className="text-[10px] font-mono font-bold text-gray-500 bg-gray-200 px-1.5 py-0.5 rounded">
-                {reglas.length} REGLAS
-              </span>
-            </div>
-
-            <div className="overflow-x-auto border border-slate-300 rounded-b-xl bg-white">
-              <table className="w-full text-left border-collapse text-xs">
-                <thead>
-                  <tr className="bg-[#2C3645] text-slate-100 font-mono text-[11px] uppercase tracking-wider border-b border-slate-700">
-                    <th className="py-2.5 px-4 font-bold">Corriente Mínima</th>
-                    <th className="py-2.5 px-4 font-bold">Corriente Máxima</th>
-                    <th className="py-2.5 px-4 font-bold">Medida Cablecanal</th>
-                    <th className="py-2.5 px-4 text-right font-bold">Acciones</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {cargandoReglas ? (
-                    <tr>
-                      <td colSpan={4} className="p-6 text-center text-gray-400 italic text-xs">
-                        Cargando reglas...
-                      </td>
-                    </tr>
-                  ) : reglas.length > 0 ? (
-                    reglas.map((r) => (
-                      <tr key={r.id} className="border-b border-surface-stroke hover:bg-gray-50/80 transition-colors">
-                        <td className="p-3 font-mono text-xs text-gray-900">{Number(r.corriente_minima).toLocaleString()} A</td>
-                        <td className="p-3 font-mono text-xs text-gray-900">{Number(r.corriente_maxima).toLocaleString()} A</td>
-                        <td className="p-3 font-mono text-xs text-gray-700 font-semibold">{r.medida_cablecanal}</td>
-                        <td className="p-3 text-right">
-                          <button
-                            type="button"
-                            onClick={() => handleEliminarRegla(r.id)}
-                            className="text-gray-400 hover:text-abb-red p-1 rounded hover:bg-gray-100"
-                            title="Eliminar regla"
-                          >
-                            <TrashIcon className="w-4 h-4" />
-                          </button>
-                        </td>
-                      </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td colSpan={4} className="p-6 text-center text-gray-400 italic text-xs">
-                        No hay reglas de cablecanal configuradas. El cálculo usará valores por defecto.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      ) : (
-        <div className="bg-white border border-surface-stroke rounded-xl shadow-sm overflow-hidden">
-          <div className="border-b border-surface-stroke bg-slate-50 px-4 py-2.5 flex items-center justify-between">
-            <h3 className="font-mono text-xs font-bold uppercase tracking-wider text-gray-700 flex items-center gap-1.5">
-              <ListBulletIcon className="w-4 h-4 text-abb-red" />
-              Borneras no-ABB Cargadas en Catálogo (PYRE)
-            </h3>
-            <span className="text-[10px] font-mono font-bold text-gray-500 bg-gray-200 px-1.5 py-0.5 rounded">
-              {bornes.length} ÍTEMS
-            </span>
-          </div>
-
-          <div className="overflow-x-auto border border-slate-300 rounded-b-xl bg-white">
-            <table className="w-full text-left border-collapse text-xs">
-              <thead>
-                <tr className="bg-[#2C3645] text-slate-100 font-mono text-[11px] uppercase tracking-wider border-b border-slate-700">
-                  <th className="py-2.5 px-4 font-bold">Código</th>
-                  <th className="py-2.5 px-4 font-bold">Código Comercial</th>
-                  <th className="py-2.5 px-4 font-bold">Descripción</th>
-                  <th className="py-2.5 px-4 font-bold">Precio Neto</th>
+            <table className="w-full text-left text-xs">
+              <thead className="bg-slate-50 border-b border-gray-200 text-[10px] uppercase font-bold text-gray-500 tracking-wider">
+                <tr>
+                  <th className="px-4 py-3">Rango de Corriente (A)</th>
+                  <th className="px-4 py-3">Medida de Cablecanal</th>
+                  <th className="px-4 py-3 text-right">Acción</th>
                 </tr>
               </thead>
-              <tbody>
-                {cargandoBornes ? (
-                  <tr>
-                    <td colSpan={4} className="p-6 text-center text-gray-400 italic text-xs">
-                      Cargando borneras...
+              <tbody className="divide-y divide-gray-100">
+                {reglas.map((r) => (
+                  <tr key={r.id}>
+                    <td className="px-4 py-3 font-mono font-bold text-gray-900">
+                      {r.corriente_minima} A — {r.corriente_maxima} A
+                    </td>
+                    <td className="px-4 py-3 font-mono text-abb-red font-bold">{r.medida_cablecanal}</td>
+                    <td className="px-4 py-3 text-right">
+                      <button
+                        type="button"
+                        onClick={() => handleEliminarRegla(r.id)}
+                        className="text-gray-400 hover:text-red-600 p-1"
+                      >
+                        <TrashIcon className="w-4 h-4" />
+                      </button>
                     </td>
                   </tr>
-                ) : bornes.length > 0 ? (
-                  bornes.map((b) => (
-                    <tr key={b.id} className="border-b border-surface-stroke hover:bg-gray-50/80 transition-colors">
-                      <td className="p-3 font-mono text-xs font-semibold text-gray-900">{b.codigo}</td>
-                      <td className="p-3 font-mono text-xs text-gray-600">{b.codigo_comercial || "—"}</td>
-                      <td className="p-3 text-xs text-gray-700">{b.descripcion}</td>
-                      <td className="p-3 font-mono text-xs text-gray-900">
-                        {b.precio_neto ? `$ ${Number(b.precio_neto).toLocaleString()}` : "Consultar"}
-                      </td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan={4} className="p-6 text-center text-gray-400 italic text-xs">
-                      No se encontraron borneras en el catálogo. Verifique la importación del Excel PYRE.
-                    </td>
-                  </tr>
-                )}
+                ))}
               </tbody>
             </table>
+          </div>
+        </div>
+      )}
+
+      {/* TAB BORNERAS */}
+      {tabActivo === "borneras" && (
+        <div className="bg-white border border-surface-stroke rounded-xl shadow-sm p-5 space-y-4">
+          <h3 className="text-sm font-bold text-gray-900">Borneras Disponibles en el Catálogo</h3>
+          <table className="w-full text-left text-xs">
+            <thead className="bg-slate-50 border-b border-gray-200 text-[10px] uppercase font-bold text-gray-500 tracking-wider">
+              <tr>
+                <th className="px-4 py-3">Código Comercial</th>
+                <th className="px-4 py-3">Descripción</th>
+                <th className="px-4 py-3">Código Interno</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {bornes.map((b) => (
+                <tr key={b.id}>
+                  <td className="px-4 py-2.5 font-mono font-bold text-gray-900">{b.codigo_comercial}</td>
+                  <td className="px-4 py-2.5 text-gray-600">{b.descripcion}</td>
+                  <td className="px-4 py-2.5 font-mono text-gray-400">{b.codigo}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {/* MODAL CREAR USUARIO */}
+      {modalNuevoUsuario && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-2xl max-w-md w-full p-6 space-y-4">
+            <h3 className="text-sm font-bold text-gray-900 flex items-center gap-1.5 border-b pb-2">
+              <UsersIcon className="w-4 h-4 text-abb-red" />
+              Alta de Usuario Autónomo PYRE
+            </h3>
+            <form onSubmit={handleCrearUsuario} className="space-y-3">
+              <div>
+                <label className="block text-[10px] uppercase font-bold text-secondary mb-1">Nombre Completo</label>
+                <input
+                  type="text"
+                  required
+                  value={nuevoNombre}
+                  onChange={(e) => setNuevoNombre(e.target.value)}
+                  className="w-full border border-gray-300 rounded px-3 py-1.5 text-sm focus:outline-none focus:border-abb-red"
+                  placeholder="ej. Juan Pérez"
+                />
+              </div>
+              <div>
+                <label className="block text-[10px] uppercase font-bold text-secondary mb-1">Correo Electrónico</label>
+                <input
+                  type="email"
+                  required
+                  value={nuevoEmail}
+                  onChange={(e) => setNuevoEmail(e.target.value)}
+                  className="w-full border border-gray-300 rounded px-3 py-1.5 text-sm focus:outline-none focus:border-abb-red"
+                  placeholder="ej. j.perez@pyre.com"
+                />
+              </div>
+              <div>
+                <label className="block text-[10px] uppercase font-bold text-secondary mb-1">Rol en el Sistema</label>
+                <select
+                  value={nuevoRol}
+                  onChange={(e) => setNuevoRol(e.target.value as RolUsuarioType)}
+                  className="w-full border border-gray-300 rounded px-3 py-1.5 text-sm focus:outline-none focus:border-abb-red"
+                >
+                  <option value="analista">Analista — Tableros, salidas, BOM y planos</option>
+                  <option value="supervisor">Supervisor — Permisos analista + parámetros, reasignar y autorizar</option>
+                  <option value="administrador">Administrador — Usuarios, catálogo, precios y parámetros</option>
+                  <option value="desarrollador">Desarrollador — Acceso técnico total</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-[10px] uppercase font-bold text-secondary mb-1">Contraseña Inicial</label>
+                <input
+                  type="password"
+                  required
+                  minLength={8}
+                  value={nuevoPassword}
+                  onChange={(e) => setNuevoPassword(e.target.value)}
+                  className="w-full border border-gray-300 rounded px-3 py-1.5 text-sm focus:outline-none focus:border-abb-red"
+                  placeholder="Mínimo 8 caracteres"
+                />
+              </div>
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setModalNuevoUsuario(false)}
+                  className="px-3 py-1.5 text-xs text-gray-600 hover:bg-gray-100 rounded-lg"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-1.5 bg-abb-red hover:bg-red-700 text-white font-bold text-xs rounded-lg uppercase tracking-wider"
+                >
+                  Crear Usuario
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL EDITAR USUARIO */}
+      {usuarioEditando && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-2xl max-w-md w-full p-6 space-y-4">
+            <h3 className="text-sm font-bold text-gray-900 border-b pb-2">
+              Editar Usuario: {usuarioEditando.email}
+            </h3>
+            <form onSubmit={handleGuardarEdicionUsuario} className="space-y-3">
+              <div>
+                <label className="block text-[10px] uppercase font-bold text-secondary mb-1">Nombre</label>
+                <input
+                  type="text"
+                  required
+                  value={editNombre}
+                  onChange={(e) => setEditNombre(e.target.value)}
+                  className="w-full border border-gray-300 rounded px-3 py-1.5 text-sm focus:outline-none focus:border-abb-red"
+                />
+              </div>
+              <div>
+                <label className="block text-[10px] uppercase font-bold text-secondary mb-1">Rol</label>
+                <select
+                  value={editRol}
+                  onChange={(e) => setEditRol(e.target.value as RolUsuarioType)}
+                  className="w-full border border-gray-300 rounded px-3 py-1.5 text-sm focus:outline-none focus:border-abb-red"
+                >
+                  <option value="analista">Analista</option>
+                  <option value="supervisor">Supervisor</option>
+                  <option value="administrador">Administrador</option>
+                  <option value="desarrollador">Desarrollador</option>
+                </select>
+              </div>
+              <div className="flex items-center gap-2 pt-1">
+                <input
+                  type="checkbox"
+                  id="edit-activo"
+                  checked={editActivo}
+                  onChange={(e) => setEditActivo(e.target.checked)}
+                  className="rounded text-abb-red focus:ring-abb-red"
+                />
+                <label htmlFor="edit-activo" className="text-xs font-bold text-gray-700">Cuenta Activa</label>
+              </div>
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setUsuarioEditando(null)}
+                  className="px-3 py-1.5 text-xs text-gray-600 hover:bg-gray-100 rounded-lg"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-1.5 bg-abb-red hover:bg-red-700 text-white font-bold text-xs rounded-lg uppercase tracking-wider"
+                >
+                  Guardar Cambios
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL RESET PASSWORD ADMIN */}
+      {userResetTarget && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-2xl max-w-md w-full p-6 space-y-4">
+            <h3 className="text-sm font-bold text-gray-900 border-b pb-2 flex items-center gap-1.5">
+              <KeyIcon className="w-4 h-4 text-amber-600" />
+              Resetear Contraseña: {userResetTarget.email}
+            </h3>
+            <form onSubmit={handleAdminResetPassword} className="space-y-3">
+              <div>
+                <label className="block text-[10px] uppercase font-bold text-secondary mb-1">Nueva Contraseña</label>
+                <input
+                  type="password"
+                  required
+                  minLength={8}
+                  value={adminNewPassword}
+                  onChange={(e) => setAdminNewPassword(e.target.value)}
+                  className="w-full border border-gray-300 rounded px-3 py-1.5 text-sm focus:outline-none focus:border-abb-red"
+                  placeholder="Mínimo 8 caracteres"
+                />
+              </div>
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setUserResetTarget(null)}
+                  className="px-3 py-1.5 text-xs text-gray-600 hover:bg-gray-100 rounded-lg"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-1.5 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-lg uppercase tracking-wider"
+                >
+                  Establecer Clave
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

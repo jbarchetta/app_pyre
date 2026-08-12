@@ -2,7 +2,18 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
-from app.routers import auth, bom, catalogo, health, parametros_calculo, proyectos, salidas, tableros
+from app.routers import (
+    auditoria,
+    auth,
+    bom,
+    catalogo,
+    health,
+    parametros_calculo,
+    proyectos,
+    salidas,
+    tableros,
+    usuarios,
+)
 
 
 def _asegurar_usuarios_semilla():
@@ -13,31 +24,25 @@ def _asegurar_usuarios_semilla():
 
         db = SessionLocal()
         try:
-            if db.query(Usuario).filter(Usuario.email == "analista@pyre.com").first() is None:
-                try:
-                    analista = Usuario(
-                        email="analista@pyre.com",
-                        nombre="Analista Demo",
-                        password_hash=hash_password("clave-demo-123"),
-                        rol=RolUsuario.ANALISTA,
-                    )
-                    db.add(analista)
-                    db.commit()
-                except Exception:
-                    db.rollback()
-
-            if db.query(Usuario).filter(Usuario.email == "supervisor@pyre.com").first() is None:
-                try:
-                    supervisor = Usuario(
-                        email="supervisor@pyre.com",
-                        nombre="Supervisor Demo",
-                        password_hash=hash_password("clave-demo-123"),
-                        rol=RolUsuario.SUPERVISOR,
-                    )
-                    db.add(supervisor)
-                    db.commit()
-                except Exception:
-                    db.rollback()
+            demos = [
+                ("analista@pyre.com", "Analista Demo", RolUsuario.ANALISTA),
+                ("supervisor@pyre.com", "Supervisor Demo", RolUsuario.SUPERVISOR),
+                ("administrador@pyre.com", "Administrador PYRE", RolUsuario.ADMINISTRADOR),
+                ("desarrollador@pyre.com", "Desarrollador Sistema", RolUsuario.DESARROLLADOR),
+            ]
+            for email, nombre, rol in demos:
+                if db.query(Usuario).filter(Usuario.email == email).first() is None:
+                    try:
+                        u = Usuario(
+                            email=email,
+                            nombre=nombre,
+                            password_hash=hash_password("clave-demo-123"),
+                            rol=rol,
+                        )
+                        db.add(u)
+                        db.commit()
+                    except Exception:
+                        db.rollback()
         finally:
             db.close()
     except Exception as e:
@@ -83,6 +88,8 @@ async def headers_de_seguridad(request, call_next):
 
 app.include_router(health.router)
 app.include_router(auth.router)
+app.include_router(usuarios.router)
+app.include_router(auditoria.router)
 app.include_router(catalogo.router)
 app.include_router(proyectos.router)
 app.include_router(tableros.router)

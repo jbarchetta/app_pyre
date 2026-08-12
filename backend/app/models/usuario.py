@@ -12,6 +12,8 @@ from app.database import Base
 class RolUsuario(str, enum.Enum):
     ANALISTA = "analista"
     SUPERVISOR = "supervisor"
+    ADMINISTRADOR = "administrador"
+    DESARROLLADOR = "desarrollador"
 
 
 class Usuario(Base):

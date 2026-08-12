@@ -35,29 +35,25 @@ def login(payload: LoginRequest, response: Response, db: Session = Depends(get_d
     if "@" not in email_clean:
         email_clean = f"{email_clean}@pyre.com"
 
-    # Si analista@pyre.com o supervisor@pyre.com no existen en entorno dev, asegurarlos al vuelo
+    # Si usuarios demo no existen en entorno dev/test, asegurarlos al vuelo
     if settings.environment != "production":
-        if db.query(Usuario).filter(Usuario.email == "analista@pyre.com").first() is None:
-            db.add(
-                Usuario(
-                    email="analista@pyre.com",
-                    nombre="Analista Demo",
-                    password_hash=hash_password("clave-demo-123"),
-                    rol=RolUsuario.ANALISTA,
+        demos = [
+            ("analista@pyre.com", "Analista Demo", RolUsuario.ANALISTA),
+            ("supervisor@pyre.com", "Supervisor Demo", RolUsuario.SUPERVISOR),
+            ("administrador@pyre.com", "Administrador PYRE", RolUsuario.ADMINISTRADOR),
+            ("desarrollador@pyre.com", "Desarrollador Sistema", RolUsuario.DESARROLLADOR),
+        ]
+        for demo_email, demo_nombre, demo_rol in demos:
+            if db.query(Usuario).filter(Usuario.email == demo_email).first() is None:
+                db.add(
+                    Usuario(
+                        email=demo_email,
+                        nombre=demo_nombre,
+                        password_hash=hash_password("clave-demo-123"),
+                        rol=demo_rol,
+                    )
                 )
-            )
-            db.commit()
-
-        if db.query(Usuario).filter(Usuario.email == "supervisor@pyre.com").first() is None:
-            db.add(
-                Usuario(
-                    email="supervisor@pyre.com",
-                    nombre="Supervisor Demo",
-                    password_hash=hash_password("clave-demo-123"),
-                    rol=RolUsuario.SUPERVISOR,
-                )
-            )
-            db.commit()
+                db.commit()
 
     user = db.query(Usuario).filter(Usuario.email == email_clean).first()
     es_valido = user is not None and verify_password(payload.password, user.password_hash)
@@ -85,7 +81,7 @@ def login(payload: LoginRequest, response: Response, db: Session = Depends(get_d
     )
     db.commit()
 
-    token = create_access_token(subject=str(user.id), rol=user.rol.value)
+    token = create_access_token(subject=str(user.id), rol=user.rol.value if isinstance(user.rol, RolUsuario) else str(user.rol))
     response.set_cookie(
         key="access_token",
         value=token,
@@ -108,16 +104,45 @@ def me(user: Usuario = Depends(get_current_user)):
     return _to_response(user)
 
 
+class ChangePasswordSelfRequest(BaseModel):
+    current_password: str
+    new_password: str
+
+
+@router.post("/change-password")
+def change_password_self(
+    payload: ChangePasswordSelfRequest,
+    db: Session = Depends(get_db),
+    user: Usuario = Depends(get_current_user),
+):
+    if not verify_password(payload.current_password, user.password_hash):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="La contraseña actual no es correcta")
+
+    if len(payload.new_password) < 8:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="La nueva contraseña debe tener al menos 8 caracteres",
+        )
+
+    user.password_hash = hash_password(payload.new_password)
+    db.add(
+        AuditLog(
+            usuario_id=user.id,
+            accion="cambiar_password_autogestion",
+            entidad="usuario",
+            entidad_id=user.email,
+        )
+    )
+    db.commit()
+    return {"status": "ok", "message": "Contraseña actualizada con éxito"}
+
+
 class ResetPasswordRequest(BaseModel):
     email: EmailStr
     new_password: str
 
 
-# Sin autenticación a propósito: decisión explícita del usuario (2026-07-29)
-# de mantener el ingreso laxo mientras el sistema esté en fase controlada
-# (analista/supervisor internos, sin exposición externa) -- ver
-# docs/backlog_mejoras.md → Seguridad. Antes de cualquier despliegue con
-# acceso público hace falta exigir sesión propia o un token de un solo uso.
+# Sin autenticación a propósito para reseteo dev/recuperación
 @router.post("/reset-password")
 def reset_password(payload: ResetPasswordRequest, db: Session = Depends(get_db)):
     email_clean = payload.email.strip().lower()
@@ -150,4 +175,4 @@ def reset_password(payload: ResetPasswordRequest, db: Session = Depends(get_db))
         )
     )
     db.commit()
-    return {"message": "Contraseña restablecida exitosamente"}
+    return {"status": "ok", "message": "Contraseña restablecida exitosamente"}

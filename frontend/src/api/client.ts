@@ -18,11 +18,35 @@ async function lanzarSiNoOk(response: Response, mensajePorDefecto: string): Prom
   throw new Error(detalle ?? mensajePorDefecto);
 }
 
+export type RolUsuarioType = "analista" | "supervisor" | "administrador" | "desarrollador";
+
 export interface Usuario {
   id: string;
   email: string;
   nombre: string;
-  rol: "analista" | "supervisor";
+  rol: RolUsuarioType;
+  activo?: boolean;
+}
+
+export interface UsuarioGestion {
+  id: string;
+  email: string;
+  nombre: string;
+  rol: RolUsuarioType;
+  activo: boolean;
+  creado_en: string;
+}
+
+export interface AuditLogEntry {
+  id: string;
+  usuario_id?: string | null;
+  usuario_nombre?: string | null;
+  usuario_email?: string | null;
+  accion: string;
+  entidad: string;
+  entidad_id?: string | null;
+  detalle?: Record<string, any> | null;
+  creado_en: string;
 }
 
 export async function login(email: string, password: string): Promise<Usuario> {
@@ -50,6 +74,18 @@ export async function restablecerPassword(email: string, newPassword: string): P
   return response.json();
 }
 
+export async function cambiarPasswordSelf(currentPassword: string, newPassword: string): Promise<{ message: string }> {
+  const response = await fetch(`${API_BASE_URL}/auth/change-password`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({ current_password: currentPassword, new_password: newPassword }),
+  });
+
+  await lanzarSiNoOk(response, "No se pudo actualizar la contraseña");
+  return response.json();
+}
+
 export async function fetchCurrentUser(): Promise<Usuario | null> {
   const response = await fetch(`${API_BASE_URL}/auth/me`, { credentials: "include" });
 
@@ -62,6 +98,68 @@ export async function fetchCurrentUser(): Promise<Usuario | null> {
 
 export async function logout(): Promise<void> {
   await fetch(`${API_BASE_URL}/auth/logout`, { method: "POST", credentials: "include" });
+}
+
+export async function listarUsuarios(): Promise<UsuarioGestion[]> {
+  const response = await fetch(`${API_BASE_URL}/usuarios`, { credentials: "include" });
+  await lanzarSiNoOk(response, "No se pudieron listar los usuarios");
+  return response.json();
+}
+
+export async function crearUsuario(datos: { email: string; nombre: string; rol: RolUsuarioType; password: string }): Promise<UsuarioGestion> {
+  const response = await fetch(`${API_BASE_URL}/usuarios`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(datos),
+  });
+  await lanzarSiNoOk(response, "No se pudo crear el usuario");
+  return response.json();
+}
+
+export async function actualizarUsuario(
+  id: string,
+  datos: { nombre?: string; rol?: RolUsuarioType; activo?: boolean }
+): Promise<UsuarioGestion> {
+  const response = await fetch(`${API_BASE_URL}/usuarios/${id}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify(datos),
+  });
+  await lanzarSiNoOk(response, "No se pudo actualizar el usuario");
+  return response.json();
+}
+
+export async function resetPasswordAdmin(id: string, newPassword: string): Promise<{ message: string }> {
+  const response = await fetch(`${API_BASE_URL}/usuarios/${id}/reset-password`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({ new_password: newPassword }),
+  });
+  await lanzarSiNoOk(response, "No se pudo resetear la contraseña del usuario");
+  return response.json();
+}
+
+export async function desactivarUsuario(id: string): Promise<{ message: string }> {
+  const response = await fetch(`${API_BASE_URL}/usuarios/${id}`, {
+    method: "DELETE",
+    credentials: "include",
+  });
+  await lanzarSiNoOk(response, "No se pudo desactivar el usuario");
+  return response.json();
+}
+
+export async function listarAuditoria(filtros?: { entidad?: string; accion?: string; limit?: number }): Promise<AuditLogEntry[]> {
+  const params = new URLSearchParams();
+  if (filtros?.entidad) params.set("entidad", filtros.entidad);
+  if (filtros?.accion) params.set("accion", filtros.accion);
+  if (filtros?.limit) params.set("limit", filtros.limit.toString());
+
+  const response = await fetch(`${API_BASE_URL}/auditoria?${params.toString()}`, { credentials: "include" });
+  await lanzarSiNoOk(response, "No se pudo consultar el registro de auditoría");
+  return response.json();
 }
 
 export interface ResumenImportCatalogo {
