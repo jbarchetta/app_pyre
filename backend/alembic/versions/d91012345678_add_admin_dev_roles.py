@@ -19,8 +19,12 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
+    op.execute("ALTER TYPE rol_usuario ADD VALUE IF NOT EXISTS 'analista'")
+    op.execute("ALTER TYPE rol_usuario ADD VALUE IF NOT EXISTS 'supervisor'")
     op.execute("ALTER TYPE rol_usuario ADD VALUE IF NOT EXISTS 'administrador'")
     op.execute("ALTER TYPE rol_usuario ADD VALUE IF NOT EXISTS 'desarrollador'")
+    op.execute("UPDATE usuario SET rol = 'analista' WHERE rol::text = 'ANALISTA'")
+    op.execute("UPDATE usuario SET rol = 'supervisor' WHERE rol::text = 'SUPERVISOR'")
 
 
 def downgrade() -> None:
