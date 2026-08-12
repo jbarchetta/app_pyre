@@ -23,6 +23,9 @@ class Usuario(Base):
     email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False, index=True)
     nombre: Mapped[str] = mapped_column(String(255), nullable=False)
     password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
-    rol: Mapped[RolUsuario] = mapped_column(Enum(RolUsuario, name="rol_usuario"), nullable=False)
+    rol: Mapped[RolUsuario] = mapped_column(
+        Enum(RolUsuario, name="rol_usuario", values_callable=lambda x: [e.value for e in x]),
+        nullable=False,
+    )
     activo: Mapped[bool] = mapped_column(default=True, nullable=False)
     creado_en: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)

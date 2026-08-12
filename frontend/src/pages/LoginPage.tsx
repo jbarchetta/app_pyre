@@ -81,8 +81,8 @@ export function LoginPage() {
     }
   }
 
-  function handleRellenarDemo() {
-    setEmail("analista@pyre.com");
+  function handleRellenarDemo(rol: "analista" | "supervisor" | "administrador" | "desarrollador" = "analista") {
+    setEmail(`${rol}@pyre.com`);
     setPassword("clave-demo-123");
     setError(null);
   }
@@ -140,51 +140,47 @@ export function LoginPage() {
           <Field label="Email corporativo" hint="Ingresá el correo registrado en la plataforma." required>
             {(p) => (
               <div className="relative">
-                <EnvelopeIcon
-                  className="pointer-events-none absolute inset-y-0 left-3 my-auto h-4 w-4 text-ink-subtle"
-                  aria-hidden="true"
-                />
+                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-ink-subtle">
+                  <EnvelopeIcon className="h-4 w-4" />
+                </div>
                 <Input
                   {...p}
                   type="email"
-                  autoComplete="username"
+                  required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="ejemplo@pyre.com"
-                  required
+                  placeholder="ej. analista@pyre.com"
                   className="pl-9"
                 />
               </div>
             )}
           </Field>
 
-          <div className="space-y-1.5">
-            <Field label="Contraseña" required>
-              {(p) => (
-                <div className="relative">
-                  <LockClosedIcon
-                    className="pointer-events-none absolute inset-y-0 left-3 my-auto h-4 w-4 text-ink-subtle"
-                    aria-hidden="true"
-                  />
-                  <Input
-                    {...p}
-                    type={mostrarPassword ? "text" : "password"}
-                    autoComplete="current-password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••"
-                    required
-                    className="pl-9 pr-10"
-                  />
-                  <ToggleClave visible={mostrarPassword} onToggle={() => setMostrarPassword(!mostrarPassword)} />
+          <Field label="Contraseña" required>
+            {(p) => (
+              <div className="relative">
+                <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 text-ink-subtle">
+                  <LockClosedIcon className="h-4 w-4" />
                 </div>
-              )}
-            </Field>
+                <Input
+                  {...p}
+                  type={mostrarPassword ? "text" : "password"}
+                  required
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••••••"
+                  className="pl-9 pr-10"
+                />
+                <ToggleClave visible={mostrarPassword} onToggle={() => setMostrarPassword(!mostrarPassword)} />
+              </div>
+            )}
+          </Field>
 
+          <div className="flex items-center justify-end">
             <button
               type="button"
               onClick={() => {
-                setResetEmail(email || "analista@pyre.com");
+                setResetEmail(email);
                 setModalReset(true);
               }}
               className="text-xs font-semibold text-brand hover:underline"
@@ -197,17 +193,40 @@ export function LoginPage() {
             {cargando ? "Validando…" : "Ingresar"}
           </Button>
 
-          <div className="border-t border-line pt-4 text-center">
-            <Button
-              type="button"
-              variant="danger"
-              size="sm"
-              onClick={handleRellenarDemo}
-              icon={<SparklesIcon className="h-3.5 w-3.5" />}
-              className="rounded-full"
-            >
-              Auto-completar credenciales demo (Analista)
-            </Button>
+          <div className="border-t border-line pt-4 space-y-2">
+            <div className="flex items-center justify-between text-[11px] text-ink-subtle uppercase font-bold tracking-wider">
+              <span>Auto-completar Demo:</span>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => handleRellenarDemo("analista")}
+                className="px-2.5 py-1.5 text-xs font-medium bg-slate-100 hover:bg-slate-200 text-slate-800 rounded-lg transition flex items-center justify-center gap-1 border border-slate-200"
+              >
+                <SparklesIcon className="w-3.5 h-3.5 text-slate-600" /> Analista
+              </button>
+              <button
+                type="button"
+                onClick={() => handleRellenarDemo("supervisor")}
+                className="px-2.5 py-1.5 text-xs font-medium bg-blue-50 hover:bg-blue-100 text-blue-800 rounded-lg transition flex items-center justify-center gap-1 border border-blue-200"
+              >
+                <SparklesIcon className="w-3.5 h-3.5 text-blue-600" /> Supervisor
+              </button>
+              <button
+                type="button"
+                onClick={() => handleRellenarDemo("administrador")}
+                className="px-2.5 py-1.5 text-xs font-medium bg-purple-50 hover:bg-purple-100 text-purple-800 rounded-lg transition flex items-center justify-center gap-1 border border-purple-200"
+              >
+                <SparklesIcon className="w-3.5 h-3.5 text-purple-600" /> Admin
+              </button>
+              <button
+                type="button"
+                onClick={() => handleRellenarDemo("desarrollador")}
+                className="px-2.5 py-1.5 text-xs font-medium bg-amber-50 hover:bg-amber-100 text-amber-800 rounded-lg transition flex items-center justify-center gap-1 border border-amber-200"
+              >
+                <SparklesIcon className="w-3.5 h-3.5 text-amber-600" /> Dev
+              </button>
+            </div>
           </div>
         </form>
 
