@@ -151,8 +151,20 @@ export async function desactivarUsuario(id: string): Promise<{ message: string }
   return response.json();
 }
 
-export async function listarAuditoria(filtros?: { entidad?: string; accion?: string; limit?: number }): Promise<AuditLogEntry[]> {
+export interface OpcionesAuditoria {
+  acciones: string[];
+  entidades: string[];
+}
+
+export async function obtenerOpcionesAuditoria(): Promise<OpcionesAuditoria> {
+  const response = await fetch(`${API_BASE_URL}/auditoria/opciones`, { credentials: "include" });
+  await lanzarSiNoOk(response, "No se pudieron obtener las opciones de auditoría");
+  return response.json();
+}
+
+export async function listarAuditoria(filtros?: { q?: string; entidad?: string; accion?: string; limit?: number }): Promise<AuditLogEntry[]> {
   const params = new URLSearchParams();
+  if (filtros?.q) params.set("q", filtros.q);
   if (filtros?.entidad) params.set("entidad", filtros.entidad);
   if (filtros?.accion) params.set("accion", filtros.accion);
   if (filtros?.limit) params.set("limit", filtros.limit.toString());

@@ -31,7 +31,14 @@ class ParametroCalculoUpdate(BaseModel):
 @router.get("", response_model=ParametroCalculoResponse)
 def obtener(
     db: Session = Depends(get_db),
-    usuario: Usuario = Depends(require_role(RolUsuario.ANALISTA, RolUsuario.SUPERVISOR)),
+    usuario: Usuario = Depends(
+        require_role(
+            RolUsuario.ANALISTA,
+            RolUsuario.SUPERVISOR,
+            RolUsuario.ADMINISTRADOR,
+            RolUsuario.DESARROLLADOR,
+        )
+    ),
 ):
     return obtener_parametros(db)
 
@@ -40,7 +47,14 @@ def obtener(
 def actualizar(
     payload: ParametroCalculoUpdate,
     db: Session = Depends(get_db),
-    usuario: Usuario = Depends(require_role(RolUsuario.ANALISTA, RolUsuario.SUPERVISOR)),
+    usuario: Usuario = Depends(
+        require_role(
+            RolUsuario.ANALISTA,
+            RolUsuario.SUPERVISOR,
+            RolUsuario.ADMINISTRADOR,
+            RolUsuario.DESARROLLADOR,
+        )
+    ),
 ):
     parametros = obtener_parametros(db)
     parametros.tension_mono_v = payload.tension_mono_v

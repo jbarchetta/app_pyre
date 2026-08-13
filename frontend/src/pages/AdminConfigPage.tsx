@@ -1,9 +1,5 @@
 import { useEffect, useState, type FormEvent } from "react";
 import {
-  listarReglasCablecanal,
-  crearReglaCablecanal,
-  eliminarReglaCablecanal,
-  buscarCatalogo,
   listarUsuarios,
   crearUsuario,
   actualizarUsuario,
@@ -11,8 +7,7 @@ import {
   desactivarUsuario,
   cambiarPasswordSelf,
   listarAuditoria,
-  type ReglaCablecanal,
-  type ComponenteBusqueda,
+  obtenerOpcionesAuditoria,
   type UsuarioGestion,
   type AuditLogEntry,
   type RolUsuarioType,
@@ -27,6 +22,8 @@ import {
   PencilIcon,
   CheckCircleIcon,
   XCircleIcon,
+  MagnifyingGlassIcon,
+  FunnelIcon,
 } from "@heroicons/react/24/outline";
 import { Navigate } from "react-router-dom";
 import { useSesion } from "../auth/SesionContext";
@@ -38,16 +35,9 @@ export function AdminConfigPage() {
   const esAnalista = usuarioSesion?.rol === "analista";
   const esAdminOManager = usuarioSesion?.rol === "administrador" || usuarioSesion?.rol === "desarrollador";
 
-  const [tabActivo, setTabActivo] = useState<"usuarios" | "auditoria" | "micuenta" | "cablecanales" | "borneras">(
-    esAdminOManager ? "usuarios" : "cablecanales"
+  const [tabActivo, setTabActivo] = useState<"usuarios" | "auditoria" | "micuenta">(
+    esAdminOManager ? "usuarios" : "micuenta"
   );
-
-  // Reglas & Borneras
-  const [reglas, setReglas] = useState<ReglaCablecanal[]>([]);
-  const [bornes, setBornes] = useState<ComponenteBusqueda[]>([]);
-  const [corrienteMin, setCorrienteMin] = useState("");
-  const [corrienteMax, setCorrienteMax] = useState("");
-  const [medida, setMedida] = useState("");
 
   // Usuarios State
   const [usuarios, setUsuarios] = useState<UsuarioGestion[]>([]);
@@ -72,8 +62,14 @@ export function AdminConfigPage() {
   const [newPasswordSelf, setNewPasswordSelf] = useState("");
   const [confirmPasswordSelf, setConfirmPasswordSelf] = useState("");
 
-  // Auditoría State
+  // Auditoría State & Filters
   const [auditorias, setAuditorias] = useState<AuditLogEntry[]>([]);
+  const [auditQuery, setAuditQuery] = useState("");
+  const [auditAccion, setAuditAccion] = useState("");
+  const [auditEntidad, setAuditEntidad] = useState("");
+  const [auditLimit, setAuditLimit] = useState(100);
+  const [opcionesAcciones, setOpcionesAcciones] = useState<string[]>([]);
+  const [opcionesEntidades, setOpcionesEntidades] = useState<string[]>([]);
 
   // Feedback states
   const [error, setError] = useState<string | null>(null);
@@ -90,37 +86,41 @@ export function AdminConfigPage() {
 
   const cargarAuditoria = async () => {
     try {
-      const list = await listarAuditoria({ limit: 150 });
+      const list = await listarAuditoria({
+        q: auditQuery || undefined,
+        accion: auditAccion || undefined,
+        entidad: auditEntidad || undefined,
+        limit: auditLimit,
+      });
       setAuditorias(list);
     } catch (err) {
       console.error(err);
     }
   };
 
-  const cargarReglas = async () => {
+  const cargarOpcionesAuditoria = async () => {
     try {
-      const list = await listarReglasCablecanal();
-      setReglas(list);
-    } catch (err) {
-      console.error(err);
-    }
-  };
-
-  const cargarBornes = async () => {
-    try {
-      const res = await buscarCatalogo("", { categorias: ["Terminales"], limit: 100 });
-      setBornes(res.resultados);
+      const ops = await obtenerOpcionesAuditoria();
+      setOpcionesAcciones(ops.acciones);
+      setOpcionesEntidades(ops.entidades);
     } catch (err) {
       console.error(err);
     }
   };
 
   useEffect(() => {
-    cargarUsuarios();
-    cargarAuditoria();
-    cargarReglas();
-    cargarBornes();
-  }, []);
+    if (esAdminOManager) {
+      cargarUsuarios();
+      cargarAuditoria();
+      cargarOpcionesAuditoria();
+    }
+  }, [esAdminOManager]);
+
+  useEffect(() => {
+    if (tabActivo === "auditoria") {
+      cargarAuditoria();
+    }
+  }, [auditQuery, auditAccion, auditEntidad, auditLimit, tabActivo]);
 
   const handleCrearUsuario = async (e: FormEvent) => {
     e.preventDefault();
@@ -220,42 +220,6 @@ export function AdminConfigPage() {
     }
   };
 
-  const handleCrearRegla = async (e: FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    setSuccess(null);
-    if (!corrienteMin || !corrienteMax || !medida.trim()) {
-      setError("Todos los campos son obligatorios.");
-      return;
-    }
-    try {
-      await crearReglaCablecanal({
-        corriente_minima: corrienteMin,
-        corriente_maxima: corrienteMax,
-        medida_cablecanal: medida.trim(),
-      });
-      setSuccess("Regla de cablecanal creada con éxito.");
-      setCorrienteMin("");
-      setCorrienteMax("");
-      setMedida("");
-      await cargarReglas();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Error al crear la regla");
-    }
-  };
-
-  const handleEliminarRegla = async (id: string) => {
-    setError(null);
-    setSuccess(null);
-    try {
-      await eliminarReglaCablecanal(id);
-      setSuccess("Regla de cablecanal eliminada.");
-      await cargarReglas();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Error al eliminar la regla");
-    }
-  };
-
   const badgeColorRol = (rol: string) => {
     switch (rol) {
       case "administrador":
@@ -277,8 +241,8 @@ export function AdminConfigPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-gray-900 tracking-tight">Panel de Configuración y Parámetros</h1>
-          <p className="text-xs text-gray-500">Módulo 1: Gestión de usuarios, roles, auditoría y parámetros físicos</p>
+          <h1 className="text-xl font-bold text-gray-900 tracking-tight">Panel de Administración de Seguridad</h1>
+          <p className="text-xs text-gray-500">Módulo 1: Gestión autónoma de usuarios PYRE, roles, clave y registro de auditoría</p>
         </div>
       </div>
 
@@ -323,28 +287,6 @@ export function AdminConfigPage() {
         >
           <KeyIcon className="w-4 h-4" />
           Mi Cuenta (Autogestión)
-        </button>
-        <button
-          type="button"
-          onClick={() => setTabActivo("cablecanales")}
-          className={`py-2.5 px-4 font-mono text-xs font-bold uppercase tracking-wider border-b-2 transition whitespace-nowrap ${
-            tabActivo === "cablecanales"
-              ? "border-abb-red text-abb-red"
-              : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-          }`}
-        >
-          Reglas de Cablecanales
-        </button>
-        <button
-          type="button"
-          onClick={() => setTabActivo("borneras")}
-          className={`py-2.5 px-4 font-mono text-xs font-bold uppercase tracking-wider border-b-2 transition whitespace-nowrap ${
-            tabActivo === "borneras"
-              ? "border-abb-red text-abb-red"
-              : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-          }`}
-        >
-          Borneras / Bornes no-ABB
         </button>
       </div>
 
@@ -455,18 +397,89 @@ export function AdminConfigPage() {
         </div>
       )}
 
-      {/* TAB AUDITORÍA */}
+      {/* TAB AUDITORÍA CON BÚSQUEDA Y FILTROS */}
       {tabActivo === "auditoria" && (
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <h2 className="text-sm font-bold text-gray-900">Historial de Auditoría del Sistema</h2>
-            <button
-              type="button"
-              onClick={cargarAuditoria}
-              className="text-xs text-abb-red hover:underline font-bold"
-            >
-              Actualizar
-            </button>
+            <span className="text-xs font-mono text-gray-500">
+              Mostrando <strong className="text-gray-900">{auditorias.length}</strong> eventos
+            </span>
+          </div>
+
+          {/* Panel de Filtros */}
+          <div className="bg-slate-50 border border-gray-200 rounded-xl p-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-3 items-center">
+            {/* Buscador general */}
+            <div className="lg:col-span-4 relative">
+              <MagnifyingGlassIcon className="w-4 h-4 text-gray-400 absolute left-3 top-2.5" />
+              <input
+                type="text"
+                value={auditQuery}
+                onChange={(e) => setAuditQuery(e.target.value)}
+                placeholder="Buscar por usuario, email, acción..."
+                className="w-full pl-9 pr-3 py-1.5 bg-white border border-gray-300 rounded-lg text-xs text-gray-900 focus:outline-none focus:border-abb-red placeholder:text-gray-400"
+              />
+            </div>
+
+            {/* Filtro por Acción */}
+            <div className="lg:col-span-3">
+              <select
+                value={auditAccion}
+                onChange={(e) => setAuditAccion(e.target.value)}
+                className="w-full bg-white border border-gray-300 rounded-lg px-3 py-1.5 text-xs text-gray-900 focus:outline-none focus:border-abb-red"
+              >
+                <option value="">Todas las acciones</option>
+                {opcionesAcciones.map((acc) => (
+                  <option key={acc} value={acc}>
+                    {acc}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Filtro por Entidad */}
+            <div className="lg:col-span-3">
+              <select
+                value={auditEntidad}
+                onChange={(e) => setAuditEntidad(e.target.value)}
+                className="w-full bg-white border border-gray-300 rounded-lg px-3 py-1.5 text-xs text-gray-900 focus:outline-none focus:border-abb-red"
+              >
+                <option value="">Todas las entidades</option>
+                {opcionesEntidades.map((ent) => (
+                  <option key={ent} value={ent}>
+                    {ent}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Limite y Limpiar */}
+            <div className="lg:col-span-2 flex items-center gap-2">
+              <select
+                value={auditLimit}
+                onChange={(e) => setAuditLimit(Number(e.target.value))}
+                className="bg-white border border-gray-300 rounded-lg px-2.5 py-1.5 text-xs font-mono text-gray-900 focus:outline-none focus:border-abb-red w-full"
+              >
+                <option value={50}>50</option>
+                <option value={100}>100</option>
+                <option value={250}>250</option>
+                <option value={500}>500</option>
+              </select>
+              {(auditQuery || auditAccion || auditEntidad) && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setAuditQuery("");
+                    setAuditAccion("");
+                    setAuditEntidad("");
+                  }}
+                  className="p-1.5 text-xs font-bold text-gray-500 hover:text-abb-red transition"
+                  title="Limpiar filtros"
+                >
+                  <FunnelIcon className="w-4 h-4" />
+                </button>
+              )}
+            </div>
           </div>
 
           <div className="bg-white border border-surface-stroke rounded-xl shadow-sm overflow-hidden">
@@ -481,22 +494,30 @@ export function AdminConfigPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100">
-                {auditorias.map((a) => (
-                  <tr key={a.id} className="hover:bg-slate-50/70 transition">
-                    <td className="px-4 py-2.5 font-mono text-gray-500 text-[11px]">
-                      {new Date(a.creado_en).toLocaleString("es-AR")}
-                    </td>
-                    <td className="px-4 py-2.5">
-                      <div className="font-bold text-gray-900">{a.usuario_nombre}</div>
-                      {a.usuario_email && <div className="text-[10px] font-mono text-gray-400">{a.usuario_email}</div>}
-                    </td>
-                    <td className="px-4 py-2.5 font-mono font-bold text-abb-red">{a.accion}</td>
-                    <td className="px-4 py-2.5 text-gray-600">{a.entidad}</td>
-                    <td className="px-4 py-2.5 font-mono text-[10px] text-slate-600 max-w-xs truncate">
-                      {a.detalle ? JSON.stringify(a.detalle) : "—"}
+                {auditorias.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="px-4 py-8 text-center text-gray-400 italic text-xs">
+                      No se encontraron registros de auditoría con los filtros aplicados.
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  auditorias.map((a) => (
+                    <tr key={a.id} className="hover:bg-slate-50/70 transition">
+                      <td className="px-4 py-2.5 font-mono text-gray-500 text-[11px]">
+                        {new Date(a.creado_en).toLocaleString("es-AR")}
+                      </td>
+                      <td className="px-4 py-2.5">
+                        <div className="font-bold text-gray-900">{a.usuario_nombre}</div>
+                        {a.usuario_email && <div className="text-[10px] font-mono text-gray-400">{a.usuario_email}</div>}
+                      </td>
+                      <td className="px-4 py-2.5 font-mono font-bold text-abb-red">{a.accion}</td>
+                      <td className="px-4 py-2.5 text-gray-600">{a.entidad}</td>
+                      <td className="px-4 py-2.5 font-mono text-[10px] text-slate-600 max-w-xs truncate">
+                        {a.detalle ? JSON.stringify(a.detalle) : "—"}
+                      </td>
+                    </tr>
+                  ))
+                )}
               </tbody>
             </table>
           </div>
@@ -550,121 +571,6 @@ export function AdminConfigPage() {
               Cambiar mi contraseña
             </button>
           </form>
-        </div>
-      )}
-
-      {/* TAB CABLECANALES */}
-      {tabActivo === "cablecanales" && (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-          <div className="lg:col-span-4 bg-white border border-surface-stroke rounded-xl shadow-sm p-5 space-y-4">
-            <h3 className="text-sm font-bold text-gray-900 border-b border-gray-100 pb-2 flex items-center gap-1.5">
-              <PlusIcon className="w-4 h-4 text-abb-red" />
-              Nueva Regla de Cablecanal
-            </h3>
-            <form onSubmit={handleCrearRegla} className="space-y-3.5">
-              <div>
-                <label className="block text-[10px] uppercase font-bold tracking-wider text-secondary mb-1">
-                  Corriente Mínima (A)
-                </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={corrienteMin}
-                  onChange={(e) => setCorrienteMin(e.target.value)}
-                  className="w-full border border-gray-300 rounded px-3 py-1.5 text-sm focus:outline-none focus:border-abb-red"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-[10px] uppercase font-bold tracking-wider text-secondary mb-1">
-                  Corriente Máxima (A)
-                </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={corrienteMax}
-                  onChange={(e) => setCorrienteMax(e.target.value)}
-                  className="w-full border border-gray-300 rounded px-3 py-1.5 text-sm focus:outline-none focus:border-abb-red"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-[10px] uppercase font-bold tracking-wider text-secondary mb-1">
-                  Medida del Cablecanal
-                </label>
-                <input
-                  type="text"
-                  value={medida}
-                  onChange={(e) => setMedida(e.target.value)}
-                  className="w-full border border-gray-300 rounded px-3 py-1.5 text-sm focus:outline-none focus:border-abb-red"
-                  placeholder="ej. 40x40 mm"
-                  required
-                />
-              </div>
-              <button
-                type="submit"
-                className="w-full bg-abb-red hover:bg-red-700 text-white font-bold text-xs uppercase tracking-wider py-2 rounded-lg transition"
-              >
-                Guardar Regla
-              </button>
-            </form>
-          </div>
-
-          <div className="lg:col-span-8 bg-white border border-surface-stroke rounded-xl shadow-sm overflow-hidden">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 border-b border-gray-200 text-[10px] uppercase font-bold text-gray-500 tracking-wider">
-                <tr>
-                  <th className="px-4 py-3">Rango de Corriente (A)</th>
-                  <th className="px-4 py-3">Medida de Cablecanal</th>
-                  <th className="px-4 py-3 text-right">Acción</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {reglas.map((r) => (
-                  <tr key={r.id}>
-                    <td className="px-4 py-3 font-mono font-bold text-gray-900">
-                      {r.corriente_minima} A — {r.corriente_maxima} A
-                    </td>
-                    <td className="px-4 py-3 font-mono text-abb-red font-bold">{r.medida_cablecanal}</td>
-                    <td className="px-4 py-3 text-right">
-                      <button
-                        type="button"
-                        onClick={() => handleEliminarRegla(r.id)}
-                        className="text-gray-400 hover:text-red-600 p-1"
-                      >
-                        <TrashIcon className="w-4 h-4" />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
-
-      {/* TAB BORNERAS */}
-      {tabActivo === "borneras" && (
-        <div className="bg-white border border-surface-stroke rounded-xl shadow-sm p-5 space-y-4">
-          <h3 className="text-sm font-bold text-gray-900">Borneras Disponibles en el Catálogo</h3>
-          <table className="w-full text-left text-xs">
-            <thead className="bg-slate-50 border-b border-gray-200 text-[10px] uppercase font-bold text-gray-500 tracking-wider">
-              <tr>
-                <th className="px-4 py-3">Código Comercial</th>
-                <th className="px-4 py-3">Descripción</th>
-                <th className="px-4 py-3">Código Interno</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {bornes.map((b) => (
-                <tr key={b.id}>
-                  <td className="px-4 py-2.5 font-mono font-bold text-gray-900">{b.codigo_comercial}</td>
-                  <td className="px-4 py-2.5 text-gray-600">{b.descripcion}</td>
-                  <td className="px-4 py-2.5 font-mono text-gray-400">{b.codigo}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
         </div>
       )}
 
@@ -816,7 +722,6 @@ export function AdminConfigPage() {
             <>
               <Button
                 variant="primary"
-                className="!bg-amber-600 hover:!bg-amber-700"
                 onClick={() => {
                   const form = document.getElementById("form-reset-password") as HTMLFormElement;
                   if (form) form.requestSubmit();

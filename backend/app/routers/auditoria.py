@@ -27,10 +27,26 @@ class AuditLogResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class OpcionesAuditoriaResponse(BaseModel):
+    acciones: List[str]
+    entidades: List[str]
+
+
+@router.get("/opciones", response_model=OpcionesAuditoriaResponse)
+def obtener_opciones_auditoria(
+    db: Session = Depends(get_db),
+    _user: Usuario = Depends(require_role(RolUsuario.ADMINISTRADOR, RolUsuario.DESARROLLADOR, RolUsuario.SUPERVISOR)),
+):
+    acciones = [r[0] for r in db.query(AuditLog.accion).distinct().all() if r[0]]
+    entidades = [r[0] for r in db.query(AuditLog.entidad).distinct().all() if r[0]]
+    return OpcionesAuditoriaResponse(acciones=sorted(acciones), entidades=sorted(entidades))
+
+
 @router.get("", response_model=List[AuditLogResponse])
 def listar_auditoria(
     db: Session = Depends(get_db),
     _user: Usuario = Depends(require_role(RolUsuario.ADMINISTRADOR, RolUsuario.DESARROLLADOR, RolUsuario.SUPERVISOR)),
+    q: Optional[str] = Query(None, description="Búsqueda por texto (usuario, acción, entidad)"),
     entidad: Optional[str] = Query(None, description="Filtrar por entidad (ej. usuario, proyecto, catalogo)"),
     accion: Optional[str] = Query(None, description="Filtrar por acción (ej. crear_usuario, login_exitoso)"),
     limit: int = Query(100, ge=1, le=500),
@@ -41,6 +57,14 @@ def listar_auditoria(
         stmt = stmt.where(AuditLog.entidad == entidad)
     if accion:
         stmt = stmt.where(AuditLog.accion == accion)
+    if q and q.strip():
+        search_pattern = f"%{q.strip()}%"
+        stmt = stmt.outerjoin(AuditLog.usuario).where(
+            (AuditLog.accion.ilike(search_pattern))
+            | (AuditLog.entidad.ilike(search_pattern))
+            | (Usuario.nombre.ilike(search_pattern))
+            | (Usuario.email.ilike(search_pattern))
+        )
 
     logs = db.scalars(stmt).all()
 
