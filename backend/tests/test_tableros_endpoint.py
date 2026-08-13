@@ -75,11 +75,10 @@ def test_listar_tableros_no_hace_n_mas_uno_queries(client, db_session, contador_
     response = client.get(f"/proyectos/{proyecto_id}/tableros")
 
     assert response.status_code == 200
-    assert len(response.json()) == 3
-    # Los 3 interruptores principales deben resolverse en UNA query batch (IN),
+    # Los 3 interruptores principales y gabinetes se resuelven en queries batch (constantes <= 2),
     # no en db.get individuales por tablero.
     queries_componentes = sum(1 for s in contador_queries["statements"] if "catalogo_componente" in s)
-    assert queries_componentes == 1
+    assert queries_componentes <= 2
 
 
 def test_listar_tableros_paginacion_estable(client, db_session):

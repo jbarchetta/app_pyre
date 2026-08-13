@@ -90,9 +90,15 @@ class TableroResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 
-def _tablero_response(db: Session, tablero: Tablero, componente: CatalogoComponente | None = None) -> TableroResponse:
+def _tablero_response(
+    db: Session,
+    tablero: Tablero,
+    componente: CatalogoComponente | None = None,
+    componentes_map: dict[uuid.UUID, CatalogoComponente] | None = None,
+    gabinetes_candidatos: list[CatalogoComponente] | None = None,
+) -> TableroResponse:
     if componente is None and tablero.interruptor_principal_id:
-        componente = db.get(CatalogoComponente, tablero.interruptor_principal_id)
+        componente = componentes_map.get(tablero.interruptor_principal_id) if componentes_map else db.get(CatalogoComponente, tablero.interruptor_principal_id)
     atributos = componente.atributos or {} if componente else {}
 
     gabinete_codigo = None
@@ -110,7 +116,7 @@ def _tablero_response(db: Session, tablero: Tablero, componente: CatalogoCompone
     gabinete_alternativo_alto = None
 
     if tablero.gabinete_sugerido_id:
-        gab = db.get(CatalogoComponente, tablero.gabinete_sugerido_id)
+        gab = componentes_map.get(tablero.gabinete_sugerido_id) if componentes_map else db.get(CatalogoComponente, tablero.gabinete_sugerido_id)
         if gab and gab.atributos:
             gabinete_codigo = gab.codigo
             gabinete_ancho = gab.atributos.get("ancho_mm")
@@ -127,7 +133,7 @@ def _tablero_response(db: Session, tablero: Tablero, componente: CatalogoCompone
         gabinete_alto = tablero.gabinete_manual_alto_mm
 
     if tablero.gabinete_manual_ancho_mm and tablero.gabinete_manual_alto_mm:
-        gab_man = db.query(CatalogoComponente).filter(
+        gab_man = gabinetes_candidatos if gabinetes_candidatos is not None else db.query(CatalogoComponente).filter(
             CatalogoComponente.categoria_raiz.ilike("%gabinete%"),
         ).all()
         for g in gab_man:
@@ -146,7 +152,7 @@ def _tablero_response(db: Session, tablero: Tablero, componente: CatalogoCompone
         polos_totales = sum(POLOS_POR_FORMATO.get(s.formato, 1) for s in salidas)
         max_polos = 1
         if tiene_principal:
-            princ = db.get(CatalogoComponente, tablero.interruptor_principal_id)
+            princ = componentes_map.get(tablero.interruptor_principal_id) if componentes_map else db.get(CatalogoComponente, tablero.interruptor_principal_id)
             if princ and princ.atributos:
                 max_polos = princ.atributos.get("polos", 4)
                 polos_totales += max_polos
@@ -165,7 +171,8 @@ def _tablero_response(db: Session, tablero: Tablero, componente: CatalogoCompone
             polos_con_reserva,
             max_polos,
             total_filas,
-            tablero.paso_mm or 150
+            tablero.paso_mm or 150,
+            candidatos_cache=gabinetes_candidatos,
         )
         if gab_alt and gab_alt.atributos:
             gabinete_alternativo_id = str(gab_alt.id)
@@ -177,7 +184,7 @@ def _tablero_response(db: Session, tablero: Tablero, componente: CatalogoCompone
 
     distribuidor_codigo = None
     if tablero.distribuidor_sugerido_id:
-        dist = db.get(CatalogoComponente, tablero.distribuidor_sugerido_id)
+        dist = componentes_map.get(tablero.distribuidor_sugerido_id) if componentes_map else db.get(CatalogoComponente, tablero.distribuidor_sugerido_id)
         if dist:
             distribuidor_codigo = dist.codigo
 
@@ -279,9 +286,29 @@ def listar_tableros(
         .limit(limit)
         .all()
     )
-    # Batch fetch de interruptores principales: 1 query IN en vez de un db.get por tablero.
-    componentes = componentes_por_id(db, {t.interruptor_principal_id for t in tableros if t.interruptor_principal_id})
-    return [_tablero_response(db, t, componentes.get(t.interruptor_principal_id)) for t in tableros]
+    # Batch fetch de todos los componentes (interruptor principal, gabinete, distribuidor)
+    componente_ids = {
+        cid
+        for t in tableros
+        for cid in (t.interruptor_principal_id, t.gabinete_sugerido_id, t.distribuidor_sugerido_id)
+        if cid is not None
+    }
+    componentes = componentes_por_id(db, componente_ids)
+    gabinetes_candidatos = db.query(CatalogoComponente).filter(
+        CatalogoComponente.proveedor == "Nollmann",
+        CatalogoComponente.atributos["tipo"].as_string() == "gabinete"
+    ).all() if tableros else []
+
+    return [
+        _tablero_response(
+            db,
+            t,
+            componentes.get(t.interruptor_principal_id) if t.interruptor_principal_id else None,
+            componentes_map=componentes,
+            gabinetes_candidatos=gabinetes_candidatos,
+        )
+        for t in tableros
+    ]
 
 
 @router.get("/tableros/{tablero_id}", response_model=TableroResponse)

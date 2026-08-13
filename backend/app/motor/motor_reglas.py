@@ -157,14 +157,18 @@ def obtener_opciones_gabinetes_nollmann(
     ancho_requerido: int = 0,
     alto_requerido: int = 0,
     ancho_preferido: int = 0,
+    candidatos_cache: Optional[List[CatalogoComponente]] = None,
 ) -> Tuple[Optional[CatalogoComponente], Optional[CatalogoComponente]]:
     """
     Retorna el gabinete principal (menor costo) y una opción alternativa de distinto ancho/formato.
     """
-    candidatos = db.query(CatalogoComponente).filter(
-        CatalogoComponente.proveedor == "Nollmann",
-        CatalogoComponente.atributos["tipo"].as_string() == "gabinete"
-    ).all()
+    if candidatos_cache is not None:
+        candidatos = candidatos_cache
+    else:
+        candidatos = db.query(CatalogoComponente).filter(
+            CatalogoComponente.proveedor == "Nollmann",
+            CatalogoComponente.atributos["tipo"].as_string() == "gabinete"
+        ).all()
 
     elegibles = []
     for c in candidatos:
