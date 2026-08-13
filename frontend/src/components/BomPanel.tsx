@@ -6,6 +6,7 @@ import {
   type BomResumenTablero,
 } from "../api/client";
 import { Button } from "./common/Button";
+import { ConfirmDialog } from "./ConfirmDialog";
 
 interface BomPanelProps {
   tableroId: string;
@@ -22,25 +23,25 @@ export function BomPanel({ tableroId, tableroNombre, onAmpliar, isCompact = fals
   const [generando, setGenerando] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [tabCatActiva, setTabCatActiva] = useState<TabCategoriaBOM>("todos");
+  const [modalLimpiarConfirm, setModalLimpiarConfirm] = useState(false);
+
+  const cargarBom = async () => {
+    setCargando(true);
+    setError(null);
+    try {
+      const res = await obtenerBomTablero(tableroId);
+      setBom(res);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Error al cargar la lista de materiales");
+    } finally {
+      setCargando(false);
+    }
+  };
 
   useEffect(() => {
-    let unmounted = false;
-    async function cargar() {
-      setCargando(true);
-      setError(null);
-      try {
-        const res = await obtenerBomTablero(tableroId);
-        if (!unmounted) setBom(res);
-      } catch (err) {
-        if (!unmounted) setError(err instanceof Error ? err.message : "Error al cargar BOM");
-      } finally {
-        if (!unmounted) setCargando(false);
-      }
+    if (tableroId) {
+      cargarBom();
     }
-    cargar();
-    return () => {
-      unmounted = true;
-    };
   }, [tableroId]);
 
   const handleGenerar = async () => {
@@ -56,8 +57,8 @@ export function BomPanel({ tableroId, tableroNombre, onAmpliar, isCompact = fals
     }
   };
 
-  const handleLimpiar = async () => {
-    if (!window.confirm("¿Está seguro de eliminar la lista de materiales generada?")) return;
+  const handleConfirmarLimpiar = async () => {
+    setModalLimpiarConfirm(false);
     setCargando(true);
     try {
       await limpiarBomTablero(tableroId);
@@ -175,11 +176,12 @@ export function BomPanel({ tableroId, tableroNombre, onAmpliar, isCompact = fals
             <Button
               variant="ghost"
               size="sm"
-              onClick={handleLimpiar}
+              onClick={() => setModalLimpiarConfirm(true)}
               disabled={cargando || generando}
-              title="Borrar cotización generada"
+              className="text-rose-400 hover:text-white hover:bg-rose-900/40 border border-rose-800/40"
+              title="Limpiar y recálculo del BOM"
             >
-              Limpiar
+              Limpiar BOM
             </Button>
           )}
           <Button
@@ -411,6 +413,17 @@ export function BomPanel({ tableroId, tableroNombre, onAmpliar, isCompact = fals
           </div>
         )}
       </div>
+
+      {modalLimpiarConfirm && (
+        <ConfirmDialog
+          titulo="Limpiar Lista de Materiales (BOM)"
+          mensaje={`¿Estás seguro de que deseas vaciar y recargar la lista de materiales generada para el tablero "${tableroNombre}"?`}
+          textoConfirmar="Limpiar BOM"
+          confirmando={cargando}
+          onConfirm={handleConfirmarLimpiar}
+          onCancel={() => setModalLimpiarConfirm(false)}
+        />
+      )}
     </div>
   );
 }

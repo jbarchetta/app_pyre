@@ -31,12 +31,21 @@ const NAV_ITEMS: NavItem[] = [
 const ROL_LABEL: Record<string, string> = {
   analista: "Analista",
   supervisor: "Supervisor",
+  administrador: "Administrador",
+  desarrollador: "Desarrollador",
 };
 
 export function Layout() {
   const usuario = useSesion();
   const navigate = useNavigate();
   const [cerrandoSesion, setCerrandoSesion] = useState(false);
+
+  const navItemsFiltrados = NAV_ITEMS.filter((item) => {
+    if (item.to === "/admin-config" && usuario?.rol === "analista") {
+      return false;
+    }
+    return true;
+  });
 
   async function handleLogout() {
     setCerrandoSesion(true);
@@ -50,7 +59,7 @@ export function Layout() {
 
   return (
     <div className="flex min-h-screen bg-canvas font-sans text-ink selection:bg-brand selection:text-white p-3 gap-3">
-      {/* Sidebar Flotante Neo-SaaS: Tarjeta blanca flotante sobre el lienzo gris sedoso */}
+      {/* Sidebar Flotante Neo-SaaS */}
       <aside className="z-20 flex w-60 shrink-0 flex-col justify-between rounded-card border border-line bg-surface p-4 shadow-card">
         <div>
           <div className="mb-6 flex items-center gap-3 px-2">
@@ -68,7 +77,7 @@ export function Layout() {
           </div>
 
           <nav className="flex flex-col gap-1.5" aria-label="Navegación principal">
-            {NAV_ITEMS.map(({ label, to, icon: Icono }) => (
+            {navItemsFiltrados.map(({ label, to, icon: Icono }) => (
               <NavLink
                 key={label}
                 to={to}

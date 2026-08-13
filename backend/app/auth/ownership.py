@@ -18,7 +18,7 @@ from app.models import AuditLog, Proyecto, RolUsuario, Salida, Seccion, Tablero,
 
 
 def verificar_acceso_proyecto(db: Session, proyecto: Proyecto, usuario: Usuario, recurso: str = "proyecto") -> None:
-    if usuario.rol == RolUsuario.SUPERVISOR:
+    if usuario.rol in (RolUsuario.SUPERVISOR, RolUsuario.ADMINISTRADOR, RolUsuario.DESARROLLADOR):
         return
     if proyecto.analista_id != usuario.id:
         # commit ANTES de levantar el 403 -- el raise hace rollback de la

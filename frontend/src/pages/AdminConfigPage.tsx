@@ -28,11 +28,19 @@ import {
   CheckCircleIcon,
   XCircleIcon,
 } from "@heroicons/react/24/outline";
+import { Navigate } from "react-router-dom";
+import { useSesion } from "../auth/SesionContext";
 import { ConfirmDialog } from "../components/ConfirmDialog";
-import { Button, Field, Input, Select, Modal } from "../components/common";
+import { Button, Input, Select, Modal } from "../components/common";
 
 export function AdminConfigPage() {
-  const [tabActivo, setTabActivo] = useState<"usuarios" | "auditoria" | "micuenta" | "cablecanales" | "borneras">("usuarios");
+  const usuarioSesion = useSesion();
+  const esAnalista = usuarioSesion?.rol === "analista";
+  const esAdminOManager = usuarioSesion?.rol === "administrador" || usuarioSesion?.rol === "desarrollador";
+
+  const [tabActivo, setTabActivo] = useState<"usuarios" | "auditoria" | "micuenta" | "cablecanales" | "borneras">(
+    esAdminOManager ? "usuarios" : "cablecanales"
+  );
 
   // Reglas & Borneras
   const [reglas, setReglas] = useState<ReglaCablecanal[]>([]);
@@ -261,41 +269,49 @@ export function AdminConfigPage() {
     }
   };
 
+  if (esAnalista) {
+    return <Navigate to="/proyectos" replace />;
+  }
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-gray-900 tracking-tight">Panel de Administración PYRE</h1>
-          <p className="text-xs text-gray-500">Módulo 1: Gestión autónoma de usuarios, roles, auditoría y parámetros físicos</p>
+          <h1 className="text-xl font-bold text-gray-900 tracking-tight">Panel de Configuración y Parámetros</h1>
+          <p className="text-xs text-gray-500">Módulo 1: Gestión de usuarios, roles, auditoría y parámetros físicos</p>
         </div>
       </div>
 
       {/* Tabs */}
       <div className="flex border-b border-gray-200 overflow-x-auto">
-        <button
-          type="button"
-          onClick={() => setTabActivo("usuarios")}
-          className={`py-2.5 px-4 font-mono text-xs font-bold uppercase tracking-wider border-b-2 transition flex items-center gap-1.5 whitespace-nowrap ${
-            tabActivo === "usuarios"
-              ? "border-abb-red text-abb-red"
-              : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-          }`}
-        >
-          <UsersIcon className="w-4 h-4" />
-          Gestión de Usuarios PYRE
-        </button>
-        <button
-          type="button"
-          onClick={() => setTabActivo("auditoria")}
-          className={`py-2.5 px-4 font-mono text-xs font-bold uppercase tracking-wider border-b-2 transition flex items-center gap-1.5 whitespace-nowrap ${
-            tabActivo === "auditoria"
-              ? "border-abb-red text-abb-red"
-              : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-          }`}
-        >
-          <ClipboardDocumentListIcon className="w-4 h-4" />
-          Registro de Auditoría
-        </button>
+        {esAdminOManager && (
+          <>
+            <button
+              type="button"
+              onClick={() => setTabActivo("usuarios")}
+              className={`py-2.5 px-4 font-mono text-xs font-bold uppercase tracking-wider border-b-2 transition flex items-center gap-1.5 whitespace-nowrap ${
+                tabActivo === "usuarios"
+                  ? "border-abb-red text-abb-red"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+              }`}
+            >
+              <UsersIcon className="w-4 h-4" />
+              Gestión de Usuarios PYRE
+            </button>
+            <button
+              type="button"
+              onClick={() => setTabActivo("auditoria")}
+              className={`py-2.5 px-4 font-mono text-xs font-bold uppercase tracking-wider border-b-2 transition flex items-center gap-1.5 whitespace-nowrap ${
+                tabActivo === "auditoria"
+                  ? "border-abb-red text-abb-red"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+              }`}
+            >
+              <ClipboardDocumentListIcon className="w-4 h-4" />
+              Registro de Auditoría
+            </button>
+          </>
+        )}
         <button
           type="button"
           onClick={() => setTabActivo("micuenta")}
@@ -678,7 +694,8 @@ export function AdminConfigPage() {
           }
         >
           <form id="form-crear-usuario" onSubmit={handleCrearUsuario} className="space-y-4">
-            <Field label="Nombre Completo" required>
+            <div>
+              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Nombre Completo *</label>
               <Input
                 type="text"
                 required
@@ -686,8 +703,9 @@ export function AdminConfigPage() {
                 onChange={(e) => setNuevoNombre(e.target.value)}
                 placeholder="ej. Juan Pérez"
               />
-            </Field>
-            <Field label="Correo Electrónico" required>
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Correo Electrónico *</label>
               <Input
                 type="email"
                 required
@@ -695,8 +713,9 @@ export function AdminConfigPage() {
                 onChange={(e) => setNuevoEmail(e.target.value)}
                 placeholder="ej. j.perez@pyre.com"
               />
-            </Field>
-            <Field label="Rol en el Sistema" required>
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Rol en el Sistema *</label>
               <Select
                 value={nuevoRol}
                 onChange={(e) => setNuevoRol(e.target.value as RolUsuarioType)}
@@ -706,8 +725,9 @@ export function AdminConfigPage() {
                 <option value="administrador">Administrador — Usuarios, catálogo, precios y parámetros</option>
                 <option value="desarrollador">Desarrollador — Acceso técnico total</option>
               </Select>
-            </Field>
-            <Field label="Contraseña Inicial" required>
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Contraseña Inicial *</label>
               <Input
                 type="password"
                 required
@@ -716,7 +736,7 @@ export function AdminConfigPage() {
                 onChange={(e) => setNuevoPassword(e.target.value)}
                 placeholder="Mínimo 8 caracteres"
               />
-            </Field>
+            </div>
           </form>
         </Modal>
       )}
@@ -747,15 +767,17 @@ export function AdminConfigPage() {
           }
         >
           <form id="form-editar-usuario" onSubmit={handleGuardarEdicionUsuario} className="space-y-4">
-            <Field label="Nombre Completo" required>
+            <div>
+              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Nombre Completo *</label>
               <Input
                 type="text"
                 required
                 value={editNombre}
                 onChange={(e) => setEditNombre(e.target.value)}
               />
-            </Field>
-            <Field label="Rol en el Sistema" required>
+            </div>
+            <div>
+              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Rol en el Sistema *</label>
               <Select
                 value={editRol}
                 onChange={(e) => setEditRol(e.target.value as RolUsuarioType)}
@@ -765,7 +787,7 @@ export function AdminConfigPage() {
                 <option value="administrador">Administrador — Usuarios, catálogo, precios y parámetros</option>
                 <option value="desarrollador">Desarrollador — Acceso técnico total</option>
               </Select>
-            </Field>
+            </div>
             <div className="flex items-center gap-2 pt-2">
               <input
                 type="checkbox"
@@ -809,7 +831,8 @@ export function AdminConfigPage() {
           }
         >
           <form id="form-reset-password" onSubmit={handleAdminResetPassword} className="space-y-4">
-            <Field label="Nueva Contraseña" required>
+            <div>
+              <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">Nueva Contraseña *</label>
               <Input
                 type="password"
                 required
@@ -818,7 +841,7 @@ export function AdminConfigPage() {
                 onChange={(e) => setAdminNewPassword(e.target.value)}
                 placeholder="Mínimo 8 caracteres"
               />
-            </Field>
+            </div>
           </form>
         </Modal>
       )}

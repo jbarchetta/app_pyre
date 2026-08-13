@@ -55,7 +55,7 @@ def _to_response(proyecto: Proyecto, analista: Usuario | None = None) -> Proyect
 def crear_proyecto(
     payload: ProyectoCreate,
     db: Session = Depends(get_db),
-    usuario: Usuario = Depends(require_role(RolUsuario.ANALISTA, RolUsuario.SUPERVISOR)),
+    usuario: Usuario = Depends(require_role(RolUsuario.ANALISTA, RolUsuario.SUPERVISOR, RolUsuario.ADMINISTRADOR, RolUsuario.DESARROLLADOR)),
 ):
     proyecto = Proyecto(
         cliente=payload.cliente,
@@ -78,10 +78,10 @@ def listar_proyectos(
     usuario: Usuario = Depends(get_current_user),
 ):
     # Autorización por propiedad (ciclo 8): el analista solo ve sus proyectos;
-    # el supervisor ve todos. Orden: más nuevos primero (estable para paginar).
+    # el resto ve todos. Orden: más nuevos primero (estable para paginar).
     limit, offset = acotar_paginacion(limit, offset)
     consulta = db.query(Proyecto)
-    if usuario.rol != RolUsuario.SUPERVISOR:
+    if usuario.rol == RolUsuario.ANALISTA:
         consulta = consulta.filter(Proyecto.analista_id == usuario.id)
     proyectos = consulta.order_by(Proyecto.creado_en.desc(), Proyecto.id).offset(offset).limit(limit).all()
     
@@ -114,7 +114,7 @@ def actualizar_proyecto(
     proyecto_id: uuid.UUID,
     payload: ProyectoUpdate,
     db: Session = Depends(get_db),
-    usuario: Usuario = Depends(require_role(RolUsuario.ANALISTA, RolUsuario.SUPERVISOR)),
+    usuario: Usuario = Depends(require_role(RolUsuario.ANALISTA, RolUsuario.SUPERVISOR, RolUsuario.ADMINISTRADOR, RolUsuario.DESARROLLADOR)),
 ):
     proyecto = obtener_proyecto_autorizado(db, proyecto_id, usuario)
 
@@ -130,10 +130,10 @@ def actualizar_proyecto(
     if "estado" in cambios:
         proyecto.estado = cambios["estado"]
     if "analista_id" in cambios:
-        if usuario.rol != RolUsuario.SUPERVISOR:
+        if usuario.rol not in (RolUsuario.SUPERVISOR, RolUsuario.ADMINISTRADOR, RolUsuario.DESARROLLADOR):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
-                detail="Solo un supervisor puede reasignar el analista de un proyecto",
+                detail="Solo un supervisor o administrador puede reasignar el analista de un proyecto",
             )
         nuevo_analista = db.get(Usuario, cambios["analista_id"])
         if nuevo_analista is None or nuevo_analista.rol != RolUsuario.ANALISTA:
