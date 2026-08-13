@@ -28,6 +28,8 @@ import {
   CheckCircleIcon,
   XCircleIcon,
 } from "@heroicons/react/24/outline";
+import { ConfirmDialog } from "../components/ConfirmDialog";
+import { Button, Field, Input, Select, Modal } from "../components/common";
 
 export function AdminConfigPage() {
   const [tabActivo, setTabActivo] = useState<"usuarios" | "auditoria" | "micuenta" | "cablecanales" | "borneras">("usuarios");
@@ -168,16 +170,24 @@ export function AdminConfigPage() {
     }
   };
 
-  const handleDesactivarUsuario = async (u: UsuarioGestion) => {
-    if (!confirm(`¿Estás seguro de desactivar al usuario ${u.nombre} (${u.email})?`)) return;
+  // Desactivar usuario confirmation modal state
+  const [usuarioADesactivar, setUsuarioADesactivar] = useState<UsuarioGestion | null>(null);
+  const [desactivandoUsuario, setDesactivandoUsuario] = useState(false);
+
+  const handleConfirmDesactivarUsuario = async () => {
+    if (!usuarioADesactivar) return;
     setError(null);
     setSuccess(null);
     try {
-      await desactivarUsuario(u.id);
-      setSuccess(`Usuario ${u.email} desactivado.`);
+      setDesactivandoUsuario(true);
+      await desactivarUsuario(usuarioADesactivar.id);
+      setSuccess(`Usuario ${usuarioADesactivar.email} desactivado con éxito.`);
+      setUsuarioADesactivar(null);
       await cargarUsuarios();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Error al desactivar el usuario");
+    } finally {
+      setDesactivandoUsuario(false);
     }
   };
 
@@ -413,7 +423,7 @@ export function AdminConfigPage() {
                       {u.activo && (
                         <button
                           type="button"
-                          onClick={() => handleDesactivarUsuario(u)}
+                          onClick={() => setUsuarioADesactivar(u)}
                           className="p-1.5 text-rose-600 hover:text-rose-800 bg-rose-50 hover:bg-rose-100 rounded-lg transition"
                           title="Desactivar Usuario"
                         >
@@ -644,180 +654,185 @@ export function AdminConfigPage() {
 
       {/* MODAL CREAR USUARIO */}
       {modalNuevoUsuario && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-2xl max-w-md w-full p-6 space-y-4">
-            <h3 className="text-sm font-bold text-gray-900 flex items-center gap-1.5 border-b pb-2">
-              <UsersIcon className="w-4 h-4 text-abb-red" />
-              Alta de Usuario Autónomo PYRE
-            </h3>
-            <form onSubmit={handleCrearUsuario} className="space-y-3">
-              <div>
-                <label className="block text-[10px] uppercase font-bold text-secondary mb-1">Nombre Completo</label>
-                <input
-                  type="text"
-                  required
-                  value={nuevoNombre}
-                  onChange={(e) => setNuevoNombre(e.target.value)}
-                  className="w-full border border-gray-300 rounded px-3 py-1.5 text-sm focus:outline-none focus:border-abb-red"
-                  placeholder="ej. Juan Pérez"
-                />
-              </div>
-              <div>
-                <label className="block text-[10px] uppercase font-bold text-secondary mb-1">Correo Electrónico</label>
-                <input
-                  type="email"
-                  required
-                  value={nuevoEmail}
-                  onChange={(e) => setNuevoEmail(e.target.value)}
-                  className="w-full border border-gray-300 rounded px-3 py-1.5 text-sm focus:outline-none focus:border-abb-red"
-                  placeholder="ej. j.perez@pyre.com"
-                />
-              </div>
-              <div>
-                <label className="block text-[10px] uppercase font-bold text-secondary mb-1">Rol en el Sistema</label>
-                <select
-                  value={nuevoRol}
-                  onChange={(e) => setNuevoRol(e.target.value as RolUsuarioType)}
-                  className="w-full border border-gray-300 rounded px-3 py-1.5 text-sm focus:outline-none focus:border-abb-red"
-                >
-                  <option value="analista">Analista — Tableros, salidas, BOM y planos</option>
-                  <option value="supervisor">Supervisor — Permisos analista + parámetros, reasignar y autorizar</option>
-                  <option value="administrador">Administrador — Usuarios, catálogo, precios y parámetros</option>
-                  <option value="desarrollador">Desarrollador — Acceso técnico total</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-[10px] uppercase font-bold text-secondary mb-1">Contraseña Inicial</label>
-                <input
-                  type="password"
-                  required
-                  minLength={8}
-                  value={nuevoPassword}
-                  onChange={(e) => setNuevoPassword(e.target.value)}
-                  className="w-full border border-gray-300 rounded px-3 py-1.5 text-sm focus:outline-none focus:border-abb-red"
-                  placeholder="Mínimo 8 caracteres"
-                />
-              </div>
-              <div className="flex justify-end gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setModalNuevoUsuario(false)}
-                  className="px-3 py-1.5 text-xs text-gray-600 hover:bg-gray-100 rounded-lg"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-1.5 bg-abb-red hover:bg-red-700 text-white font-bold text-xs rounded-lg uppercase tracking-wider"
-                >
-                  Crear Usuario
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+        <Modal
+          titulo="Alta de Usuario Autónomo PYRE"
+          subtitulo="Crear una nueva cuenta con acceso al portal de ingeniería"
+          icon={<UsersIcon className="w-5 h-5 text-abb-red" />}
+          onClose={() => setModalNuevoUsuario(false)}
+          size="md"
+          footer={
+            <>
+              <Button
+                variant="primary"
+                onClick={() => {
+                  const form = document.getElementById("form-crear-usuario") as HTMLFormElement;
+                  if (form) form.requestSubmit();
+                }}
+              >
+                Crear Usuario
+              </Button>
+              <Button variant="secondary" onClick={() => setModalNuevoUsuario(false)}>
+                Cancelar
+              </Button>
+            </>
+          }
+        >
+          <form id="form-crear-usuario" onSubmit={handleCrearUsuario} className="space-y-4">
+            <Field label="Nombre Completo" required>
+              <Input
+                type="text"
+                required
+                value={nuevoNombre}
+                onChange={(e) => setNuevoNombre(e.target.value)}
+                placeholder="ej. Juan Pérez"
+              />
+            </Field>
+            <Field label="Correo Electrónico" required>
+              <Input
+                type="email"
+                required
+                value={nuevoEmail}
+                onChange={(e) => setNuevoEmail(e.target.value)}
+                placeholder="ej. j.perez@pyre.com"
+              />
+            </Field>
+            <Field label="Rol en el Sistema" required>
+              <Select
+                value={nuevoRol}
+                onChange={(e) => setNuevoRol(e.target.value as RolUsuarioType)}
+              >
+                <option value="analista">Analista — Tableros, salidas, BOM y planos</option>
+                <option value="supervisor">Supervisor — Permisos analista + parámetros, reasignar y autorizar</option>
+                <option value="administrador">Administrador — Usuarios, catálogo, precios y parámetros</option>
+                <option value="desarrollador">Desarrollador — Acceso técnico total</option>
+              </Select>
+            </Field>
+            <Field label="Contraseña Inicial" required>
+              <Input
+                type="password"
+                required
+                minLength={8}
+                value={nuevoPassword}
+                onChange={(e) => setNuevoPassword(e.target.value)}
+                placeholder="Mínimo 8 caracteres"
+              />
+            </Field>
+          </form>
+        </Modal>
       )}
 
       {/* MODAL EDITAR USUARIO */}
       {usuarioEditando && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-2xl max-w-md w-full p-6 space-y-4">
-            <h3 className="text-sm font-bold text-gray-900 border-b pb-2">
-              Editar Usuario: {usuarioEditando.email}
-            </h3>
-            <form onSubmit={handleGuardarEdicionUsuario} className="space-y-3">
-              <div>
-                <label className="block text-[10px] uppercase font-bold text-secondary mb-1">Nombre</label>
-                <input
-                  type="text"
-                  required
-                  value={editNombre}
-                  onChange={(e) => setEditNombre(e.target.value)}
-                  className="w-full border border-gray-300 rounded px-3 py-1.5 text-sm focus:outline-none focus:border-abb-red"
-                />
-              </div>
-              <div>
-                <label className="block text-[10px] uppercase font-bold text-secondary mb-1">Rol</label>
-                <select
-                  value={editRol}
-                  onChange={(e) => setEditRol(e.target.value as RolUsuarioType)}
-                  className="w-full border border-gray-300 rounded px-3 py-1.5 text-sm focus:outline-none focus:border-abb-red"
-                >
-                  <option value="analista">Analista</option>
-                  <option value="supervisor">Supervisor</option>
-                  <option value="administrador">Administrador</option>
-                  <option value="desarrollador">Desarrollador</option>
-                </select>
-              </div>
-              <div className="flex items-center gap-2 pt-1">
-                <input
-                  type="checkbox"
-                  id="edit-activo"
-                  checked={editActivo}
-                  onChange={(e) => setEditActivo(e.target.checked)}
-                  className="rounded text-abb-red focus:ring-abb-red"
-                />
-                <label htmlFor="edit-activo" className="text-xs font-bold text-gray-700">Cuenta Activa</label>
-              </div>
-              <div className="flex justify-end gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setUsuarioEditando(null)}
-                  className="px-3 py-1.5 text-xs text-gray-600 hover:bg-gray-100 rounded-lg"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-1.5 bg-abb-red hover:bg-red-700 text-white font-bold text-xs rounded-lg uppercase tracking-wider"
-                >
-                  Guardar Cambios
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+        <Modal
+          titulo="Editar Usuario"
+          subtitulo={`Actualizar perfil para ${usuarioEditando.email}`}
+          icon={<PencilIcon className="w-5 h-5 text-abb-red" />}
+          onClose={() => setUsuarioEditando(null)}
+          size="md"
+          footer={
+            <>
+              <Button
+                variant="primary"
+                onClick={() => {
+                  const form = document.getElementById("form-editar-usuario") as HTMLFormElement;
+                  if (form) form.requestSubmit();
+                }}
+              >
+                Guardar Cambios
+              </Button>
+              <Button variant="secondary" onClick={() => setUsuarioEditando(null)}>
+                Cancelar
+              </Button>
+            </>
+          }
+        >
+          <form id="form-editar-usuario" onSubmit={handleGuardarEdicionUsuario} className="space-y-4">
+            <Field label="Nombre Completo" required>
+              <Input
+                type="text"
+                required
+                value={editNombre}
+                onChange={(e) => setEditNombre(e.target.value)}
+              />
+            </Field>
+            <Field label="Rol en el Sistema" required>
+              <Select
+                value={editRol}
+                onChange={(e) => setEditRol(e.target.value as RolUsuarioType)}
+              >
+                <option value="analista">Analista — Tableros, salidas, BOM y planos</option>
+                <option value="supervisor">Supervisor — Permisos analista + parámetros, reasignar y autorizar</option>
+                <option value="administrador">Administrador — Usuarios, catálogo, precios y parámetros</option>
+                <option value="desarrollador">Desarrollador — Acceso técnico total</option>
+              </Select>
+            </Field>
+            <div className="flex items-center gap-2 pt-2">
+              <input
+                type="checkbox"
+                id="edit-activo"
+                checked={editActivo}
+                onChange={(e) => setEditActivo(e.target.checked)}
+                className="h-4 w-4 rounded border-gray-300 text-abb-red focus:ring-abb-red cursor-pointer"
+              />
+              <label htmlFor="edit-activo" className="text-xs font-bold text-slate-700 cursor-pointer">
+                Cuenta de Usuario Activa
+              </label>
+            </div>
+          </form>
+        </Modal>
       )}
 
       {/* MODAL RESET PASSWORD ADMIN */}
       {userResetTarget && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-2xl border border-gray-100 shadow-2xl max-w-md w-full p-6 space-y-4">
-            <h3 className="text-sm font-bold text-gray-900 border-b pb-2 flex items-center gap-1.5">
-              <KeyIcon className="w-4 h-4 text-amber-600" />
-              Resetear Contraseña: {userResetTarget.email}
-            </h3>
-            <form onSubmit={handleAdminResetPassword} className="space-y-3">
-              <div>
-                <label className="block text-[10px] uppercase font-bold text-secondary mb-1">Nueva Contraseña</label>
-                <input
-                  type="password"
-                  required
-                  minLength={8}
-                  value={adminNewPassword}
-                  onChange={(e) => setAdminNewPassword(e.target.value)}
-                  className="w-full border border-gray-300 rounded px-3 py-1.5 text-sm focus:outline-none focus:border-abb-red"
-                  placeholder="Mínimo 8 caracteres"
-                />
-              </div>
-              <div className="flex justify-end gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setUserResetTarget(null)}
-                  className="px-3 py-1.5 text-xs text-gray-600 hover:bg-gray-100 rounded-lg"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-1.5 bg-amber-600 hover:bg-amber-700 text-white font-bold text-xs rounded-lg uppercase tracking-wider"
-                >
-                  Establecer Clave
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+        <Modal
+          titulo="Resetear Contraseña"
+          subtitulo={`Establecer nueva clave de acceso para ${userResetTarget.email}`}
+          icon={<KeyIcon className="w-5 h-5 text-amber-500" />}
+          onClose={() => setUserResetTarget(null)}
+          size="md"
+          footer={
+            <>
+              <Button
+                variant="primary"
+                className="!bg-amber-600 hover:!bg-amber-700"
+                onClick={() => {
+                  const form = document.getElementById("form-reset-password") as HTMLFormElement;
+                  if (form) form.requestSubmit();
+                }}
+              >
+                Establecer Clave
+              </Button>
+              <Button variant="secondary" onClick={() => setUserResetTarget(null)}>
+                Cancelar
+              </Button>
+            </>
+          }
+        >
+          <form id="form-reset-password" onSubmit={handleAdminResetPassword} className="space-y-4">
+            <Field label="Nueva Contraseña" required>
+              <Input
+                type="password"
+                required
+                minLength={8}
+                value={adminNewPassword}
+                onChange={(e) => setAdminNewPassword(e.target.value)}
+                placeholder="Mínimo 8 caracteres"
+              />
+            </Field>
+          </form>
+        </Modal>
+      )}
+
+      {/* CONFIRM DIALOG DESACTIVAR USUARIO */}
+      {usuarioADesactivar && (
+        <ConfirmDialog
+          titulo="Desactivar Usuario"
+          mensaje={`¿Estás seguro de que deseas desactivar al usuario "${usuarioADesactivar.nombre}" (${usuarioADesactivar.email})? El usuario no podrá acceder al sistema.`}
+          textoConfirmar="Desactivar Cuenta"
+          confirmando={desactivandoUsuario}
+          onConfirm={handleConfirmDesactivarUsuario}
+          onCancel={() => setUsuarioADesactivar(null)}
+        />
       )}
     </div>
   );
